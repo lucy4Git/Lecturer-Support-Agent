@@ -1,0 +1,43 @@
+@startuml
+!theme plain
+package "Unified Experience" {
+  [Next.js Workspace]
+  [PWA Shell]
+  [Feedback & Pilot UI]
+}
+package "Identity & Communications" {
+  [Password Recovery]
+  [TOTP MFA]
+  [OIDC SSO]
+  [Email Gateway]
+}
+package "Enterprise Integration" {
+  [Canvas Adapter]
+  [Moodle Adapter]
+  [OneRoster Adapter]
+  [Staging & Mapping]
+}
+package "Data & Trust" {
+  [Rights Gate]
+  [OpenAlex Connector]
+  [Crossref Connector]
+  [Claim Citation Coverage]
+  [Legal Hold & Deletion]
+}
+package "Commercial Operations" {
+  [Pilot Evaluation]
+  [Support Policy]
+  [DPA / SLA / Privacy Templates]
+  [Tenant Portability]
+}
+[Next.js Workspace] --> [Password Recovery]
+[Next.js Workspace] --> [TOTP MFA]
+[PWA Shell] --> [Next.js Workspace]
+[OIDC SSO] --> [Staging & Mapping]
+[Canvas Adapter] --> [Staging & Mapping]
+[Moodle Adapter] --> [Staging & Mapping]
+[OneRoster Adapter] --> [Staging & Mapping]
+[Rights Gate] --> [OpenAlex Connector]
+[Rights Gate] --> [Crossref Connector]
+[Feedback & Pilot UI] --> [Pilot Evaluation]
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+package "Unified Lecturer Support Work Area" {
+  [Output Card]
+  [Review Task Panel]
+  [Review Oversight Panel]
+}
+package "API" {
+  [Review Routes]
+  [External Access Routes]
+}
+package "Domain Services" {
+  [Moderation Review Service]
+  [Assignment Guard]
+  [External Grant Guard]
+  [Generated Output Service]
+  [Audit Service]
+}
+database PostgreSQL
+
+[Output Card] --> [Review Routes]
+[Review Task Panel] --> [Review Routes]
+[Review Oversight Panel] --> [Review Routes]
+[Review Routes] --> [Moderation Review Service]
+[External Access Routes] --> [External Grant Guard]
+[Moderation Review Service] --> [Assignment Guard]
+[Moderation Review Service] --> [External Grant Guard]
+[Moderation Review Service] --> [Generated Output Service]
+[Moderation Review Service] --> [Audit Service]
+[Assignment Guard] --> PostgreSQL
+[External Grant Guard] --> PostgreSQL
+[Moderation Review Service] --> PostgreSQL
+@enduml

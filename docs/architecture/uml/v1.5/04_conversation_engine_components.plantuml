@@ -1,0 +1,37 @@
+@startuml
+package "FastAPI v1.5" {
+  [Conversation Routes]
+  [Conversation Engine]
+  [Task Classifier]
+  [Prompt Builder]
+  [Model Router]
+  [Citation Integrity Guard]
+  [Crossref Source Discovery]
+  [Source Integrity Service]
+}
+package "Provider Adapters" {
+  [OpenAI Responses]
+  [Anthropic Messages]
+  [Gemini GenerateContent]
+  [DeepSeek Chat Completions]
+  [Ollama Chat]
+  [Development Mock]
+}
+database PostgreSQL
+
+[Conversation Routes] --> [Conversation Engine]
+[Conversation Engine] --> [Task Classifier]
+[Conversation Engine] --> [Prompt Builder]
+[Conversation Engine] --> [Crossref Source Discovery]
+[Conversation Engine] --> [Model Router]
+[Conversation Engine] --> [Citation Integrity Guard]
+[Conversation Engine] --> [Source Integrity Service]
+[Model Router] --> [OpenAI Responses]
+[Model Router] --> [Anthropic Messages]
+[Model Router] --> [Gemini GenerateContent]
+[Model Router] --> [DeepSeek Chat Completions]
+[Model Router] --> [Ollama Chat]
+[Model Router] --> [Development Mock]
+[Conversation Engine] --> PostgreSQL
+[Source Integrity Service] --> PostgreSQL
+@enduml

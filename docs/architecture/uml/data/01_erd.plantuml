@@ -1,0 +1,117 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Entity Relationship Model
+hide circle
+entity Tenant { * tenant_id : UUID
+--
+name : string
+status : enum }
+entity OrganizationalUnitType { * unit_type_id : UUID
+tenant_id : UUID
+name : string }
+entity OrganizationalUnit { * unit_id : UUID
+tenant_id : UUID
+unit_type_id : UUID
+parent_unit_id : UUID?
+code : string
+label : string }
+entity User { * user_id : UUID
+tenant_id : UUID
+email : string
+status : enum }
+entity RoleDefinition { * role_id : UUID
+code : string }
+entity RoleAssignment { * assignment_id : UUID
+user_id : UUID
+role_id : UUID
+scope_unit_id : UUID
+valid_until : datetime? }
+entity CourseModule { * course_id : UUID
+tenant_id : UUID
+owning_unit_id : UUID
+code : string
+title : string }
+entity CourseAssignment { * course_assignment_id : UUID
+course_id : UUID
+user_id : UUID
+academic_period : string }
+entity Conversation { * conversation_id : UUID
+tenant_id : UUID
+owner_user_id : UUID }
+entity Message { * message_id : UUID
+conversation_id : UUID
+actor_user_id : UUID?
+created_at : datetime }
+entity ContentItem { * content_item_id : UUID
+tenant_id : UUID
+stable_type : string }
+entity ContentVersion { * version_id : UUID
+content_item_id : UUID
+parent_version_id : UUID?
+version_number : int
+checksum : string
+object_key : string
+created_by : UUID
+created_at : datetime }
+entity UploadBatch { * batch_id : UUID
+tenant_id : UUID
+created_by : UUID
+scope_unit_id : UUID
+status : enum }
+entity UploadItem { * upload_item_id : UUID
+batch_id : UUID
+version_id : UUID?
+original_path : string
+status : enum }
+entity SourceRecord { * source_id : UUID
+tenant_id : UUID?
+title : string
+url : string?
+verified_at : datetime? }
+entity ClaimCitation { * claim_citation_id : UUID
+message_id : UUID
+source_id : UUID
+support_score : decimal }
+entity ReviewAssignment { * review_id : UUID
+tenant_id : UUID
+reviewer_user_id : UUID
+scope_unit_id : UUID
+expires_at : datetime? }
+entity ReviewFinding { * finding_id : UUID
+review_id : UUID
+target_version_id : UUID
+status : enum }
+entity AuditEvent { * audit_id : UUID
+tenant_id : UUID
+actor_user_id : UUID?
+event_type : string
+occurred_at : datetime }
+Tenant ||--o{ OrganizationalUnitType
+Tenant ||--o{ OrganizationalUnit
+OrganizationalUnitType ||--o{ OrganizationalUnit
+OrganizationalUnit ||--o{ OrganizationalUnit : parent
+Tenant ||--o{ User
+User ||--o{ RoleAssignment
+RoleDefinition ||--o{ RoleAssignment
+OrganizationalUnit ||--o{ RoleAssignment
+OrganizationalUnit ||--o{ CourseModule
+CourseModule ||--o{ CourseAssignment
+User ||--o{ CourseAssignment
+User ||--o{ Conversation
+Conversation ||--o{ Message
+Tenant ||--o{ ContentItem
+ContentItem ||--o{ ContentVersion
+User ||--o{ ContentVersion
+UploadBatch ||--o{ UploadItem
+UploadItem }o--o| ContentVersion
+Message ||--o{ ClaimCitation
+SourceRecord ||--o{ ClaimCitation
+User ||--o{ ReviewAssignment
+ReviewAssignment ||--o{ ReviewFinding
+ContentVersion ||--o{ ReviewFinding
+Tenant ||--o{ AuditEvent
+@enduml

@@ -1,0 +1,24 @@
+@startuml
+title Immutable Report Generation
+actor User
+participant "Reports Panel" as UI
+participant "Analytics API" as API
+participant "Analytics Service" as Service
+participant "Authorisation Service" as Authz
+database "PostgreSQL RLS" as DB
+
+User -> UI : Select report, period, scope, format
+UI -> API : POST /analytics/report-runs
+API -> Service : run_report(payload)
+Service -> Authz : require reports.generate + scope
+Authz -> DB : validate role and tenant
+DB --> Authz : allow
+Service -> DB : query exact period/scope metrics
+DB --> Service : authorised data
+Service -> Service : canonicalise payload
+Service -> Service : calculate SHA-256
+Service -> DB : persist immutable report run
+Service --> API : completed run
+API --> UI : result, format, checksum, timestamp
+UI --> User : display governed report record
+@enduml

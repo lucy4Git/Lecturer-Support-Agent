@@ -1,0 +1,53 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Role Use Cases
+left to right direction
+actor Lecturer
+actor Coordinator
+actor "Head of Department" as HOD
+actor "Institution Administrator" as IA
+actor Moderator
+actor "External Reviewer" as ER
+rectangle LSA {
+ usecase "Use unified AI work area" as UC1
+ usecase "Generate/edit teaching material" as UC2
+ usecase "Generate/review assessments" as UC3
+ usecase "Bulk upload authorised content" as UC4
+ usecase "Review programme/module alignment" as UC5
+ usecase "Assign courses to lecturers" as UC6
+ usecase "Review departmental teaching" as UC7
+ usecase "Manage tenant users and roles" as UC8
+ usecase "Configure institutional structure" as UC9
+ usecase "Review assigned assessment" as UC10
+ usecase "Perform temporary review" as UC11
+ usecase "Version, source, export and audit" as UC12
+}
+Lecturer --> UC1
+Lecturer --> UC2
+Lecturer --> UC3
+Lecturer --> UC4
+Coordinator --> UC1
+Coordinator --> UC4
+Coordinator --> UC5
+HOD --> UC1
+HOD --> UC4
+HOD --> UC6
+HOD --> UC7
+IA --> UC1
+IA --> UC4
+IA --> UC8
+IA --> UC9
+Moderator --> UC1
+Moderator --> UC10
+ER --> UC1
+ER --> UC11
+UC2 .> UC12 : <<include>>
+UC3 .> UC12 : <<include>>
+UC4 .> UC12 : <<include>>
+UC10 .> UC12 : <<include>>
+UC11 .> UC12 : <<include>>
+@enduml

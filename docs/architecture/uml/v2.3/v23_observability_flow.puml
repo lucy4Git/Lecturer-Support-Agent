@@ -1,0 +1,19 @@
+@startuml
+participant Client
+participant API
+participant "Request Metrics Middleware" as Metrics
+participant "JSON Logger" as Logger
+participant Prometheus
+participant "Central Log Store" as Logs
+Client -> API: request
+API -> Metrics: method, route group, status, duration
+API -> Logger: redacted event + correlation context
+Metrics --> Prometheus: protected /metrics scrape
+Logger --> Logs: structured JSON
+Prometheus -> Prometheus: evaluate alert rules
+note right of Logger
+No raw prompts, document bodies,
+API keys, passwords, cookies,
+or provider payloads.
+end note
+@enduml

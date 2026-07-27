@@ -1,0 +1,11 @@
+@startuml
+title Lecturer Handover Lifecycle
+[*] --> Draft
+Draft --> Submitted : submit
+Submitted --> ChangesRequested : request_changes
+ChangesRequested --> Submitted : revise and submit
+Submitted --> Accepted : accept
+Accepted --> Completed : complete
+Completed --> Archived : archive
+Archived --> [*]
+@enduml

@@ -1,0 +1,10 @@
+resources:
+  - ../../base
+namespace: lecturer-support-agent
+images:
+  - name: lecturer-support-agent/api
+    newTag: staging
+  - name: lecturer-support-agent/worker
+    newTag: staging
+  - name: lecturer-support-agent/web
+    newTag: staging

@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lecturer-support-agent.local/schemas/evaluation_case.schema.json",
+  "title": "Evaluation Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "version",
+    "family",
+    "risk",
+    "context",
+    "prompt",
+    "expected",
+    "scoring",
+    "isolation",
+    "created_at",
+    "status"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "pattern": "^EVAL-[A-Z0-9-]{3,64}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "family": {
+      "enum": [
+        "teaching_generation",
+        "assessment_generation",
+        "academic_alignment",
+        "source_integrity",
+        "generic_vs_institutional",
+        "role_workflow",
+        "tenant_privacy",
+        "bulk_versioning",
+        "safety",
+        "ux_performance"
+      ]
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "tenant_fixture",
+        "scope_fixture",
+        "language"
+      ],
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "tenant_fixture": {
+          "type": "string"
+        },
+        "scope_fixture": {
+          "type": "string"
+        },
+        "discipline": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "qualification_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "language": {
+          "type": "string"
+        }
+      }
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capabilities",
+        "required_elements",
+        "prohibited_behaviours"
+      ],
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_elements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prohibited_behaviours": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expected_outcome": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimensions",
+        "pass_threshold"
+      ],
+      "properties": {
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "weight",
+              "description"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "weight": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "pass_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "critical_failures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "training_excluded",
+        "contamination_hashes"
+      ],
+      "properties": {
+        "training_excluded": {
+          "const": true
+        },
+        "contamination_hashes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hidden_challenge": {
+          "type": "boolean"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "approved",
+        "retired"
+      ]
+    }
+  }
+}

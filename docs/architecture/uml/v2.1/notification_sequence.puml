@@ -1,0 +1,18 @@
+@startuml
+actor User
+participant "Unified shell" as Web
+participant "Workspace API" as API
+database PostgreSQL as DB
+
+Web -> API: GET /workspace/navigation
+API -> DB: Count recipient unread notifications
+API --> Web: Navigation + badge
+User -> Web: Open Notifications
+Web -> API: GET /workspace/notifications
+API -> DB: tenant_id + recipient_user_id
+API --> Web: Addressed notifications
+User -> Web: Mark read
+Web -> API: PATCH /notifications/{id}
+API -> DB: Verify exact recipient then set read_at
+API --> Web: Updated notification
+@enduml

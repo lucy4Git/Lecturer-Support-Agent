@@ -1,0 +1,32 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title System Context
+left to right direction
+actor Lecturer
+actor Coordinator
+actor "Head of Department" as HOD
+actor "Institution Administrator" as IA
+actor Moderator
+actor "External Reviewer" as ER
+actor "Platform Operator" as PO
+rectangle "Lecturer Support Agent
+Unified AI Work Area" as LSA
+cloud "Approved AI Providers" as AI
+cloud "External Source Providers" as Sources
+rectangle "Institutional Systems
+IdP, LMS, SIS, Repositories" as Inst
+Lecturer --> LSA : teaching and assessment work
+Coordinator --> LSA : programme/module alignment
+HOD --> LSA : course assignment and oversight
+IA --> LSA : tenant, users, roles, materials
+Moderator --> LSA : assigned assessment review
+ER --> LSA : temporary assigned review
+PO --> LSA : technical operations only
+LSA --> AI : provider-neutral generation
+LSA --> Sources : search and verify
+LSA <--> Inst : optional integrations
+@enduml

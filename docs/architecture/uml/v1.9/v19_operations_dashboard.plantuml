@@ -1,0 +1,15 @@
+@startuml
+title Department Operations Dashboard Aggregation
+actor HOD
+participant "Unified Work Area" as UI
+participant "Dashboard API" as API
+database PostgreSQL
+HOD -> UI: Open department operations
+UI -> API: GET dashboard for authorised unit
+API -> PostgreSQL: Count active offerings and plans
+API -> PostgreSQL: Aggregate session delivery
+API -> PostgreSQL: Aggregate readiness risk
+API -> PostgreSQL: Compare weighted workload to limits
+API -> PostgreSQL: Identify overdue handovers and events
+API --> UI: Attention-first dashboard with scoped actions
+@enduml

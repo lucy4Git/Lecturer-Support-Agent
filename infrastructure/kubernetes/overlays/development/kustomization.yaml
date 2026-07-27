@@ -1,0 +1,10 @@
+resources:
+  - ../../base
+namespace: lecturer-support-agent
+images:
+  - name: lecturer-support-agent/api
+    newTag: development
+  - name: lecturer-support-agent/worker
+    newTag: development
+  - name: lecturer-support-agent/web
+    newTag: development

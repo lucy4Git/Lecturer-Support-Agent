@@ -1,0 +1,139 @@
+{
+  "$schema": "../../data/schemas/model_registry.schema.json",
+  "registry_version": "1.0.0",
+  "generated_at": "2026-07-21T00:00:00Z",
+  "aliases": {
+    "general-balanced": {
+      "routing_class": "general",
+      "allowed_providers": [
+        "openai",
+        "anthropic",
+        "google_gemini",
+        "deepseek",
+        "ollama"
+      ]
+    },
+    "reasoning-high": {
+      "routing_class": "reasoning",
+      "allowed_providers": [
+        "openai",
+        "anthropic",
+        "google_gemini",
+        "deepseek",
+        "ollama"
+      ]
+    },
+    "multimodal-teaching": {
+      "routing_class": "multimodal",
+      "allowed_providers": [
+        "openai",
+        "anthropic",
+        "google_gemini",
+        "ollama"
+      ]
+    },
+    "local-private": {
+      "routing_class": "local_only",
+      "allowed_providers": [
+        "ollama"
+      ]
+    },
+    "embedding-multilingual": {
+      "routing_class": "embedding",
+      "allowed_providers": [
+        "ollama"
+      ]
+    }
+  },
+  "models": [
+    {
+      "provider": "ollama",
+      "model_id": "qwen3:4b-instruct",
+      "deployment_type": "local",
+      "lifecycle": "candidate",
+      "capabilities": [
+        "text",
+        "reasoning",
+        "structured_output",
+        "multilingual"
+      ],
+      "approved_data_classes": [
+        "public",
+        "internal",
+        "confidential_when_local_controls_pass"
+      ]
+    },
+    {
+      "provider": "ollama",
+      "model_id": "qwen3:8b",
+      "deployment_type": "local",
+      "lifecycle": "candidate",
+      "capabilities": [
+        "text",
+        "reasoning",
+        "tools",
+        "multilingual"
+      ],
+      "approved_data_classes": [
+        "public",
+        "internal",
+        "confidential_when_local_controls_pass"
+      ]
+    },
+    {
+      "provider": "ollama",
+      "model_id": "deepseek-r1:8b",
+      "deployment_type": "local",
+      "lifecycle": "candidate",
+      "capabilities": [
+        "text",
+        "reasoning"
+      ],
+      "approved_data_classes": [
+        "public",
+        "internal",
+        "confidential_when_local_controls_pass"
+      ]
+    },
+    {
+      "provider": "ollama",
+      "model_id": "gemma3:4b",
+      "deployment_type": "local",
+      "lifecycle": "candidate",
+      "capabilities": [
+        "text",
+        "vision",
+        "multilingual"
+      ],
+      "approved_data_classes": [
+        "public",
+        "internal",
+        "confidential_when_local_controls_pass"
+      ]
+    },
+    {
+      "provider": "ollama",
+      "model_id": "nomic-embed-text-v2-moe",
+      "deployment_type": "local",
+      "lifecycle": "candidate",
+      "capabilities": [
+        "embeddings",
+        "multilingual"
+      ],
+      "approved_data_classes": [
+        "public",
+        "internal",
+        "confidential_when_local_controls_pass"
+      ]
+    }
+  ],
+  "cloud_models": {
+    "discovery_policy": "Discover available models through each provider's official models endpoint and map approved IDs through environment or admin configuration. Do not hard-code rapidly changing cloud model IDs in application source.",
+    "required_environment_variables": [
+      "OPENAI_DEFAULT_MODEL",
+      "ANTHROPIC_DEFAULT_MODEL",
+      "GOOGLE_GEMINI_DEFAULT_MODEL",
+      "DEEPSEEK_DEFAULT_MODEL"
+    ]
+  }
+}

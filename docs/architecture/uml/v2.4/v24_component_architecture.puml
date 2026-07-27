@@ -1,0 +1,27 @@
+@startuml
+skinparam componentStyle rectangle
+actor "Institution Administrator" as Admin
+component "Unified Web Workspace" as Web
+component "FastAPI Operations API" as API
+component "PostgreSQL Durable Queue" as Queue
+component "Restricted lsa_worker" as Worker
+component "Domain Handlers" as Handlers
+database "PostgreSQL + RLS" as DB
+component "MinIO" as MinIO
+component "Qdrant" as Qdrant
+component "Ollama" as Ollama
+Admin --> Web
+Web --> API
+API --> Queue
+Worker --> Queue
+Worker --> Handlers
+Handlers --> DB
+Handlers --> MinIO
+Handlers --> Qdrant
+Handlers --> Ollama
+note right of Worker
+No superuser
+No BYPASSRLS
+Tenant context per job
+end note
+@enduml

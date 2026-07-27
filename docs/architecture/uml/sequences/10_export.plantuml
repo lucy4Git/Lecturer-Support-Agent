@@ -1,0 +1,24 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Export Inline Artifact
+actor User
+participant UI
+participant Authorization as Auth
+participant "Export Service" as Export
+participant "Version Service" as Version
+participant "Object Storage" as Object
+participant Audit
+User -> UI : export version and format
+UI -> Auth : verify access/export permission
+Auth --> UI : allowed
+UI -> Export : create idempotent job
+Export -> Version : read immutable source
+Version --> Export : content + source metadata
+Export -> Object : store generated file
+Export -> Audit : record format/version/actor
+Export --> UI : secure time-limited download
+@enduml

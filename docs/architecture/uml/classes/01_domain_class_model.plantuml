@@ -1,0 +1,45 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Domain Class Model
+class Tenant
+class OrganizationalUnit { +id
++type
++parent
++label }
+class User
+class RoleAssignment { +role
++scope
++validity }
+class Conversation
+class Message
+class InlineArtifact { +schemaType
++status
++render() }
+class ContentItem
+class ContentVersion { +checksum
++versionNumber
++provenance }
+class UploadBatch { +authorize()
++resume()
++report() }
+class ReviewAssignment { +scope
++expiresAt
++revoke() }
+class SourceRecord { +verify() }
+class ClaimCitation { +supportScore }
+Tenant "1" o-- "*" OrganizationalUnit
+Tenant "1" o-- "*" User
+User "1" -- "*" RoleAssignment
+OrganizationalUnit "1" -- "*" RoleAssignment
+Conversation "1" o-- "*" Message
+Message "1" o-- "0..*" InlineArtifact
+ContentItem "1" o-- "1..*" ContentVersion
+UploadBatch "1" o-- "*" ContentVersion
+ReviewAssignment "*" --> "*" ContentVersion
+Message "1" -- "*" ClaimCitation
+SourceRecord "1" -- "*" ClaimCitation
+@enduml

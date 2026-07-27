@@ -1,0 +1,34 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title High-Level Data Flow
+left to right direction
+actor User
+rectangle "Unified Work Area" as UI
+rectangle "Auth and Scope" as Auth
+rectangle "Conversation Orchestrator" as Conv
+rectangle "AI / Source Verification" as AI
+rectangle "Content and Version Platform" as Content
+rectangle "Academic Workflow Services" as Domain
+rectangle "Audit and Analytics" as Audit
+database "Tenant Data" as DB
+collections "Immutable Objects" as Obj
+User --> UI : prompts, uploads, actions
+UI --> Auth : session and request
+Auth --> Conv : authorised context
+Conv --> AI : task and allowed context
+AI --> Conv : validated response + sources
+Conv --> Content : save artifact/version
+UI --> Domain : assignment/review/admin action
+Domain --> Content : linked versions
+Content --> DB
+Content --> Obj
+Conv --> Audit
+Domain --> Audit
+Content --> Audit
+Audit --> DB
+Conv --> UI : streaming response
+@enduml

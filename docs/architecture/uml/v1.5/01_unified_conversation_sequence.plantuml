@@ -1,0 +1,36 @@
+@startuml
+skinparam sequenceMessageAlign center
+actor User
+participant "Next.js Unified Work Area" as Web
+participant "FastAPI Conversation Route" as API
+participant "Authorisation Service" as Authz
+participant "Conversation Engine" as Engine
+participant "Task Classifier" as Classifier
+participant "Source Discovery" as Sources
+participant "Model Router" as Router
+participant "Citation Integrity Guard" as Guard
+database PostgreSQL as DB
+
+User -> Web: Submit teaching request
+Web -> API: POST /conversations/{id}/messages
+API -> Authz: require ai.use for active role
+Authz -> DB: validate scoped role permission
+Authz --> API: allowed
+API -> Engine: submit_message()
+Engine -> DB: persist user message + AI request
+Engine -> Classifier: classify request
+Classifier --> Engine: task, privacy, source/review needs
+opt sources materially required
+  Engine -> Sources: retrieve verified metadata
+  Sources --> Engine: source pack
+end
+Engine -> Router: generate(prompt, privacy)
+Router --> Engine: provider response + attempts
+Engine -> Guard: validate markers, URLs, DOIs
+Guard --> Engine: sanitised output + warnings
+Engine -> DB: persist attempts, assistant message,
+output version, retrievals, citations, audit
+Engine --> API: unified response contract
+API --> Web: inline output + source cards
+Web --> User: Render in same conversation
+@enduml

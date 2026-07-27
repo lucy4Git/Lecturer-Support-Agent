@@ -1,0 +1,67 @@
+@startuml
+!theme plain
+title Lecturer Support Agent — Data Foundation Architecture
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor "Authorised User" as User
+rectangle "Unified AI Work Area" as UI
+rectangle "API Gateway" as API
+rectangle "Identity, Tenant & Scope Service" as IAM
+rectangle "Bulk Ingestion Service" as ING
+rectangle "Version & Provenance Service" as VER
+rectangle "Source Verification Service" as SRC
+rectangle "AI Orchestrator" as AI
+rectangle "Evaluation Service" as EVAL
+queue "Background Job Queue" as Q
+
+database "PostgreSQL\nAuthoritative metadata, RBAC, workflows, audit" as PG
+cloud "S3-compatible Object Storage\nImmutable files and generated exports" as OBJ
+database "Qdrant\nTenant-filtered vectors" as VEC
+database "Search Index\nExact and faceted search" as SEARCH
+collections "Redis\nCache, rate limits, short-lived state" as REDIS
+rectangle "External Scholarly & OER Sources" as EXT
+rectangle "Model Providers\nOpenAI / Anthropic / approved alternatives" as MODELS
+rectangle "Audit & Observability" as AUDIT
+
+User --> UI
+UI --> API
+API --> IAM
+API --> ING
+API --> AI
+ING --> Q
+Q --> ING
+ING --> VER
+ING --> PG
+ING --> OBJ
+ING --> VEC
+ING --> SEARCH
+VER --> PG
+VER --> OBJ
+AI --> IAM
+AI --> SRC
+AI --> VEC
+AI --> SEARCH
+AI --> MODELS
+SRC --> EXT
+SRC --> PG
+EVAL --> AI
+EVAL --> PG
+API --> REDIS
+IAM --> PG
+API --> AUDIT
+ING --> AUDIT
+AI --> AUDIT
+SRC --> AUDIT
+
+note right of PG
+Every tenant-scoped row carries tenant_id.
+RBAC and organisational scope are enforced
+at API, service and database-policy layers.
+end note
+
+note bottom of OBJ
+No silent overwrite. Each upload creates an immutable
+object version linked to a content-item version record.
+end note
+@enduml

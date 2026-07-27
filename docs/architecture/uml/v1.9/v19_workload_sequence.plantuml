@@ -1,0 +1,17 @@
+@startuml
+title Workload Allocation and Overload Detection
+actor HOD
+participant UI
+participant API
+participant "Workload Service" as WS
+database PostgreSQL
+HOD -> UI: Allocate teaching activity
+UI -> API: POST /workloads/activities
+API -> WS: Authorise within department scope
+WS -> PostgreSQL: Add historical activity
+HOD -> UI: Open workload summary
+UI -> API: GET /workloads/{user}
+API -> WS: Sum raw and weighted hours
+WS -> PostgreSQL: Read configured workload limit
+WS --> UI: Utilisation and overload status
+@enduml

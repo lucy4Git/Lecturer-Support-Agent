@@ -1,0 +1,23 @@
+@startuml
+!theme plain
+title Head of Department Lecturer Assignment
+actor "Head of Department" as HOD
+participant "Unified Web Shell" as Web
+participant "Assignment API" as API
+participant "Authorization Service" as Authz
+database PostgreSQL as DB
+
+HOD -> Web: Enter lecturer, module offering, workload and start date
+Web -> API: POST /academic-assignments/lecturers
+API -> Authz: require academic.assign_lecturer for module offering
+Authz -> DB: Resolve offering organisational unit
+Authz -> DB: Verify HOD active role scope includes unit
+DB --> Authz: permitted
+API -> DB: Verify lecturer active membership and offering
+API -> DB: Lock current active assignment(s)
+API -> DB: End or time-bound superseded assignment(s)
+API -> DB: Insert new assignment (append-only history)
+API -> DB: Insert audit and outbox events
+API --> Web: New assignment
+Web --> HOD: Confirmation in same work area
+@enduml

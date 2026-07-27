@@ -1,0 +1,25 @@
+@startuml
+title Consolidated Owner-Machine Validation Pipeline
+start
+:Preflight and secret safety;
+:Cumulative static validators and unit tests;
+if (Runtime mode?) then (yes)
+  :Check Docker, Ollama and required models;
+  :Apply migrations and seed synthetic tenants;
+  :Run integration and tenant-isolation tests;
+  :Build API and web application;
+  :Probe PostgreSQL, Redis, MinIO, Qdrant and Ollama;
+  if (Live preview enabled?) then (yes)
+    :Launch API and web;
+    :Playwright tests five roles at three breakpoints;
+    :Capture screenshots and failure traces;
+  endif
+endif
+:Redact logs and generate JSON/Markdown report;
+if (Any failure?) then (yes)
+  :Keep validation_pending;
+else (no)
+  :Set validated_on_owner_machine;
+endif
+stop
+@enduml

@@ -1,0 +1,23 @@
+@startuml
+actor Moderator
+actor Lecturer
+actor "Academic Decision Maker" as DecisionMaker
+participant "Unified Work Area" as UI
+participant "Review Service" as Review
+participant "Output Service" as Output
+participant PostgreSQL as DB
+
+Moderator -> UI: Record findings and submit recommendation
+UI -> Review: Create findings and immutable submission
+Review -> DB: Store findings, assessments and submission hash
+DecisionMaker -> UI: Record changes-required decision
+UI -> Review: POST cycle decision
+Review -> Output: request_changes
+Review -> DB: Create correction round
+Lecturer -> UI: Respond to findings and save new output version
+UI -> Output: Create immutable version
+Lecturer -> UI: Resubmit corrections
+UI -> Review: POST cycle resubmit
+Review -> Output: submit_for_review
+Review -> DB: Seal new pack and create new task round
+@enduml

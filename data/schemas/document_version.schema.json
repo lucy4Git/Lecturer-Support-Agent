@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lecturer-support-agent.local/schemas/document_version.schema.json",
+  "title": "Document Version",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "content_item_id",
+    "version_id",
+    "tenant_id",
+    "sequence",
+    "relationship",
+    "object",
+    "actor",
+    "state",
+    "created_at",
+    "change_reason",
+    "audit_event_id"
+  ],
+  "properties": {
+    "content_item_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "version_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "parent_version_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "relationship": {
+      "enum": [
+        "initial",
+        "revision",
+        "supersedes",
+        "alternative",
+        "local_adaptation",
+        "translated_from",
+        "approved_copy",
+        "duplicate_link",
+        "rollback_result"
+      ]
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "storage_version",
+        "sha256",
+        "size_bytes",
+        "mime_type"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storage_version": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mime_type": {
+          "type": "string"
+        }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "role",
+        "scope_ids"
+      ],
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "display_name_snapshot": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "type": "string"
+        },
+        "scope_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "delegation_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        }
+      }
+    },
+    "upload_batch_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "source_system": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "original_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "state": {
+      "enum": [
+        "QUARANTINED",
+        "VALIDATED",
+        "AWAITING_CONFIRMATION",
+        "COMMITTED",
+        "INDEXING",
+        "AVAILABLE",
+        "RESTRICTED",
+        "SUPERSEDED",
+        "ARCHIVED",
+        "REJECTED",
+        "PURGE_PENDING",
+        "PURGED_TOMBSTONE"
+      ]
+    },
+    "change_reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "canonical_for_scope": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "effective_from": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "audit_event_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  }
+}

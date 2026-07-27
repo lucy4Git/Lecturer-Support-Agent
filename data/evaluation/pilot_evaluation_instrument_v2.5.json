@@ -1,0 +1,16 @@
+{
+  "instrument_version": "2.5.0",
+  "title": "Lecturer Support Agent Commercial Pilot Evaluation",
+  "scale": {"minimum": 1, "maximum": 5, "anchors": {"1": "Strongly disagree / unacceptable", "3": "Acceptable", "5": "Strongly agree / excellent"}},
+  "dimensions": [
+    {"code": "task_success", "label": "Task completion", "questions": ["The task was completed without leaving the unified work area.", "The output matched the requested teaching task."]},
+    {"code": "pedagogical_quality", "label": "Pedagogical quality", "questions": ["The output used an appropriate teaching approach.", "The activity and assessment design were suitable for the stated learner level."]},
+    {"code": "academic_alignment", "label": "Academic alignment", "questions": ["The output aligned with the selected module outcomes.", "The scope and complexity were appropriate for the qualification level."]},
+    {"code": "source_integrity", "label": "Source integrity", "questions": ["Displayed sources were relevant and traceable.", "The response did not present invented references or unsupported compliance claims."]},
+    {"code": "usability", "label": "Usability", "questions": ["The interface was easy to understand.", "Editing, versioning, upload, and export actions were easy to complete."]},
+    {"code": "trust_and_safety", "label": "Trust and safety", "questions": ["Human-review warnings were clear.", "Assessment answers and restricted materials were appropriately protected."]},
+    {"code": "efficiency", "label": "Efficiency", "questions": ["The system reduced the time needed for the task.", "The system improved the consistency of my teaching workflow."]}
+  ],
+  "required_evidence": ["task_start_time", "task_end_time", "role", "institution_scope", "task_type", "output_version_id", "provider_route", "review_outcome"],
+  "open_questions": ["What was most useful?", "What was confusing or unsafe?", "What must be corrected before institutional adoption?"]
+}

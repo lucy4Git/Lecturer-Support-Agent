@@ -1,0 +1,26 @@
+@startuml
+title v1.9 Departmental Teaching Operations Components
+actor Lecturer
+actor "Head of Department" as HOD
+component "Unified Work Area" as UI
+component "Department Operations API" as API
+component "Teaching Plan Service" as TPS
+component "Readiness Service" as RS
+component "Workload Service" as WS
+component "Handover Service" as HS
+component "Dashboard Aggregator" as DA
+database PostgreSQL
+Lecturer --> UI
+HOD --> UI
+UI --> API
+API --> TPS
+API --> RS
+API --> WS
+API --> HS
+API --> DA
+TPS --> PostgreSQL
+RS --> PostgreSQL
+WS --> PostgreSQL
+HS --> PostgreSQL
+DA --> PostgreSQL
+@enduml

@@ -1,0 +1,21 @@
+@startuml
+title Validation Evidence Flow
+actor Owner
+component "PowerShell orchestrator" as Runner
+component "Static validators" as Static
+component "Runtime probe" as Probe
+component "Playwright" as Browser
+database "runtime/validation/<timestamp>" as Evidence
+component "Redaction control" as Redact
+artifact "VALIDATION_REPORT.md" as Report
+Owner -> Runner : invoke full validation
+Runner -> Static
+Runner -> Probe
+Runner -> Browser
+Static --> Evidence : logs
+Probe --> Evidence : runtime-probes.json
+Browser --> Evidence : screenshots/traces
+Evidence -> Redact
+Redact -> Report
+Report --> Owner : pass/fail gate
+@enduml

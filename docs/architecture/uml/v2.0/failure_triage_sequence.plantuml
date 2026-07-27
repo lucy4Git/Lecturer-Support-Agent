@@ -1,0 +1,16 @@
+@startuml
+title Failure Triage Sequence
+actor Owner
+participant Runner
+participant "Failed stage" as Stage
+participant "Redacted evidence" as Evidence
+participant "Correction workflow" as Fix
+Owner -> Runner : Start validation
+Runner -> Stage : Execute
+Stage --> Runner : Non-zero result
+Runner -> Evidence : Store and redact log
+Runner --> Owner : Failed report
+Owner -> Fix : Record finding and root cause
+Fix -> Stage : Apply correction and focused test
+Owner -> Runner : Rerun full gate
+@enduml

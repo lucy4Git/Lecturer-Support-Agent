@@ -1,0 +1,40 @@
+@startuml
+!theme plain
+title Model Routing and Policy-Safe Fallback
+actor User
+participant "Unified Work Area" as UI
+participant "AI Orchestrator" as O
+participant "Authorization" as AUTH
+participant "Policy Router" as R
+participant "Model Registry" as M
+participant "Selected Provider Adapter" as P
+participant "Validators" as V
+participant "Audit" as A
+
+User -> UI : Submit teaching/learning request
+UI -> O : Request + attachments
+O -> AUTH : Resolve tenant, roles and scope
+AUTH --> O : Allowed scope
+O -> R : Task, modality, risk, data class, capability
+R -> M : Find enabled, healthy, approved candidates
+M --> R : Ranked candidates
+R --> O : Primary route + policy-safe fallbacks
+O -> P : Generate with minimum necessary context
+alt provider succeeds
+  P --> O : Candidate response + usage metadata
+else provider fails
+  P --> O : Failure
+  O -> R : Request next equivalent candidate
+  R --> O : Equivalent/stronger-policy fallback or no route
+  alt fallback permitted
+    O -> P : Retry through fallback adapter
+    P --> O : Candidate response
+  else fallback forbidden
+    O -> UI : Transparent degraded response / safe stop
+  end
+end
+O -> V : Validate structure, safety, sources and academic fit
+V --> O : Pass / repair / reject
+O -> A : Record provider, model, routing, fallback and validation
+O --> UI : Stream validated response
+@enduml

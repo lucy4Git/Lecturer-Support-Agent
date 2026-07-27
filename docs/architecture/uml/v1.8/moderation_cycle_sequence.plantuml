@@ -1,0 +1,22 @@
+@startuml
+actor Lecturer
+actor "Head of Department" as HOD
+actor Moderator
+participant "Unified Work Area" as UI
+participant "Review API" as API
+participant "Review Service" as Review
+participant PostgreSQL as DB
+
+Lecturer -> UI: Submit exact output version for review
+UI -> API: POST teaching-output workflow
+API -> DB: Set output under_review
+HOD -> UI: Create review cycle and assign reviewer
+UI -> API: POST /reviews/cycles
+API -> Review: Authorise scope and build sealed pack
+Review -> DB: Create cycle, pack, items and task
+Review --> UI: Cycle number, version and task status
+Moderator -> UI: Open assigned Review tasks
+UI -> API: GET /reviews/tasks
+API -> DB: Query only assigned_user_id
+API --> UI: Assigned tasks only
+@enduml

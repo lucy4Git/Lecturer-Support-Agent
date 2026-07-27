@@ -1,0 +1,84 @@
+{
+  "$schema": "../../data/schemas/ollama_model_profiles.schema.json",
+  "profiles_version": "1.0.0",
+  "notes": [
+    "Profiles are starting recommendations, not production approvals.",
+    "Actual RAM, VRAM, disk, licence, quality and privacy suitability must be assessed before deployment.",
+    "The pull script never deletes existing models."
+  ],
+  "profiles": {
+    "minimal": {
+      "description": "Low-resource development and basic offline testing.",
+      "recommended_free_disk_gb": 10,
+      "models": [
+        {
+          "name": "qwen3:4b-instruct",
+          "purpose": "general multilingual teaching support and structured drafting",
+          "required": true
+        },
+        {
+          "name": "nomic-embed-text-v2-moe",
+          "purpose": "multilingual semantic retrieval embeddings",
+          "required": true
+        }
+      ]
+    },
+    "standard": {
+      "description": "Recommended developer profile for balanced quality, reasoning and multimodal testing.",
+      "recommended_free_disk_gb": 25,
+      "models": [
+        {
+          "name": "qwen3:8b",
+          "purpose": "general multilingual instruction following and tool-capable workflows",
+          "required": true
+        },
+        {
+          "name": "deepseek-r1:8b",
+          "purpose": "reasoning-intensive STEM, assessment and planning tasks",
+          "required": true
+        },
+        {
+          "name": "gemma3:4b",
+          "purpose": "multimodal document and image-assisted teaching tasks",
+          "required": true
+        },
+        {
+          "name": "nomic-embed-text-v2-moe",
+          "purpose": "multilingual semantic retrieval embeddings",
+          "required": true
+        }
+      ]
+    },
+    "advanced": {
+      "description": "Higher-resource workstation profile for stronger local evaluation; not a universal production default.",
+      "recommended_free_disk_gb": 60,
+      "models": [
+        {
+          "name": "qwen3:14b",
+          "purpose": "higher-capability multilingual generation and reasoning",
+          "required": true
+        },
+        {
+          "name": "deepseek-r1:14b",
+          "purpose": "higher-capability reasoning and STEM evaluation",
+          "required": true
+        },
+        {
+          "name": "gemma3:12b",
+          "purpose": "higher-capability multimodal teaching and document analysis",
+          "required": true
+        },
+        {
+          "name": "mxbai-embed-large",
+          "purpose": "alternative local embedding benchmark",
+          "required": false
+        },
+        {
+          "name": "nomic-embed-text-v2-moe",
+          "purpose": "multilingual embedding baseline",
+          "required": true
+        }
+      ]
+    }
+  }
+}

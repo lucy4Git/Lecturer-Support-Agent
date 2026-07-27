@@ -1,0 +1,24 @@
+{
+  "name": "Lecturer Support Agent",
+  "short_name": "Lecturer AI",
+  "description": "AI-native teaching and learning support for higher education.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f7f5",
+  "theme_color": "#111827",
+  "orientation": "any",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {"name": "New conversation", "short_name": "New chat", "url": "/?new=1"},
+    {"name": "Search", "short_name": "Search", "url": "/?view=search"}
+  ]
+}

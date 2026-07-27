@@ -1,0 +1,17 @@
+@startuml
+[*] --> Conversation
+Conversation --> Search : Ctrl/Cmd + K
+Conversation --> Library : Library
+Conversation --> Files : Files
+Conversation --> Saved : Saved outputs
+Conversation --> Notifications : Notifications
+Search --> Conversation : Open conversation / return
+Library --> Conversation : Attach version
+Files --> Conversation : Attach version
+Saved --> Conversation : Open conversations
+Notifications --> Conversation : Open action
+state "Mobile drawer closed" as Closed
+state "Mobile drawer open" as Open
+Closed --> Open : Menu
+Open --> Closed : Select view / close
+@enduml

@@ -1,0 +1,37 @@
+@startuml
+!theme plain
+title Claim-to-Source Verification and Citation Eligibility
+actor User
+participant "AI Orchestrator" as AI
+participant "Claim Extractor" as CLAIM
+participant "Source Discovery" as DISC
+participant "Source Verification" as VERIFY
+participant "Evidence Matcher" as MATCH
+database "Source Registry" as REG
+participant "Model Provider" as MODEL
+participant "Response Renderer" as UI
+participant "Audit Service" as AUDIT
+
+User -> AI: Teaching-and-learning request
+AI -> MODEL: Produce draft with claim boundaries
+MODEL --> AI: Draft response
+AI -> CLAIM: Identify factual and high-risk claims
+CLAIM --> AI: Claim list and risk labels
+loop Each claim requiring support
+  AI -> DISC: Search approved external/public and authorised institutional sources
+  DISC --> AI: Candidate sources + retrieval evidence
+  AI -> VERIFY: Resolve identity, version, authority, rights and freshness
+  VERIFY -> REG: Read/write verified source record
+  VERIFY --> AI: Verified / partial / failed
+  AI -> MATCH: Test whether evidence supports the exact claim
+  MATCH --> AI: support strength + locator + evidence hash
+  alt verified and adequately supported
+    AI -> REG: Create claim-citation relationship
+  else unsupported or unverifiable
+    AI -> AI: Remove, qualify or label uncertainty
+  end
+end
+AI -> AUDIT: Store verification trace without hidden reasoning
+AI -> UI: Render answer + only eligible citations/source cards
+UI --> User: Generic useful response with genuine sources where used
+@enduml

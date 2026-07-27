@@ -1,0 +1,21 @@
+{
+  "dataset_id": "example-open-pedagogy-corpus",
+  "title": "Example Open Pedagogy Corpus",
+  "source_url": "https://example.invalid/dataset.zip",
+  "publisher": "Example Publisher",
+  "licence": "CC BY 4.0",
+  "permitted_uses": [
+    "retrieval",
+    "evaluation"
+  ],
+  "expected_sha256": null,
+  "maximum_bytes": 104857600,
+  "contains_personal_data": false,
+  "contains_confidential_data": false,
+  "approval": {
+    "status": "proposed",
+    "approved_by": null,
+    "approved_at": null,
+    "notes": "Safe non-downloadable example. Replace only after documented rights review."
+  }
+}

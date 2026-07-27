@@ -1,0 +1,31 @@
+@startuml
+!theme plain
+title v1.4 Authentication and Refresh Rotation
+actor User
+participant "Web BFF" as Web
+participant "FastAPI Auth" as API
+database "PostgreSQL\nlsa_auth" as DB
+participant "Token Service" as Token
+
+User -> Web: Submit institution, email, password, active role
+Web -> API: POST /auth/login
+API -> DB: Resolve institution
+API -> DB: SET LOCAL app.tenant_id
+API -> DB: Read user, membership, credential, role assignment
+API -> API: Verify Argon2id and lockout state
+API -> Token: Sign short-lived access token
+API -> DB: Store hashed opaque refresh session
+API --> Web: Access + refresh token pair
+Web -> Web: Store both in HTTP-only SameSite cookies
+Web --> User: Open unified work area
+
+== Rotation ==
+User -> Web: Authenticated request after access expiry
+Web -> API: POST /auth/refresh with refresh cookie
+API -> DB: SET LOCAL tenant from opaque token prefix
+API -> DB: Lock and validate session hash, membership, role
+API -> DB: Revoke old session; insert linked replacement
+API -> Token: Sign new access token
+API --> Web: Rotated token pair
+Web -> Web: Replace HTTP-only cookies
+@enduml

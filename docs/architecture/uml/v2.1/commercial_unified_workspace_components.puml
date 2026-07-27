@@ -1,0 +1,29 @@
+@startuml
+skinparam componentStyle rectangle
+actor "Authorised user" as User
+component "Unified Next.js shell" as Shell
+component "Conversation view" as Conversation
+component "Search / Library / Files" as Resources
+component "Saved outputs" as Saved
+component "Notifications" as Notices
+component "Workspace API" as API
+component "Authorisation service" as Authz
+database PostgreSQL as DB
+
+User --> Shell
+Shell --> Conversation
+Shell --> Resources
+Shell --> Saved
+Shell --> Notices
+Conversation --> API
+Resources --> API
+Saved --> API
+Notices --> API
+API --> Authz
+Authz --> DB
+API --> DB
+note bottom of Shell
+One application shell.
+No separate artifact workspace.
+end note
+@enduml

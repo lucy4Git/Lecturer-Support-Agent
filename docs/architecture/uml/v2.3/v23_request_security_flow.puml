@@ -1,0 +1,18 @@
+@startuml
+actor Client
+participant "Trusted Host" as Host
+participant CORS
+participant "Security Headers" as Headers
+participant "Size Limit" as Size
+participant "Redis Rate Limit" as Rate
+participant "Request Context" as Auth
+participant Route
+Client -> Host: HTTPS request
+Host -> CORS: trusted host
+CORS -> Headers: allowed origin/method
+Headers -> Size: add response policy
+Size -> Rate: Content-Length accepted
+Rate -> Auth: quota accepted
+Auth -> Route: signed token + active role context
+Route --> Client: response + request/correlation IDs
+@enduml

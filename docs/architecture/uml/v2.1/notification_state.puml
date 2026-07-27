@@ -1,0 +1,11 @@
+@startuml
+[*] --> Unread
+Unread --> Read : mark read
+Read --> Unread : mark unread
+Unread --> Archived : archive
+Read --> Archived : archive
+Unread --> Expired : expires_at reached
+Read --> Expired : expires_at reached
+Archived --> [*]
+Expired --> [*]
+@enduml

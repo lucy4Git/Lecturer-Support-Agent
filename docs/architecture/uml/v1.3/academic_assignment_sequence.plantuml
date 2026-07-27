@@ -1,0 +1,21 @@
+@startuml
+!theme plain
+title Head of Department Assigns a Lecturer
+actor "Head of Department" as HOD
+participant "Unified Work Area" as UI
+participant "Assignment API" as API
+participant "Authorization Service" as Auth
+database PostgreSQL as DB
+
+HOD -> UI: assign lecturer to module offering
+UI -> API: lecturer, offering, workload, effective dates
+API -> Auth: require academic.assign_lecturer
+Auth -> DB: verify independent HOD role + organisational scope
+DB --> Auth: authorised descendant scope
+Auth --> API: allowed
+API -> DB: lock active matching assignment(s)
+API -> DB: end superseded assignment(s), preserving history
+API -> DB: insert new lecturer assignment
+API -> DB: append audit/outbox event
+API --> UI: current assignment and history reference
+@enduml

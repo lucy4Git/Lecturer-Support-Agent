@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lecturer-support-agent.example/contracts/enterprise-integration-v2.5.json",
+  "title": "Enterprise Integration Staging Record",
+  "type": "object",
+  "required": ["connection_code", "source_system", "entity_type", "external_id", "payload", "retrieved_at"],
+  "properties": {
+    "connection_code": {"type": "string", "pattern": "^[a-z0-9_.-]+$"},
+    "source_system": {"enum": ["canvas", "moodle", "oneroster_csv", "generic_rest"]},
+    "entity_type": {"enum": ["organisation", "user", "programme", "course", "class", "enrolment", "assignment"]},
+    "external_id": {"type": "string", "minLength": 1},
+    "payload": {"type": "object"},
+    "retrieved_at": {"type": "string", "format": "date-time"},
+    "source_checksum": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "mapping_status": {"enum": ["staged", "mapped", "rejected", "needs_review"]}
+  },
+  "additionalProperties": false
+}

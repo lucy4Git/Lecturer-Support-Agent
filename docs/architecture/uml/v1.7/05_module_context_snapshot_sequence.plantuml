@@ -1,0 +1,18 @@
+@startuml
+title Authorised Module Context Snapshot
+actor Lecturer
+participant UI
+participant "Context API" as API
+participant "Authorization Service" as Auth
+database PostgreSQL as DB
+Lecturer -> UI: Open module selector
+UI -> API: GET /teaching-contexts
+API -> Auth: active tenant/role/scope
+Auth -> DB: assignments and organisation scope
+DB --> API: authorised offerings only
+API --> UI: module options
+Lecturer -> UI: Select offering and send prompt
+UI -> API: module_offering_id
+API -> DB: resolve module, period, outcomes, programmes
+API -> DB: append immutable module_context_snapshot
+@enduml

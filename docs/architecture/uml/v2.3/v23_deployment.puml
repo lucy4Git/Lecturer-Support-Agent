@@ -1,0 +1,48 @@
+@startuml
+node "Internet / Institutional Network" {
+  actor User
+}
+node "Gateway" {
+  component Caddy
+}
+node "Application Tier" {
+  component "Next.js Web" as Web
+  component "FastAPI API (2+)" as API
+  component "Background Worker (2+)" as Worker
+}
+node "Data Tier" {
+  database PostgreSQL
+  database Redis
+  cloud MinIO
+  component Qdrant
+  component ClamAV
+}
+node "Model Tier" {
+  component Ollama
+  cloud "Approved Cloud Providers" as CloudAI
+}
+node "Operations" {
+  component Prometheus
+  component "Central Logs" as Logs
+  component "Backup Store" as Backup
+}
+User --> Caddy
+Caddy --> Web
+Caddy --> API
+Web --> API
+API --> PostgreSQL
+Worker --> PostgreSQL
+API --> Redis
+API --> MinIO
+Worker --> MinIO
+API --> Qdrant
+Worker --> Qdrant
+API --> ClamAV
+API --> Ollama
+API --> CloudAI
+API --> Prometheus
+Worker --> Logs
+PostgreSQL --> Backup
+MinIO --> Backup
+Qdrant --> Backup
+@enduml

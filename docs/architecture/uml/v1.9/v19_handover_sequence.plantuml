@@ -1,0 +1,19 @@
+@startuml
+title Immutable Lecturer Handover
+actor "Outgoing Lecturer" as Out
+actor "Incoming Lecturer" as In
+actor HOD
+participant UI
+participant API
+participant "Handover Service" as HS
+database PostgreSQL
+Out -> UI: Prepare handover package
+UI -> API: POST /handovers
+API -> HS: Create package + immutable version 1
+HS -> PostgreSQL: Save checklist, documents, risks, audit
+Out -> UI: Submit
+HOD -> UI: Request changes or oversee
+Out -> UI: Create new version and resubmit
+In -> UI: Accept assigned handover
+HS -> PostgreSQL: Preserve every version and action
+@enduml

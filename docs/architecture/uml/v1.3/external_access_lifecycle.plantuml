@@ -1,0 +1,17 @@
+@startuml
+!theme plain
+title Temporary External Access Lifecycle
+[*] --> Pending : grant created for future start
+Pending --> Active : starts_at reached
+Active --> Expired : expires_at reached automatically
+Pending --> Revoked : owner revokes
+Active --> Revoked : owner revokes
+Active --> Active : assigned review actions only
+Expired --> [*]
+Revoked --> [*]
+note right of Active
+Allowed actions and resource scope
+are stored on the grant.
+Every access and review action is audited.
+end note
+@enduml

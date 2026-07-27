@@ -1,0 +1,17 @@
+@startuml
+title Claude Handover Gate
+actor Owner
+participant "Validation Harness" as V
+participant "Evidence Pack" as E
+participant Claude
+Owner -> V : Run full validation
+V --> Owner : Report and screenshots
+alt report failed
+  Owner -> V : Correct and rerun
+else report passed
+  Owner -> E : Review/redact evidence
+  Owner -> Claude : Repository + report + screenshots
+  Claude -> E : Audit claims against evidence
+  Claude --> Owner : Findings or GO recommendation
+end
+@enduml

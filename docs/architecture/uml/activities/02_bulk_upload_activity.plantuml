@@ -1,0 +1,32 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Bulk Upload Activity
+start
+:Select Bulk upload in current context;
+:Authorize role and organisational scope;
+if (Allowed?) then (yes)
+ :Create immutable batch;
+ :Upload/resume chunks and calculate checksums;
+ :Scan files;
+ if (Unsafe?) then (yes)
+  :Quarantine item and record error;
+ else (no)
+  :Extract metadata and classify;
+  :Detect exact/probable duplicates;
+  if (Confirmation needed?) then (yes)
+   :Show non-destructive options;
+  endif
+  :Create content identity or immutable version;
+  :Store object and provenance;
+  :Index asynchronously;
+ endif
+ :Produce item-level batch report;
+else (no)
+ :Deny and audit;
+endif
+stop
+@enduml

@@ -1,0 +1,53 @@
+@startuml
+!theme plain
+title Data Ingestion — Validation, Classification, Versioning and Indexing
+actor User
+participant "Unified Work Area" as UI
+participant "API Gateway" as API
+participant "Identity & Scope" as IAM
+participant "Bulk Ingestion" as ING
+participant "Malware Scanner" as AV
+participant "Metadata & Rights Validator" as VAL
+participant "Version & Provenance" as VER
+database PostgreSQL as PG
+collections "Object Storage" as OBJ
+participant "Text/Media Extractor" as EXT
+participant "Vector Index" as VEC
+participant "Search Index" as SEARCH
+participant "Audit Service" as AUDIT
+
+User -> UI: Select files/folder/ZIP and target scope
+UI -> API: Create upload batch + manifest
+API -> IAM: Authorise upload action and scope
+IAM --> API: Permit with effective role/scope
+API -> ING: Create quarantined batch
+ING -> AUDIT: Record batch creation
+loop Each item
+  ING -> AV: Scan bytes
+  AV --> ING: clean / blocked
+  alt blocked or unsupported
+    ING -> PG: Save rejected item and reason
+    ING -> AUDIT: Record rejection
+  else clean
+    ING -> VAL: Validate metadata, classification and rights
+    alt metadata incomplete or rights unclear
+      VAL --> ING: quarantine + required remediation
+      ING -> PG: Save quarantined item
+    else admissible
+      VAL --> ING: validated
+      ING -> VER: Resolve duplicate/version relationship
+      VER -> PG: Create content item or append version
+      VER -> OBJ: Store immutable object version
+      VER --> ING: version_id + provenance
+      ING -> EXT: Extract text/transcript/structure
+      EXT --> ING: extracted content + quality signals
+      ING -> VEC: Upsert tenant- and scope-filtered embeddings
+      ING -> SEARCH: Upsert exact/faceted index
+      ING -> PG: Mark item ready or review_required
+      ING -> AUDIT: Record provenance and state change
+    end
+  end
+end
+ING --> API: Batch summary, errors and decisions
+API --> UI: Show per-item outcomes and remediation actions
+@enduml

@@ -1,0 +1,21 @@
+@startuml
+actor Operator
+participant "Backup Script" as Backup
+database PostgreSQL
+cloud MinIO
+component Qdrant
+participant "Checksum Manifest" as Manifest
+participant "Restore Script" as Restore
+Operator -> Backup: execute governed backup
+Backup -> PostgreSQL: pg_dump custom format
+Backup -> MinIO: optional versioned object archive
+Backup -> Qdrant: optional vector storage archive
+Backup -> Manifest: file sizes + SHA-256
+Backup --> Operator: timestamped backup directory
+Operator -> Restore: explicit destructive confirmation
+Restore -> Manifest: verify all checksums
+Restore -> PostgreSQL: pg_restore
+Restore -> MinIO: optional restore
+Restore -> Qdrant: optional restore
+Restore --> Operator: run migrations, isolation, readiness, role smoke tests
+@enduml

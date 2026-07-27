@@ -1,0 +1,40 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Component Diagram
+component "Unified Work Area" as UI
+component "Authorization Client" as AC
+component "Conversation API" as CAPI
+component "Inline Artifact Renderer" as AR
+component "AI Orchestrator" as AIO
+component "Source Verifier" as SV
+component "Teaching Generator" as TG
+component "Assessment Generator" as AG
+component "Bulk Ingestion" as BI
+component "Version Service" as VS
+component "Course Assignment" as CA
+component "Moderation" as MOD
+component "External Access" as EA
+component "Audit" as AUD
+UI --> AC
+UI --> CAPI
+UI --> AR
+CAPI --> AIO
+AIO --> TG
+AIO --> AG
+AIO --> SV
+CAPI --> VS
+UI --> BI
+BI --> VS
+UI --> CA
+UI --> MOD
+MOD --> EA
+AC --> EA
+CAPI --> AUD
+BI --> AUD
+CA --> AUD
+MOD --> AUD
+@enduml

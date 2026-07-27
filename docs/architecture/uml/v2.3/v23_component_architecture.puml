@@ -1,0 +1,32 @@
+@startuml
+skinparam componentStyle rectangle
+actor "Authorised User" as User
+component "Unified Web Workspace" as Web
+component "FastAPI" as API
+component "Security Middleware" as Security
+component "Operations API" as Ops
+component "Durable Worker" as Worker
+database "PostgreSQL\nOperations Ledger" as DB
+queue "Redis\nRate Limits / Cache" as Redis
+component "ClamAV" as Clam
+cloud "Object Storage" as S3
+component "Qdrant" as Qdrant
+component "AI Provider Fabric" as AI
+component "Metrics / Logs" as Obs
+User --> Web
+Web --> API
+API --> Security
+Security --> Ops
+API --> DB
+API --> Redis
+API --> Clam
+API --> S3
+API --> Qdrant
+API --> AI
+Ops --> DB
+Worker --> DB
+Worker --> S3
+Worker --> Qdrant
+API --> Obs
+Worker --> Obs
+@enduml

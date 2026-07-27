@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lsa-worker
+  namespace: lecturer-support-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: lsa-worker}
+  template:
+    metadata:
+      labels: {app: lsa-worker}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: worker
+          image: lecturer-support-agent/worker:2.3.0
+          envFrom:
+            - configMapRef: {name: lsa-config}
+            - secretRef: {name: lsa-secrets}
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          volumeMounts:
+            - name: runtime-tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+      volumes:
+        - name: runtime-tmp
+          emptyDir: {}

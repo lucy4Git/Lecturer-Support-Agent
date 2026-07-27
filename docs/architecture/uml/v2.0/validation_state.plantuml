@@ -1,0 +1,13 @@
+@startuml
+title Validation Release State
+[*] --> SourceImplemented
+SourceImplemented --> ValidationRunning : owner invokes harness
+ValidationRunning --> ValidationFailed : any required stage fails
+ValidationFailed --> Correcting : finding accepted
+Correcting --> ValidationRunning : rerun
+ValidationRunning --> OwnerValidated : all full-mode and live-preview stages pass
+OwnerValidated --> ClaudeAuditPending : evidence packaged
+ClaudeAuditPending --> AuditCorrections : Claude finds issue
+AuditCorrections --> ValidationRunning : corrective rerun
+ClaudeAuditPending --> ReadyForNextImplementation : audit accepted
+@enduml

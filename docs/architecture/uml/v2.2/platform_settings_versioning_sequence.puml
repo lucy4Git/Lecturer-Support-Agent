@@ -1,0 +1,23 @@
+@startuml
+title Versioned Non-secret Platform Setting
+actor "Institution Administrator" as Admin
+participant "Settings Panel" as UI
+participant "Settings API" as API
+participant "Secret Guard" as Guard
+database "PostgreSQL RLS" as DB
+participant "Audit Service" as Audit
+
+Admin -> UI : Update terminology or configuration
+UI -> API : PUT /platform-settings/category/key
+API -> Guard : inspect key, value and value_type
+alt raw secret or credential-like value
+  Guard --> API : reject
+  API --> UI : 422 safe validation error
+else non-secret value or secret reference
+  Guard --> API : accepted
+  API -> DB : load current version
+  API -> DB : persist value and increment version
+  API -> Audit : record before/after metadata
+  API --> UI : updated setting, scope and version
+end
+@enduml

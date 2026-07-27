@@ -1,0 +1,25 @@
+@startuml
+!theme plain
+title Tenant Context and PostgreSQL RLS
+actor User
+participant "Identity/Gateway" as IDP
+participant "FastAPI Middleware" as API
+database PostgreSQL as DB
+
+User -> IDP: authenticated request
+IDP -> API: verified tenant, user and role claims
+API -> API: create immutable RequestContext
+API -> DB: BEGIN
+API -> DB: set_config(app.tenant_id, tenant, true)
+API -> DB: set_config(app.user_id, user, true)
+API -> DB: query / command
+DB -> DB: role/permission query
+DB -> DB: RLS USING/WITH CHECK tenant_id = app.tenant_id
+alt authorised tenant and scope
+  DB --> API: permitted rows / write accepted
+else cross-tenant or missing context
+  DB --> API: no rows or policy rejection
+end
+API -> DB: COMMIT / ROLLBACK
+API --> User: scoped response
+@enduml

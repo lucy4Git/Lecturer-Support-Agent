@@ -1,0 +1,18 @@
+@startuml
+actor User
+participant "Conversation UI" as Web
+participant "Workspace API" as API
+database PostgreSQL as DB
+
+User -> Web: Save generated output
+Web -> API: POST generated_output_id + output_version_id
+API -> DB: Verify output/version relationship
+API -> DB: Verify owner or outputs.review permission
+API -> DB: Insert unique personal saved pointer
+DB --> API: SavedOutput
+API --> Web: Exact version saved
+note over DB
+Later output edits create new versions.
+The saved pointer does not move silently.
+end note
+@enduml

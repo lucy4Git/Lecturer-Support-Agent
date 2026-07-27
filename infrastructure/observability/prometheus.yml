@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: lecturer-support-agent-api
+    metrics_path: /metrics
+    authorization:
+      credentials: ${METRICS_TOKEN}
+    static_configs:
+      - targets: ["api:8000"]

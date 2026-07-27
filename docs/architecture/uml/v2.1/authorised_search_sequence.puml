@@ -1,0 +1,24 @@
+@startuml
+actor User
+participant "Unified shell" as Web
+participant "Workspace API" as API
+participant "Authorisation" as Authz
+participant "Document access" as DocAccess
+database PostgreSQL as DB
+
+User -> Web: Search query
+Web -> API: GET /workspace/search
+API -> Authz: require workspace.search
+Authz -> DB: active role + scope
+DB --> Authz: permitted
+API -> DB: owner-filtered conversations/outputs
+API -> DB: assigned review tasks
+API -> DB: candidate document versions
+loop each document candidate
+  API -> DocAccess: require_version(version_id)
+  DocAccess -> DB: tenant, scope, visibility, ownership
+  DB --> DocAccess: allow/deny
+end
+API --> Web: authorised typed results only
+Web --> User: Search cards
+@enduml

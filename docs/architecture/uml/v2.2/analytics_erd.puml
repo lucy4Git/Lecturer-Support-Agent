@@ -1,0 +1,86 @@
+@startuml
+title v2.2 Analytics and Governance ERD
+hide methods
+hide stereotypes
+
+entity "governance.ai_usage_policies" as policy {
+  * id : UUID
+  * tenant_id : UUID
+  --
+  scope_type : string
+  scope_id : UUID?
+  allowed_providers : JSON
+  denied_providers : JSON
+  monthly limits
+}
+entity "analytics.ai_usage_daily" as usage {
+  * id : UUID
+  * tenant_id : UUID
+  * user_id : UUID
+  * usage_date : date
+  --
+  provider : string
+  model_id : string
+  task_type : string
+  request/token/cost totals
+}
+entity "analytics.analytics_snapshots" as snapshot {
+  * id : UUID
+  * tenant_id : UUID
+  --
+  scope_type : string
+  scope_id : UUID?
+  period_start : date
+  period_end : date
+  metrics : JSON
+}
+entity "analytics.report_definitions" as definition {
+  * id : UUID
+  * tenant_id : UUID
+  --
+  code : string
+  report_type : string
+  allowed_formats : JSON
+}
+entity "analytics.report_runs" as run {
+  * id : UUID
+  * tenant_id : UUID
+  --
+  report_definition_id : UUID?
+  requested_by_user_id : UUID
+  result_payload : JSON
+  result_sha256 : string
+}
+entity "analytics.insight_alerts" as alert {
+  * id : UUID
+  * tenant_id : UUID
+  --
+  scope_type : string
+  scope_id : UUID?
+  severity : string
+  status : string
+}
+entity "governance.platform_settings" as setting {
+  * id : UUID
+  * tenant_id : UUID
+  --
+  category : string
+  setting_key : string
+  value : JSON
+  version_number : integer
+}
+entity "audit.audit_export_jobs" as export {
+  * id : UUID
+  * tenant_id : UUID
+  --
+  requested_by_user_id : UUID
+  filters : JSON
+  result_sha256 : string
+}
+
+definition ||--o{ run
+policy ..> usage : governs
+snapshot ..> alert : may surface
+setting ..> policy : configures defaults
+export ..> run : independent evidence
+@enduml

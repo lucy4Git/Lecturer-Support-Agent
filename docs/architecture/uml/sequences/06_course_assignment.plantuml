@@ -1,0 +1,22 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Head of Department Assigns Course
+actor "Head of Department" as HOD
+participant UI
+participant Authorization as Auth
+participant "Course Assignment Service" as Course
+participant Notification
+participant Audit
+HOD -> UI : Assign course/module to lecturer
+UI -> Auth : verify HOD and department scope
+Auth --> UI : allowed/denied
+UI -> Course : create assignment with period/workload
+Course -> Course : validate course, lecturer, conflicts and dates
+Course -> Audit : record assignment
+Course -> Notification : notify lecturer/coordinator
+Course --> UI : result and warnings
+@enduml

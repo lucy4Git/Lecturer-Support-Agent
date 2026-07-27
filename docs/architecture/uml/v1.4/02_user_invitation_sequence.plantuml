@@ -1,0 +1,29 @@
+@startuml
+!theme plain
+title v1.4 Scoped User Invitation
+actor "Institution Administrator" as Admin
+actor Invitee
+participant "Unified Web Shell" as Web
+participant "FastAPI" as API
+database PostgreSQL as DB
+participant "Notification Service\n(future)" as Notify
+
+Admin -> Web: Invite user and choose independent roles/scopes
+Web -> API: POST /users/invitations
+API -> DB: Verify users.manage on active role assignment
+API -> DB: Store invitation token hash and role grants
+API -> DB: Write audit and outbox events
+API -> Notify: Queue time-limited link (production)
+API --> Web: Invitation metadata only
+
+Invitee -> Web: Open invitation link
+Web -> API: POST /auth/invitations/accept
+API -> API: Parse tenant; hash token
+API -> DB: SET LOCAL app.tenant_id
+API -> DB: Validate pending unexpired invitation
+API -> DB: Create/reuse user; create active membership
+API -> DB: Create Argon2 credential only when absent
+API -> DB: Materialise access scopes and role assignments
+API -> DB: Mark accepted and audit
+API --> Web: Acceptance confirmation
+@enduml

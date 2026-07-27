@@ -1,0 +1,18 @@
+@startuml
+title v1.6 Source-Aware Unified Conversation
+actor Lecturer
+participant UI
+participant "Conversation Engine" as CE
+participant "Institutional Retrieval" as IR
+participant "External Source Discovery" as ES
+participant "Model Router" as MR
+participant "Citation Integrity Guard" as CIG
+Lecturer -> UI: Ask request + attach uploaded versions
+UI -> CE: One conversation message
+CE -> IR: Retrieve authorised versioned excerpts
+CE -> ES: Retrieve external metadata when needed
+CE -> MR: Generic task prompt + verified source pack
+MR --> CE: Draft with source markers
+CE -> CIG: Remove unknown markers/links/DOIs
+CE --> UI: Inline output + institutional/external source cards
+@enduml

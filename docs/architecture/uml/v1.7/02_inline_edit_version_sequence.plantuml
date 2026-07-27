@@ -1,0 +1,20 @@
+@startuml
+title Inline Edit and Immutable Versioning
+actor User
+participant "Unified Work Area" as UI
+participant "Teaching Output API" as API
+participant "Generated Output Service" as Service
+database PostgreSQL as DB
+User -> UI: Edit current output
+UI -> API: POST /versions (content, reason)
+API -> Service: authorise outputs.edit
+Service -> DB: lock output and read current version
+Service -> DB: append new output_version
+Service -> DB: set current_version_id
+Service -> DB: append safety review + workflow action
+Service --> UI: current version N+1
+User -> UI: Restore version 1
+UI -> API: POST /versions/{id}/restore
+API -> Service: copy old content into version N+2
+Service --> UI: restored content, old history retained
+@enduml

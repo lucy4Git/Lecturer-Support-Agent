@@ -1,0 +1,104 @@
+@startuml
+!theme plain
+hide methods
+hide stereotypes
+skinparam linetype ortho
+
+title Lecturer Support Agent v1.3 - Physical Database Domains
+
+package tenant {
+  entity institutions
+  entity organisational_unit_types
+  entity organisational_units
+  entity organisational_unit_closure
+  entity academic_periods
+}
+package iam {
+  entity users
+  entity memberships
+  entity roles
+  entity permissions
+  entity role_assignments
+  entity access_scopes
+}
+package academic {
+  entity qualifications
+  entity programmes
+  entity modules
+  entity module_offerings
+  entity learning_outcomes
+  entity lecturer_assignments
+  entity coordinator_assignments
+  entity moderator_assignments
+  entity teaching_workloads
+}
+package ingestion {
+  entity upload_batches
+  entity upload_items
+}
+package content {
+  entity documents
+  entity document_versions
+  entity storage_objects
+  entity document_relationships
+  entity document_classifications
+}
+package conversation {
+  entity conversations
+  entity messages
+  entity message_attachments
+  entity generated_outputs
+  entity output_versions
+}
+package ai {
+  entity ai_requests
+  entity model_executions
+}
+package source {
+  entity sources
+  entity source_retrievals
+  entity citations
+  entity claim_citations
+  entity verification_results
+}
+package review {
+  entity external_access_grants
+  entity assigned_review_tasks
+  entity approval_workflows
+  entity workflow_actions
+}
+package audit {
+  entity audit_events
+  entity security_events
+  entity outbox_events
+}
+
+institutions ||--o{ memberships
+institutions ||--o{ organisational_units
+organisational_units ||--o{ organisational_units : parent
+organisational_units ||--o{ programmes
+organisational_units ||--o{ modules
+users ||--o{ memberships
+users ||--o{ role_assignments
+roles ||--o{ role_assignments
+access_scopes ||--o{ role_assignments
+modules ||--o{ module_offerings
+academic_periods ||--o{ module_offerings
+module_offerings ||--o{ lecturer_assignments
+upload_batches ||--o{ upload_items
+documents ||--o{ document_versions
+document_versions }o--|| storage_objects
+document_versions ||--o{ document_relationships
+conversations ||--o{ messages
+messages ||--o{ ai_requests
+ai_requests ||--o{ model_executions
+messages ||--o{ generated_outputs
+generated_outputs ||--o{ output_versions
+ai_requests ||--o{ source_retrievals
+sources ||--o{ source_retrievals
+source_retrievals ||--o{ citations
+output_versions ||--o{ citations
+citations ||--o{ claim_citations
+external_access_grants ||--o{ assigned_review_tasks
+approval_workflows ||--o{ workflow_actions
+@enduml

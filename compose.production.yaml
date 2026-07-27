@@ -1,0 +1,170 @@
+name: lecturer-support-agent-production
+
+x-api-environment: &api-environment
+  ENVIRONMENT: production
+  DEBUG: "false"
+  PUBLIC_APP_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
+  DATABASE_URL: postgresql+psycopg://lsa_app:${POSTGRES_APP_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:-lecturer_support_agent}
+  AUTH_DATABASE_URL: postgresql+psycopg://lsa_auth:${POSTGRES_AUTH_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:-lecturer_support_agent}
+  MIGRATION_DATABASE_URL: postgresql+psycopg://lsa_owner:${POSTGRES_OWNER_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:-lecturer_support_agent}
+  WORKER_DATABASE_URL: postgresql+psycopg://lsa_worker:${POSTGRES_WORKER_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:-lecturer_support_agent}
+  REDIS_URL: redis://:${REDIS_PASSWORD:?required}@redis:6379/0
+  OBJECT_STORAGE_ENDPOINT: http://minio:9000
+  OBJECT_STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER:?required}
+  OBJECT_STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?required}
+  OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-lecturer-support-agent}
+  QDRANT_URL: http://qdrant:6333
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  JWT_SECRET_KEY: ${JWT_SECRET_KEY:?required}
+  AI_ENABLE_DEVELOPMENT_MOCK: "false"
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_FAIL_CLOSED: "true"
+  MALWARE_SCAN_ENABLED: "true"
+  MALWARE_SCAN_FAIL_CLOSED: "true"
+  CLAMAV_HOST: clamav
+  CLAMAV_PORT: "3310"
+  METRICS_ENABLED: "true"
+  METRICS_TOKEN: ${METRICS_TOKEN:?required}
+  TRUSTED_HOSTS: ${TRUSTED_HOSTS:?required}
+  CORS_ALLOWED_ORIGINS: ${PUBLIC_APP_URL:?required}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lecturer_support_agent}
+      POSTGRES_USER: lsa_owner
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD:?required}
+      LSA_APP_DB_PASSWORD: ${POSTGRES_APP_PASSWORD:?required}
+      LSA_AUTH_DB_PASSWORD: ${POSTGRES_AUTH_PASSWORD:?required}
+      LSA_WORKER_DB_PASSWORD: ${POSTGRES_WORKER_PASSWORD:?required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/database/postgresql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lsa_owner -d ${POSTGRES_DB:-lecturer_support_agent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?required}"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:?required} ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?required}
+    volumes: ["minio_data:/data"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  minio-bootstrap:
+    image: minio/mc:latest
+    depends_on:
+      minio: {condition: service_healthy}
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?required}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-lecturer-support-agent}
+    entrypoint: ["/bin/sh", "/bootstrap/bootstrap.sh"]
+    volumes:
+      - ./infrastructure/database/minio/bootstrap.sh:/bootstrap/bootstrap.sh:ro
+    restart: "no"
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    restart: unless-stopped
+    volumes: ["qdrant_data:/qdrant/storage"]
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/6333'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    volumes: ["clamav_data:/var/lib/clamav"]
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/api.Dockerfile
+    restart: unless-stopped
+    environment: *api-environment
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+      qdrant: {condition: service_healthy}
+      clamav: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/worker.Dockerfile
+    restart: unless-stopped
+    environment: *api-environment
+    depends_on:
+      api: {condition: service_healthy}
+
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+      args:
+        API_BASE_URL: http://api:8000
+    restart: unless-stopped
+    environment:
+      API_BASE_URL: http://api:8000
+      NODE_ENV: production
+    depends_on:
+      api: {condition: service_healthy}
+
+  gateway:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?required}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - web
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  qdrant_data:
+  clamav_data:
+  caddy_data:

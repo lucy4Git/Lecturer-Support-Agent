@@ -1,0 +1,26 @@
+@startuml
+title Teaching Output Export
+actor User
+participant "Unified Work Area" as UI
+participant "Export API" as API
+participant "Output Service" as Output
+participant "Safety Service" as Safety
+participant Renderer
+participant "Object Storage" as Storage
+database PostgreSQL as DB
+User -> UI: Export format + audience
+UI -> API: POST /teaching-outputs/{id}/exports
+API -> Output: authorise exact output/version
+Output -> DB: lifecycle + current safety review
+API -> Safety: validate audience/release
+Safety --> API: allowed or fail closed
+API -> Renderer: render selected version
+Renderer --> API: bytes, filename, media type
+API -> Storage: store versioned object
+Storage --> API: object key/version
+API -> DB: export_job + storage_object + audit
+API --> UI: download path
+UI -> API: GET export download
+API -> Output: re-authorise
+API -> Storage: stream bytes
+@enduml

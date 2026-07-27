@@ -1,0 +1,30 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Unified Request Activity
+start
+:Receive prompt and attachments;
+:Resolve tenant, roles and scope;
+if (Authorised?) then (yes)
+ :Classify intent, discipline, level and risk;
+ if (Sources required?) then (yes)
+  :Retrieve and verify sources;
+  if (Sufficient evidence?) then (yes)
+   :Generate with claim-source mapping;
+  else (no)
+   :Generate cautious response and state limits;
+  endif
+ else (no)
+  :Generate generic teaching response;
+ endif
+ :Validate schema, facts, safety and status language;
+ :Render inline artifact in same conversation;
+ :Persist version, sources, execution and audit;
+else (no)
+ :Return scoped permission message;
+endif
+stop
+@enduml

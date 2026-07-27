@@ -1,0 +1,21 @@
+@startuml
+title Teaching Plan and Delivery Monitoring
+actor Lecturer
+participant "Unified Work Area" as UI
+participant API
+participant "Authorisation" as Auth
+participant "Teaching Plan Service" as Service
+database PostgreSQL
+Lecturer -> UI: Create plan for assigned offering
+UI -> API: POST /teaching-plans
+API -> Auth: Check teaching_plans.manage + scope
+Auth --> API: Allowed
+API -> Service: Create plan and immutable version 1
+Service -> PostgreSQL: Insert plan + version + audit
+PostgreSQL --> Service: IDs
+Service --> UI: Plan summary
+Lecturer -> UI: Record session delivered
+UI -> API: POST /teaching-sessions/{id}/status
+API -> Service: Fail-closed state transition
+Service -> PostgreSQL: Preserve planned and actual evidence
+@enduml

@@ -1,0 +1,25 @@
+@startuml
+actor User
+participant API
+participant "Job Queue Service" as Queue
+database PostgreSQL
+participant Worker
+participant "Domain Handler" as Handler
+User -> API: request long-running operation
+API -> Queue: enqueue(type, payload, idempotency key)
+Queue -> PostgreSQL: INSERT queued job
+PostgreSQL --> Queue: job id
+API --> User: 202 Accepted + job id
+loop worker polling
+  Worker -> PostgreSQL: SELECT ... FOR UPDATE SKIP LOCKED
+  PostgreSQL --> Worker: leased job
+  Worker -> Handler: execute(payload)
+  alt success
+    Handler --> Worker: result
+    Worker -> PostgreSQL: completed + attempt evidence
+  else safe failure
+    Handler --> Worker: exception
+    Worker -> PostgreSQL: retry with backoff or dead letter
+  end
+end
+@enduml

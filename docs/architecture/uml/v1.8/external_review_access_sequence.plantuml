@@ -1,0 +1,24 @@
+@startuml
+actor "External Reviewer" as Reviewer
+participant "Unified Work Area" as UI
+participant "Review API" as API
+participant "Assignment Guard" as Guard
+participant "External Grant Guard" as Grant
+participant PostgreSQL as DB
+
+Reviewer -> UI: Open assigned task or record finding
+UI -> API: Request with active session and task ID
+API -> Guard: Verify tenant, role and exact assigned_user_id
+Guard -> DB: Load task and cycle
+Guard -> Grant: Validate grant for requested action and resources
+Grant -> DB: Read status, start, expiry, actions and scope
+alt valid grant and exact resource match
+  Grant --> Guard: Permit
+  Guard --> API: Permit
+  API --> UI: Return assigned review data
+else expired, revoked, wrong action or wrong resource
+  Grant --> Guard: Deny
+  Guard --> API: 403 without resource disclosure
+  API --> UI: Access unavailable
+end
+@enduml

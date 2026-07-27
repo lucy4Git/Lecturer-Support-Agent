@@ -1,0 +1,28 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Source Verification and Citation Integrity
+participant Orchestrator as AI
+participant "Source Discovery" as Search
+participant "Metadata Resolver" as Resolve
+participant "Evidence Extractor" as Evidence
+participant "Claim Validator" as Claims
+participant "Source Store" as Store
+AI -> Search : query approved sources
+Search --> AI : candidates
+AI -> Resolve : normalize and resolve metadata/links
+Resolve --> AI : valid/invalid candidates
+AI -> Evidence : extract relevant evidence
+Evidence --> AI : passages/facts
+AI -> Claims : proposed claims + evidence
+Claims --> AI : supported/rejected mappings
+AI -> Store : persist verified source records
+Store --> AI : source IDs
+note over AI
+Only persisted verified source IDs
+may be rendered as citations.
+end note
+@enduml

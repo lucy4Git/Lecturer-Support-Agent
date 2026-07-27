@@ -1,0 +1,24 @@
+@startuml
+title v1.6 Contextual Bulk Upload
+actor User
+participant "Unified Work Area" as UI
+participant "Bulk Upload API" as API
+participant "Safe ZIP Expander" as ZIP
+participant "Versioning Service" as VS
+participant "Object Storage" as S3
+participant "Ingestion Pipeline" as ING
+participant Qdrant
+User -> UI: Select files/folder ZIP
+UI -> API: multipart files + scoped metadata
+API -> API: Authorise content.bulk_upload
+API -> ZIP: Inspect/expand ZIP safely
+loop each accepted file
+API -> VS: Create immutable version
+VS -> S3: Store object version
+VS --> API: document_version_id
+API -> ING: Extract, chunk, embed, index
+ING -> Qdrant: Tenant-scoped chunk points
+end
+API --> UI: Batch, item, version and processing results
+UI -> UI: Attach versions to next message
+@enduml

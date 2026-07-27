@@ -1,0 +1,38 @@
+{
+  "manifest_version": "1.0",
+  "batch_id": "018f9c33-0000-7000-8000-000000000001",
+  "tenant_id": "018f9c33-0000-7000-8000-000000000010",
+  "actor": {
+    "user_id": "018f9c33-0000-7000-8000-000000000020",
+    "active_role": "LECTURER",
+    "delegation_id": null
+  },
+  "target_scope": {
+    "organizational_unit_id": "018f9c33-0000-7000-8000-000000000030",
+    "programme_id": null,
+    "module_id": "018f9c33-0000-7000-8000-000000000040"
+  },
+  "defaults": {
+    "academic_period": "2026-S2",
+    "visibility": "module",
+    "confidentiality": "C1_INTERNAL",
+    "rights_status": "institution_owned",
+    "model_use": "MODEL_RUNTIME_CONTEXT_ONLY",
+    "change_reason": "Initial semester teaching pack"
+  },
+  "items": [
+    {
+      "client_item_id": "item-001",
+      "path": "IoT/Week-01/lesson-plan.docx",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 12345,
+      "title": "IoT Sensors Practical Lesson",
+      "content_type": "lesson_plan",
+      "overrides": {},
+      "duplicate_decision": "pending",
+      "existing_version_id": null
+    }
+  ],
+  "created_at": "2026-07-21T10:00:00Z",
+  "idempotency_key": "example-batch-2026-s2-001"
+}

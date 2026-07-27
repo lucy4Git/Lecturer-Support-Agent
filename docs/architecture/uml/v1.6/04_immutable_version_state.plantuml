@@ -1,0 +1,17 @@
+@startuml
+title v1.6 Immutable Document Version State
+[*] --> Working
+Working --> UnderReview : submit
+UnderReview --> Approved : authorised approval
+UnderReview --> Rejected : return/reject
+Approved --> Published : release
+Working --> Superseded : newer active version
+Approved --> Superseded : newer approved version
+Published --> Archived : retention decision
+Rejected --> Archived
+Superseded --> Archived
+note right of Working
+No transition deletes the stored object,
+uploader, timestamp, checksum or provenance.
+end note
+@enduml

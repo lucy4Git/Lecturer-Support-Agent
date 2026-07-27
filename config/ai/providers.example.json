@@ -1,0 +1,110 @@
+{
+  "$schema": "../../data/schemas/ai_provider_registry.schema.json",
+  "registry_version": "1.0.0",
+  "policy": {
+    "ordinary_users_may_select_provider": false,
+    "provider_choice_is_audited": true,
+    "source_verification_is_provider_independent": true,
+    "deny_fallback_that_weakens_data_policy": true,
+    "dynamic_model_discovery": true
+  },
+  "providers": [
+    {
+      "id": "openai",
+      "display_name": "OpenAI",
+      "deployment_type": "cloud",
+      "enabled_by_default": false,
+      "api_key_env": "OPENAI_API_KEY",
+      "base_url_env": "OPENAI_BASE_URL",
+      "default_model_env": "OPENAI_DEFAULT_MODEL",
+      "model_discovery": "provider_models_endpoint",
+      "adapter": "openai_responses",
+      "capability_hints": [
+        "text",
+        "reasoning",
+        "structured_output",
+        "tools",
+        "streaming",
+        "multimodal"
+      ]
+    },
+    {
+      "id": "anthropic",
+      "display_name": "Anthropic Claude",
+      "deployment_type": "cloud",
+      "enabled_by_default": false,
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "base_url_env": "ANTHROPIC_BASE_URL",
+      "default_model_env": "ANTHROPIC_DEFAULT_MODEL",
+      "model_discovery": "provider_models_endpoint",
+      "adapter": "anthropic_messages",
+      "capability_hints": [
+        "text",
+        "reasoning",
+        "structured_output",
+        "tools",
+        "streaming",
+        "multimodal"
+      ]
+    },
+    {
+      "id": "google_gemini",
+      "display_name": "Google Gemini",
+      "deployment_type": "cloud",
+      "enabled_by_default": false,
+      "api_key_env": "GOOGLE_GEMINI_API_KEY",
+      "base_url_env": "GOOGLE_GEMINI_BASE_URL",
+      "default_model_env": "GOOGLE_GEMINI_DEFAULT_MODEL",
+      "model_discovery": "provider_models_endpoint",
+      "adapter": "google_gemini",
+      "capability_hints": [
+        "text",
+        "reasoning",
+        "structured_output",
+        "tools",
+        "streaming",
+        "multimodal",
+        "audio",
+        "video"
+      ]
+    },
+    {
+      "id": "deepseek",
+      "display_name": "DeepSeek",
+      "deployment_type": "cloud",
+      "enabled_by_default": false,
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "base_url_env": "DEEPSEEK_BASE_URL",
+      "default_model_env": "DEEPSEEK_DEFAULT_MODEL",
+      "model_discovery": "provider_models_endpoint",
+      "adapter": "openai_compatible",
+      "capability_hints": [
+        "text",
+        "reasoning",
+        "structured_output",
+        "tools",
+        "streaming"
+      ]
+    },
+    {
+      "id": "ollama",
+      "display_name": "Ollama Local",
+      "deployment_type": "local",
+      "enabled_by_default": true,
+      "api_key_env": null,
+      "base_url_env": "OLLAMA_BASE_URL",
+      "default_model_env": "OLLAMA_DEFAULT_MODEL",
+      "model_discovery": "ollama_tags_endpoint",
+      "adapter": "ollama_native",
+      "capability_hints": [
+        "text",
+        "reasoning",
+        "structured_output",
+        "tools",
+        "streaming",
+        "embeddings",
+        "multimodal"
+      ]
+    }
+  ]
+}

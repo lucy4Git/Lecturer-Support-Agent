@@ -1,0 +1,27 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Lesson Plan Generation
+actor Lecturer
+participant UI
+participant Authorization as Auth
+participant Orchestrator as AI
+participant "Source Verifier" as Sources
+participant "Teaching Service" as Teach
+participant "Version Service" as Version
+Lecturer -> UI : Generate 2-hour IoT sensor practical
+UI -> Auth : verify lecturer/module scope
+Auth --> UI : authorised context
+UI -> AI : prompt + constraints + context
+AI -> Sources : retrieve current sources if needed
+Sources --> AI : verified evidence or limitations
+AI -> Teach : build lesson artifact schema
+Teach --> AI : outcomes, timing, equipment, activities, assessment
+AI -> Version : save draft and sources
+Version --> AI : immutable version ID
+AI --> UI : stream lesson inline
+Lecturer -> UI : edit/adapt/export
+@enduml

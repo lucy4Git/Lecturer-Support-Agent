@@ -1,0 +1,27 @@
+@startuml
+title v1.6 Ingestion and Retrieval Components
+component "Unified Web Work Area" as Web
+component "Documents/Bulk APIs" as API
+component "Access Service" as Access
+component "Versioning Service" as Version
+component "Parser Registry" as Parser
+component "Chunker" as Chunker
+component "Embedding Client" as Embed
+component "Retrieval Service" as Retrieval
+database PostgreSQL
+cloud MinIO
+cloud Qdrant
+Web --> API
+API --> Access
+API --> Version
+Version --> MinIO
+API --> Parser
+Parser --> Chunker
+Chunker --> Embed
+Embed --> Qdrant
+API --> PostgreSQL
+Retrieval --> Access
+Retrieval --> Embed
+Retrieval --> Qdrant
+Retrieval --> PostgreSQL
+@enduml

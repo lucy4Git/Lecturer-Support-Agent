@@ -1,0 +1,27 @@
+@startuml
+!theme plain
+actor User
+participant "Unified Web" as Web
+participant "SSO API" as API
+participant "OIDC Provider" as IdP
+database PostgreSQL as DB
+
+User -> Web: Sign in with institution SSO
+Web -> API: start(connection, redirect URI)
+API -> IdP: discovery document
+API -> DB: hashed state + nonce + PKCE verifier
+API --> Web: authorization URL
+Web -> IdP: authorize + PKCE challenge
+IdP --> Web: code + state
+Web -> API: callback(code, state)
+API -> DB: verify single-use state
+API -> IdP: code exchange + PKCE verifier
+IdP --> API: signed ID token
+API -> IdP: retrieve JWKS
+API -> API: verify signature, issuer, audience, expiry, nonce
+API -> DB: resolve federated subject or explicitly allowed verified-email link
+API --> Web: one-time handoff + available roles
+Web -> API: handoff + selected role
+API -> DB: validate active membership and role\nconsume handoff\ncreate application session
+API --> Web: access + refresh tokens
+@enduml

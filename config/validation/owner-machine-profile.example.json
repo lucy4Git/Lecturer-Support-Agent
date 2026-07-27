@@ -1,0 +1,70 @@
+{
+  "profile_name": "Lecturer Support Agent v2.0 consolidated validation",
+  "evidence_root": "runtime/validation",
+  "stop_on_failure": false,
+  "required_services": {
+    "postgresql": {
+      "required": true,
+      "endpoint": "localhost:5432"
+    },
+    "redis": {
+      "required": true,
+      "endpoint": "localhost:6379"
+    },
+    "minio": {
+      "required": true,
+      "endpoint": "http://localhost:9000"
+    },
+    "qdrant": {
+      "required": true,
+      "endpoint": "http://localhost:6333"
+    },
+    "ollama": {
+      "required": true,
+      "endpoint": "http://localhost:11434"
+    },
+    "api": {
+      "required": true,
+      "endpoint": "http://localhost:8000/health"
+    },
+    "web": {
+      "required": true,
+      "endpoint": "http://localhost:3000/sign-in"
+    }
+  },
+  "required_ollama_models": [
+    "qwen3:8b",
+    "nomic-embed-text-v2-moe"
+  ],
+  "validation_stages": [
+    "preflight",
+    "environment_safety",
+    "static",
+    "infrastructure",
+    "database",
+    "ai",
+    "web_build",
+    "live_preview",
+    "security",
+    "recovery",
+    "evidence"
+  ],
+  "browser_viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "name": "tablet",
+      "width": 820,
+      "height": 1180
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "notes": "The harness never starts Docker Desktop. Start Docker Desktop manually before using -StartInfrastructure. Cloud probes are optional and use a synthetic prompt only."
+}

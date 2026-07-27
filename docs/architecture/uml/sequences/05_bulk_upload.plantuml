@@ -1,0 +1,36 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Role-Aware Bulk Upload with Immutable Versions
+actor User
+participant UI
+participant Authorization as Auth
+participant "Upload Service" as Upload
+participant Scanner
+participant Classifier
+participant "Duplicate Detector" as Dup
+participant "Version Service" as Version
+participant Indexer
+participant Audit
+User -> UI : Select Bulk upload
+UI -> Auth : permission + tenant + scope
+Auth --> UI : allowed scope
+UI -> Upload : create batch and upload/resume
+Upload -> Scanner : scan items
+Scanner --> Upload : safe/quarantined
+Upload -> Classifier : extract/classify safe items
+Classifier --> Upload : metadata suggestions
+Upload -> Dup : checksum/similarity check
+Dup --> Upload : exact/probable matches
+Upload --> UI : confirmation when needed
+User -> UI : version/link/new item/cancel
+UI -> Upload : decisions
+Upload -> Version : append immutable versions
+Version --> Upload : IDs
+Upload -> Indexer : indexing events
+Upload -> Audit : actor, role, batch, versions, errors
+Upload --> UI : partial/success report
+@enduml

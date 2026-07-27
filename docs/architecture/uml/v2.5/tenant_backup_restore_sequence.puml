@@ -1,0 +1,36 @@
+@startuml
+!theme plain
+actor "Institution Administrator" as Admin
+participant "Unified Workspace" as Web
+participant "Operations API" as API
+database PostgreSQL as DB
+participant "Durable Worker" as Worker
+participant "Backup Executor" as Backup
+collections "Tenant Object Versions" as S3
+collections "Tenant Qdrant Points" as Qdrant
+participant "Isolated Restore Drill" as Drill
+
+Admin -> Web: Request tenant backup
+Web -> API: POST /operations/backups
+API -> DB: Create BackupRun + queued job
+Worker -> DB: Claim job under tenant context
+Worker -> Backup: Execute selected components
+Backup -> DB: Export rows through forced tenant RLS
+Backup -> S3: Export versions under tenants/{tenant_id}/
+Backup -> Qdrant: Scroll points with mandatory tenant filter
+Backup -> Backup: SHA-256 every file and manifest
+Backup --> Worker: Location, component results, manifest digest
+Worker -> DB: Complete run + immutable audit evidence
+
+Admin -> Web: Request restore drill
+Web -> API: POST /operations/backups/{id}/restore-drills
+API -> DB: Create RestoreDrill + queued job
+Worker -> Drill: Verify manifest and archive catalogue
+alt approved isolated restore executable configured
+  Drill -> Drill: Import tenant package and run institution-approved checks
+  Drill --> Worker: isolated_restore_completed
+else no executable configured
+  Drill --> Worker: manifest_and_catalogue_validated
+end
+Worker -> DB: Store truthful validation result
+@enduml

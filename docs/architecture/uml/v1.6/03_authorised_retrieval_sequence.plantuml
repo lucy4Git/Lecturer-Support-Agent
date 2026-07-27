@@ -1,0 +1,20 @@
+@startuml
+title v1.6 Authorised Institutional Retrieval
+actor User
+participant Conversation
+participant "Retrieval Service" as R
+participant "Embedding Provider" as E
+participant Qdrant
+participant PostgreSQL
+participant "Prompt Builder" as P
+User -> Conversation: Prompt + attachment version IDs
+Conversation -> R: Query, active tenant/role/scope
+R -> PostgreSQL: Verify every attachment and permission
+R -> E: Embed query
+R -> Qdrant: Search with server tenant filter
+Qdrant --> R: Candidate chunks
+R -> PostgreSQL: Defence-in-depth access check
+R -> PostgreSQL: Persist retrieval trace
+R --> P: Verified institutional source pack + excerpts
+P --> Conversation: Source-aware model prompt
+@enduml

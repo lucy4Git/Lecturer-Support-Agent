@@ -1,0 +1,21 @@
+@startuml
+start
+:Load active tenant retention rules;
+:Calculate rule cutoff;
+:Find allow-listed candidates;
+if (Dry run?) then (yes)
+  :Record planned items only;
+else (no)
+  if (Reversible action?) then (yes)
+    :Archive or mark expired;
+    :Record applied item;
+  else (no)
+    :Record skipped item;
+  endif
+endif
+:Store run counts and audit evidence;
+stop
+note right
+Hard delete is unsupported.
+end note
+@enduml

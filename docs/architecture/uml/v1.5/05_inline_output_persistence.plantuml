@@ -1,0 +1,25 @@
+@startuml
+entity Conversation
+entity Message
+entity AIRequest
+entity ModelExecution
+entity GeneratedOutput
+entity OutputVersion
+entity Source
+entity SourceRetrieval
+entity Citation
+entity VerificationResult
+entity AuditEvent
+
+Conversation ||--o{ Message
+Message ||--o| AIRequest : user request
+AIRequest ||--o{ ModelExecution
+AIRequest ||--|| GeneratedOutput
+GeneratedOutput ||--o{ OutputVersion
+AIRequest ||--o{ SourceRetrieval
+Source ||--o{ SourceRetrieval
+OutputVersion ||--o{ Citation
+SourceRetrieval ||--o{ Citation
+Citation ||--o{ VerificationResult
+GeneratedOutput ..> AuditEvent
+@enduml

@@ -1,0 +1,25 @@
+@startuml
+!theme plain
+actor "Data Steward" as Steward
+participant "Data Governance API" as API
+database "Source Register" as Register
+queue Worker
+participant "OpenAlex / Crossref" as Metadata
+collections "Quarantine Object Storage" as Storage
+
+Steward -> API: Register candidate source + intended use
+API -> Register: store licence, provenance, restrictions
+Steward -> API: approve or reject rights decision
+API -> Register: approval evidence
+Steward -> API: request acquisition
+API -> Register: verify approved use\nand adaptation permission when relevant
+API -> Worker: data.acquire_dataset
+Worker -> Metadata: approved metadata query
+Metadata --> Worker: metadata records
+Worker -> Storage: JSONL + SHA-256 manifest
+Worker -> Register: counts, checksum, storage prefix
+note over API,Storage
+Linked full text is not acquired merely
+because a DOI or URL was returned.
+end note
+@enduml

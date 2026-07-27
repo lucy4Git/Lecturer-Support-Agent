@@ -1,0 +1,40 @@
+@startuml
+!theme plain
+title Permission-Aware Bulk Upload from the Unified Work Area
+actor "Lecturer / HOD / Administrator / Coordinator / Reviewer" as User
+participant "Unified Work Area" as UI
+participant "Policy Decision Point" as PDP
+participant "Bulk Upload API" as API
+participant "Manifest Validator" as MV
+participant "Ingestion Job" as JOB
+participant "Version Service" as VS
+database "Metadata Store" as DB
+collections "Object Storage" as OS
+participant "Notification Service" as NOTIFY
+
+User -> UI: Click contextual Bulk upload action
+UI -> PDP: Can actor upload this content to this scope?
+alt not authorised
+  PDP --> UI: Deny with safe explanation
+else authorised
+  PDP --> UI: Permit + allowed targets/classifications
+  User -> UI: Add files/ZIP + metadata defaults
+  UI -> API: Submit manifest and file handles
+  API -> MV: Validate schema, target, rights and limits
+  alt validation fails
+    MV --> UI: Item-level errors; no commit
+  else valid
+    MV -> JOB: Queue idempotent batch
+    JOB -> VS: Check checksum and content identity
+    alt exact duplicate
+      VS -> DB: Record duplicate observation, preserve existing version
+    else revised/alternative/new content
+      VS -> OS: Store immutable object
+      VS -> DB: Append version with actor, timestamp and relationship
+    end
+    JOB -> DB: Save batch and per-item outcomes
+    JOB -> NOTIFY: Completion summary
+    NOTIFY --> UI: Ready / review required / rejected counts
+  end
+end
+@enduml

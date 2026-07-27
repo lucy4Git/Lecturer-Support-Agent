@@ -1,0 +1,27 @@
+@startuml
+!theme plain
+title Configurable HEI Hierarchy — v1.4
+entity Institution
+entity OrganisationalUnitType
+entity OrganisationalUnit
+entity OrganisationalUnitClosure
+entity TenantTerminology
+entity TenantSetting
+
+Institution ||--o{ OrganisationalUnitType
+Institution ||--o{ OrganisationalUnit
+OrganisationalUnitType ||--o{ OrganisationalUnit
+OrganisationalUnit ||--o{ OrganisationalUnit : parent / child
+OrganisationalUnit ||--o{ OrganisationalUnitClosure : ancestor
+OrganisationalUnit ||--o{ OrganisationalUnitClosure : descendant
+Institution ||--o{ TenantTerminology
+Institution ||--o{ TenantSetting
+
+note bottom of OrganisationalUnit
+No hard-coded Faculty -> Department hierarchy.
+Each tenant defines unit types, labels, order,
+parents, dates, attributes, and terminology.
+Moves preserve closure and materialised paths
+and reject cycles.
+end note
+@enduml

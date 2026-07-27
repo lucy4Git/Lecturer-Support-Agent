@@ -1,0 +1,23 @@
+@startuml
+!theme plain
+actor "Institution Administrator A" as A
+actor "Institution Administrator B" as B
+participant "Privacy API" as API
+database PostgreSQL as DB
+queue Worker
+collections "MinIO / Qdrant / Cache" as Stores
+
+A -> API: Create deletion request
+API -> DB: generate resource manifest and legal-hold preview
+alt active legal hold
+  API --> A: blocked with hold evidence
+else no hold
+  API --> A: pending second approval
+  B -> API: approve request
+  API -> DB: enforce different approver
+  API -> Worker: privacy.execute_deletion
+  Worker -> DB: re-check holds and dependencies
+  Worker -> Stores: delete approved object/vector/cache records
+  Worker -> DB: preserve minimum audit tombstone + action evidence
+end
+@enduml

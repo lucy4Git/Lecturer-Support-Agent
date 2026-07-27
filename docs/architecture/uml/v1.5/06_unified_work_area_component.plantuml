@@ -1,0 +1,23 @@
+@startuml
+actor User
+component "Responsive Unified Work Area" as Workspace
+component "Recent Conversations" as Recent
+component "Inline Message Renderer" as Messages
+component "Source Cards" as Cards
+component "Role Action Drawer" as Actions
+component "HTTP-only Cookie BFF" as BFF
+component "FastAPI Conversation API" as API
+
+User --> Workspace
+Workspace --> Recent
+Workspace --> Messages
+Messages --> Cards
+Workspace --> Actions
+Workspace --> BFF
+Actions --> BFF
+BFF --> API
+note right of Workspace
+No separate artifact workspace.
+Every generated output remains inline.
+end note
+@enduml

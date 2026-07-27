@@ -1,0 +1,32 @@
+@startuml
+title v1.7 Teaching Output Components
+package "Unified Web Application" {
+  [Conversation Work Area]
+  [Inline Output Controls]
+  [Module Selector]
+}
+package "FastAPI" {
+  [Conversation Engine]
+  [Module Context Service]
+  [Output Workflow Service]
+  [Assessment Safety]
+  [Export Service]
+  [Authorization]
+}
+package "Data" {
+  database PostgreSQL
+  [Object Storage]
+}
+[Conversation Work Area] --> [Conversation Engine]
+[Inline Output Controls] --> [Output Workflow Service]
+[Module Selector] --> [Module Context Service]
+[Conversation Engine] --> [Assessment Safety]
+[Conversation Engine] --> [Output Workflow Service]
+[Export Service] --> [Assessment Safety]
+[Output Workflow Service] --> [Authorization]
+[Module Context Service] --> [Authorization]
+[Conversation Engine] --> PostgreSQL
+[Output Workflow Service] --> PostgreSQL
+[Export Service] --> PostgreSQL
+[Export Service] --> [Object Storage]
+@enduml

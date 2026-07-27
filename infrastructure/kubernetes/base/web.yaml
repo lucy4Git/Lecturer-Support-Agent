@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lsa-web
+  namespace: lecturer-support-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: lsa-web}
+  template:
+    metadata:
+      labels: {app: lsa-web}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: web
+          image: lecturer-support-agent/web:2.3.0
+          ports: [{containerPort: 3000}]
+          env:
+            - name: API_BASE_URL
+              value: http://lsa-api:8000
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          volumeMounts:
+            - name: runtime-tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/.next/cache
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+      volumes:
+        - name: runtime-tmp
+          emptyDir: {}
+        - name: next-cache
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lsa-web
+  namespace: lecturer-support-agent
+spec:
+  selector: {app: lsa-web}
+  ports: [{port: 3000, targetPort: 3000}]

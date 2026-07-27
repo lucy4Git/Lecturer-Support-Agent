@@ -1,0 +1,22 @@
+@startuml
+actor Lecturer
+participant "Unified shell" as Web
+participant "Workspace API" as API
+participant "Document access" as Access
+database PostgreSQL as DB
+
+Lecturer -> Web: Open Library
+Web -> API: GET /workspace/library
+API -> DB: current document versions
+loop candidate
+  API -> Access: require_version
+  Access -> DB: verify tenant and scope
+end
+API --> Web: authorised version cards
+Lecturer -> Web: Attach to conversation
+Web -> Web: Add immutable version ID to composer
+Lecturer -> Web: Send request
+Web -> API: message + attachment_version_ids
+API -> Access: re-authorise attached version
+API --> Web: AI response using permitted context
+@enduml

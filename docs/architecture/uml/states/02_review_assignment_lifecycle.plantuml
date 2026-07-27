@@ -1,0 +1,22 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Review Assignment Lifecycle
+[*] --> Draft
+Draft --> Assigned
+Assigned --> InProgress : reviewer opens
+Assigned --> Expired
+Assigned --> Revoked
+InProgress --> Submitted
+InProgress --> Expired
+InProgress --> Revoked
+Submitted --> Returned : clarification requested
+Returned --> InProgress
+Submitted --> Closed
+Expired --> Closed
+Revoked --> Closed
+Closed --> [*]
+@enduml

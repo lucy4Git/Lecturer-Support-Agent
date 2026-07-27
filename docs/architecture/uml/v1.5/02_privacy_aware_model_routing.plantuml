@@ -1,0 +1,32 @@
+@startuml
+actor "Conversation Engine" as Engine
+participant "Model Router" as Router
+participant Ollama
+participant Anthropic
+participant OpenAI
+participant Gemini
+participant DeepSeek
+participant "Development Mock" as Mock
+
+Engine -> Router: generate(request, privacy class)
+alt confidential or restricted AND local-only enabled
+  Router -> Ollama: /api/chat
+  alt success
+    Ollama --> Router: response
+  else unavailable/failure
+    Router --> Engine: all providers failed
+  end
+else normal permitted request
+  loop configured fallback order
+    Router -> Ollama: try if configured
+    Router -> Anthropic: try if prior failed/skipped
+    Router -> OpenAI: try if prior failed/skipped
+    Router -> Gemini: try if prior failed/skipped
+    Router -> DeepSeek: try if prior failed/skipped
+  end
+  opt development only and no real provider succeeds
+    Router -> Mock: deterministic non-fabricated response
+  end
+end
+Router --> Engine: selected response + full attempt log
+@enduml

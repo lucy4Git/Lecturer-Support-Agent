@@ -1,0 +1,29 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Temporary External Review
+actor Sponsor as HOD
+actor "External Reviewer" as Reviewer
+participant UI
+participant "External Access Service" as Access
+participant Authorization as Auth
+participant "Review Service" as Review
+participant "Version Service" as Version
+participant Audit
+HOD -> UI : create review assignment/invite
+UI -> Access : provision scoped time-bound grant
+Access -> Audit : sponsor, scope, expiry
+Reviewer -> UI : authenticate/open assignment
+UI -> Auth : validate grant, time, scope, action
+Auth --> UI : allowed context
+UI -> Review : fetch assigned evidence only
+Review --> UI : review package
+Reviewer -> UI : submit findings/permitted uploads
+UI -> Version : append feedback/evidence versions
+UI -> Review : submit assignment
+Review -> Audit : record completion
+Access -> Access : expire/revoke grant
+@enduml

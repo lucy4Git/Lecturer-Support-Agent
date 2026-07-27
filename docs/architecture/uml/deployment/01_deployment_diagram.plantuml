@@ -1,0 +1,49 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Production Deployment
+node "User Device" { artifact "Web/PWA" as Web }
+cloud "CDN / WAF / Load Balancer" as Edge
+node "Application Cluster" {
+ node "Web/BFF Pods" as BFF
+ node "Core API Pods" as Core
+ node "AI Orchestrator Pods" as AI
+ node "Worker Pods" as Workers
+}
+node "Data Services" {
+ database "PostgreSQL HA" as DB
+ database "Redis" as Redis
+ collections "Object Storage" as Obj
+ database "Search / Vector" as Search
+ queue "Message Broker" as MQ
+}
+cloud "AI and Source Providers" as Providers
+node "Operations" {
+ component "Telemetry" as Telemetry
+ component "Secrets / KMS" as KMS
+ component "Backup" as Backup
+}
+Web --> Edge
+Edge --> BFF
+BFF --> Core
+BFF --> AI
+Core --> DB
+Core --> Redis
+AI --> Providers
+Workers --> MQ
+Workers --> Obj
+Workers --> Search
+Core --> MQ
+BFF --> Telemetry
+Core --> Telemetry
+AI --> Telemetry
+Workers --> Telemetry
+KMS --> BFF
+KMS --> Core
+KMS --> AI
+Backup --> DB
+Backup --> Obj
+@enduml

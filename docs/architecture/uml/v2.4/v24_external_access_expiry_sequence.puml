@@ -1,0 +1,14 @@
+@startuml
+actor Coordinator
+participant API
+database PostgreSQL
+participant Worker
+actor "External Reviewer" as Reviewer
+Coordinator -> API: grant scoped temporary access
+API -> PostgreSQL: grant + expiry event
+API -> PostgreSQL: queue job available_at expiry
+Worker -> PostgreSQL: claim after deadline
+Worker -> PostgreSQL: mark grant expired
+Worker -> PostgreSQL: audit + notification
+Reviewer <- PostgreSQL: access denied after expiry
+@enduml

@@ -1,0 +1,12 @@
+@startuml
+[*] --> queued
+queued --> running : lease claimed
+retry --> running : lease claimed
+running --> completed : handler succeeds
+running --> retry : failure and attempts remain
+running --> dead_letter : max attempts reached
+running --> retry : lease expired
+retry --> dead_letter : max attempts reached
+dead_letter --> queued : authorised one-time replay
+completed --> [*]
+@enduml

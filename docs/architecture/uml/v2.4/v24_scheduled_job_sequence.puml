@@ -1,0 +1,15 @@
+@startuml
+actor "Institution Administrator" as Admin
+participant Web
+participant API
+database PostgreSQL
+participant Worker
+Admin -> Web: Create interval schedule
+Web -> API: POST /operations/schedules
+API -> PostgreSQL: store tenant schedule
+loop worker poll
+  Worker -> PostgreSQL: enqueue_due_scheduled_jobs()
+  PostgreSQL -> PostgreSQL: create idempotent job
+  PostgreSQL -> PostgreSQL: advance next_run_at
+end
+@enduml

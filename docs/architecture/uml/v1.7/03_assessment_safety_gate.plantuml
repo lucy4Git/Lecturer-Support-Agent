@@ -1,0 +1,23 @@
+@startuml
+title Assessment Safety Gate
+start
+:Classify request;
+if (Assessment-related?) then (yes)
+  if (Role may create?) then (yes)
+    :Generate draft;
+    :Check marks, answers, personal data, module context;
+    if (Blocked reason?) then (yes)
+      :Status = blocked;
+      :Deny release/student export;
+    else (no)
+      :Status = requires review;
+      :Human academic review mandatory;
+    endif
+  else (no)
+    :Reject generation with 403;
+  endif
+else (no)
+  :Generate ordinary lecturer-support output;
+endif
+stop
+@enduml

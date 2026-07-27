@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lecturer-support-agent.local/schemas/source_record.schema.json",
+  "title": "Source Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_id",
+    "title",
+    "source_type",
+    "canonical_uri",
+    "retrieved_at",
+    "verification",
+    "rights"
+  ],
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "source_type": {
+      "enum": [
+        "peer_reviewed_article",
+        "book",
+        "chapter",
+        "official_policy",
+        "institutional_document",
+        "open_textbook",
+        "technical_documentation",
+        "professional_guidance",
+        "dataset",
+        "web_source",
+        "user_document"
+      ]
+    },
+    "creators": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "identifier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "organisation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "publisher": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "published_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "identifiers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "enum": [
+          "doi",
+          "isbn",
+          "issn",
+          "pmid",
+          "arxiv",
+          "handle",
+          "url",
+          "other"
+        ]
+      }
+    },
+    "canonical_uri": {
+      "type": "string",
+      "format": "uri"
+    },
+    "version_label": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "effective_from": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "effective_to": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "retrieved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "content_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "correction_status": {
+      "enum": [
+        "none_known",
+        "corrected",
+        "retracted",
+        "superseded",
+        "unverified"
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "method",
+        "verified_at"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "verified",
+            "partially_verified",
+            "unverified",
+            "blocked"
+          ]
+        },
+        "method": {
+          "type": "string"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "authority_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "display_allowed",
+        "full_text_storage_allowed"
+      ],
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "licence_identifier": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "terms_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "display_allowed": {
+          "type": "boolean"
+        },
+        "full_text_storage_allowed": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

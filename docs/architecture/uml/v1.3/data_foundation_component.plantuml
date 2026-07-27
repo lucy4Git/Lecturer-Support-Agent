@@ -1,0 +1,40 @@
+@startuml
+!theme plain
+title Lecturer Support Agent v1.3 Data Foundation Components
+component "Unified Web/PWA\n(future phase)" as Web
+component "FastAPI" as API
+component "Request Context\nMiddleware" as Context
+component "Authorization Service" as Auth
+component "Document Versioning" as Versioning
+component "Bulk Upload Service" as Bulk
+component "Academic Assignment Service" as Assignment
+component "External Access Service" as External
+component "Audit/Outbox Service" as Audit
+component "Provider-neutral AI Gateway\n(existing design)" as AI
+
+database "PostgreSQL + RLS" as PG
+collections "MinIO/S3 Versions" as S3
+collections "Qdrant Vectors" as Qdrant
+queue "Redis Temporary State" as Redis
+
+Web --> API
+API --> Context
+API --> Auth
+API --> Versioning
+API --> Bulk
+API --> Assignment
+API --> External
+Versioning --> S3
+Versioning --> PG
+Bulk --> Versioning
+Auth --> PG
+Assignment --> PG
+External --> PG
+Versioning --> Audit
+Assignment --> Audit
+External --> Audit
+Audit --> PG
+AI --> PG
+AI --> Qdrant
+API --> Redis
+@enduml

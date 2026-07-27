@@ -1,0 +1,33 @@
+@startuml
+!theme plain
+title v1.4 Web Backend-for-Frontend
+package "Browser" {
+  [Unified Workspace]
+  [Role Action Rail]
+}
+node "Next.js Web" {
+  [Server Components]
+  [Session Route Handlers]
+  [Authenticated API Proxy]
+  database "HTTP-only Cookies" as Cookies
+}
+node "FastAPI" {
+  [Authentication Routes]
+  [Administration Routes]
+  [HOD Assignment Routes]
+  [JWT Middleware]
+}
+database PostgreSQL
+
+[Unified Workspace] --> [Session Route Handlers] : sign in / refresh / sign out
+[Session Route Handlers] --> [Authentication Routes]
+[Session Route Handlers] --> Cookies
+[Role Action Rail] --> [Authenticated API Proxy]
+[Authenticated API Proxy] --> Cookies : server-side access only
+[Authenticated API Proxy] --> [Administration Routes]
+[Authenticated API Proxy] --> [HOD Assignment Routes]
+[Authentication Routes] --> PostgreSQL : restricted lsa_auth
+[Administration Routes] --> [JWT Middleware]
+[HOD Assignment Routes] --> [JWT Middleware]
+[JWT Middleware] --> PostgreSQL : RLS context via lsa_app
+@enduml

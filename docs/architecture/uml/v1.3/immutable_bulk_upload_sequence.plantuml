@@ -1,0 +1,37 @@
+@startuml
+!theme plain
+title Contextual Bulk Upload and Immutable Versioning
+actor "Authorised User" as User
+participant "Unified Work Area" as UI
+participant "Bulk Upload API" as API
+participant "Permission Service" as Auth
+database PostgreSQL as DB
+collections MinIO as S3
+queue "Extraction/Indexing (future worker)" as Worker
+collections Qdrant as Vector
+
+User -> UI: select multiple authorised files
+UI -> API: files + metadata + scope + change reasons
+API -> Auth: require content.bulk_upload in scope
+Auth -> DB: active role assignment and scope lookup
+Auth --> API: allowed
+API -> DB: create upload batch
+loop each file
+  API -> DB: create upload item
+  API -> DB: lock logical document (when revision)
+  API -> DB: compare SHA-256
+  alt exact duplicate
+    API -> DB: mark duplicate and link existing version
+  else new or changed content
+    API -> S3: put object under tenant/document/version key
+    S3 --> API: immutable storage VersionId
+    API -> DB: create storage object + document version
+    API -> DB: update logical current_version_id
+    API -> DB: append audit and outbox events
+    API -> Worker: enqueue extraction/indexing
+    Worker -> Vector: upsert vector with mandatory tenant payload
+  end
+end
+API -> DB: complete/partially complete batch
+API --> UI: batch status and version records
+@enduml

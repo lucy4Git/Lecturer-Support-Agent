@@ -1,0 +1,15 @@
+@startuml
+participant DomainService
+participant NotificationService
+participant Queue
+participant Worker
+database Governance
+DomainService -> NotificationService: emit notification
+NotificationService -> Governance: insert notification
+NotificationService -> Queue: enqueue notifications.dispatch
+Worker -> Queue: claim job
+Worker -> Governance: record in_app delivered
+alt outbound adapter absent
+  Worker -> Governance: record blocked + safe error
+end
+@enduml

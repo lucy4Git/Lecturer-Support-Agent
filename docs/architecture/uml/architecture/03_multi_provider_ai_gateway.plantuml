@@ -1,0 +1,53 @@
+@startuml
+!theme plain
+title Lecturer Support Agent - Multi-Provider AI Gateway
+
+actor User
+rectangle "Unified AI Work Area" as UI
+rectangle "AI Orchestrator" as ORCH
+rectangle "Policy and Capability Router" as ROUTER
+rectangle "Source Verification" as SOURCE
+rectangle "Output Validators" as VALID
+rectangle "Model Registry and Health" as REG
+
+cloud "OpenAI" as OPENAI
+cloud "Anthropic Claude" as CLAUDE
+cloud "Google Gemini" as GEMINI
+cloud "DeepSeek API" as DEEPSEEK
+node "Institution-Controlled Host" {
+  rectangle "Ollama API" as OLLAMA
+  database "Local Model Store" as MODELS
+  OLLAMA --> MODELS
+}
+
+User --> UI
+UI --> ORCH
+ORCH --> ROUTER
+ROUTER --> REG
+ROUTER --> OPENAI : approved cloud route
+ROUTER --> CLAUDE : approved cloud route
+ROUTER --> GEMINI : approved cloud route
+ROUTER --> DEEPSEEK : approved cloud route
+ROUTER --> OLLAMA : approved local route
+OPENAI --> ORCH
+CLAUDE --> ORCH
+GEMINI --> ORCH
+DEEPSEEK --> ORCH
+OLLAMA --> ORCH
+ORCH --> SOURCE
+ORCH --> VALID
+VALID --> UI
+
+note right of ROUTER
+No ordinary-user model selector.
+Data class, capability, tenant policy,
+quality, health, latency and cost decide.
+Fallback may not weaken privacy.
+end note
+
+note bottom of SOURCE
+Displayed citations require genuinely
+retrieved and verified source records,
+independent of the generation provider.
+end note
+@enduml

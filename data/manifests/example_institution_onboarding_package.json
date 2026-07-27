@@ -1,0 +1,19 @@
+{
+  "format_version": "1.0",
+  "institution": {
+    "code": "DEMO_HEI",
+    "name": "Demonstration Higher Education Institution",
+    "country_code": "ZA",
+    "timezone": "Africa/Johannesburg",
+    "terminology": {"module": "Module", "organisational_unit": "Faculty or Department"}
+  },
+  "organisational_units": [
+    {"external_id": "FAC-ENG", "parent_external_id": null, "unit_type": "faculty", "name": "Faculty of Engineering", "code": "ENG"},
+    {"external_id": "DEP-ICT", "parent_external_id": "FAC-ENG", "unit_type": "department", "name": "Department of ICT", "code": "ICT"}
+  ],
+  "academic_periods": [{"external_id": "2026-S1", "name": "2026 Semester 1", "starts_on": "2026-01-19", "ends_on": "2026-06-30"}],
+  "programmes": [{"external_id": "DIP-ICT", "name": "Diploma in ICT", "owning_unit_external_id": "DEP-ICT"}],
+  "modules": [{"external_id": "IOT201", "code": "IOT201", "title": "Internet of Things", "owning_unit_external_id": "DEP-ICT"}],
+  "users": [{"email": "admin@example.invalid", "given_name": "Demo", "family_name": "Administrator", "roles": [{"code": "institution_administrator", "scope_type": "institution"}]}],
+  "governance": {"data_owner": "Demonstration Data Owner", "approval_reference": "SYNTHETIC-DEMO-ONLY", "approved_at": "2026-07-26T00:00:00Z", "contains_personal_data": false, "retention_policy_reference": null}
+}

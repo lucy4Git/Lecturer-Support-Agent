@@ -1,0 +1,16 @@
+@startuml
+actor "Head of Department" as HOD
+participant "Unified Work Area" as UI
+participant "Review Dashboard API" as API
+participant "Scope Authorisation" as Auth
+participant PostgreSQL as DB
+
+HOD -> UI: Open Review oversight
+UI -> API: GET department review dashboard
+API -> Auth: Require review_dashboard.read for unit
+Auth -> DB: Validate active role assignment and descendants
+Auth --> API: Authorised scope
+API -> DB: Aggregate cycles, tasks and findings for unit only
+DB --> API: Counts
+API --> UI: Active, pending, overdue and blocking summaries
+@enduml

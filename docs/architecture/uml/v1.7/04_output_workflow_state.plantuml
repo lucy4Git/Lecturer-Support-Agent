@@ -1,0 +1,17 @@
+@startuml
+title Generated Output Academic Workflow
+[*] --> Draft
+Draft --> UnderReview : submit
+UnderReview --> ChangesRequested : request changes
+ChangesRequested --> UnderReview : resubmit
+UnderReview --> Approved : approve
+Approved --> Released : release
+Draft --> Archived : archive
+ChangesRequested --> Archived : archive
+Approved --> Archived : archive
+Released --> Archived : archive
+state Released {
+  [*] --> LecturerVersion
+  LecturerVersion --> StudentCopy : sanitised export only
+}
+@enduml

@@ -1,0 +1,41 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Container View
+left to right direction
+actor User
+rectangle "Web/PWA Client" as Web
+rectangle "API Gateway / BFF" as BFF
+rectangle "Core Domain API" as Core
+rectangle "AI Orchestration Service" as AI
+rectangle "Ingestion Worker" as Ingest
+rectangle "Search / Index Worker" as Search
+rectangle "Export Worker" as Export
+database "Relational Database" as DB
+collections "Object Storage" as Obj
+queue "Message Broker" as Queue
+rectangle "Cache" as Cache
+cloud "AI Providers" as Providers
+cloud "Source Providers" as Sources
+User --> Web
+Web --> BFF : HTTPS / streaming
+BFF --> Core
+BFF --> AI
+BFF --> Ingest
+Core --> DB
+Core --> Cache
+AI --> Providers
+AI --> Sources
+AI --> DB
+Ingest --> Obj
+Ingest --> DB
+Ingest --> Queue
+Queue --> Search
+Queue --> Export
+Search --> DB
+Search --> Obj
+Export --> Obj
+@enduml

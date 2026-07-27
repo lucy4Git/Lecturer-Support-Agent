@@ -1,0 +1,28 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Assessment Moderation
+actor Lecturer
+actor Moderator
+participant UI
+participant "Review Service" as Review
+participant Authorization as Auth
+participant "Version Service" as Version
+participant Audit
+Lecturer -> UI : submit assessment version
+UI -> Review : create assignment
+Moderator -> UI : open assigned assessment
+UI -> Auth : verify assignment scope
+Auth --> UI : allowed
+UI -> Review : load immutable submitted version
+Review --> UI : package and criteria
+Moderator -> UI : submit findings
+UI -> Review : store findings
+Review --> Lecturer : notify return/recommendation
+Lecturer -> UI : revise assessment
+UI -> Version : create child version
+Version -> Audit : link revision to findings
+@enduml

@@ -1,0 +1,30 @@
+@startuml
+!theme plain
+title Immutable Document Version Lifecycle
+
+[*] --> Quarantined : upload received
+Quarantined --> Rejected : malware / prohibited / invalid
+Quarantined --> ReviewRequired : metadata, rights or classification uncertain
+Quarantined --> Active : automated checks pass
+ReviewRequired --> Active : authorised approval
+ReviewRequired --> Rejected : remediation fails
+Active --> Superseded : newer approved version becomes current
+Active --> Archived : retention or lifecycle action
+Active --> Withdrawn : authorised withdrawal; history retained
+Superseded --> Active : controlled rollback creates new current pointer
+Superseded --> Archived : lifecycle action
+Withdrawn --> Archived : retention action
+Rejected --> [*]
+Archived --> [*]
+
+note right of Active
+Object bytes are immutable.
+"Current" is a controlled pointer/status,
+not destructive replacement.
+end note
+
+note bottom of ReviewRequired
+Every transition records tenant, actor, active role,
+scope, timestamp, reason and audit event.
+end note
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+title Role-scoped Analytics Sequence
+actor User
+participant "Unified Workspace" as UI
+participant "Analytics API" as API
+participant "Scope Resolver" as Scope
+participant "Authorisation Service" as Authz
+database "PostgreSQL RLS" as DB
+
+User -> UI : Open Insights
+UI -> API : GET /analytics/overview(scope, period)
+API -> Scope : resolve(active role, requested scope)
+alt lecturer or reviewer
+  Scope --> API : force user scope
+else HOD or coordinator
+  Scope --> API : require organisational unit
+else institution administrator
+  Scope --> API : permit institution or authorised unit
+else unsupported role/scope
+  Scope --> API : deny
+  API --> UI : 403
+end
+API -> Authz : require resolved permission and scope
+Authz -> DB : validate role assignment and scope
+DB --> Authz : authorised
+Authz --> API : allow
+API -> DB : tenant-filtered metrics query
+DB --> API : authorised aggregates
+API -> DB : write immutable analytics snapshot
+API --> UI : cards, series, alerts, data notes
+UI --> User : display scope and period
+@enduml

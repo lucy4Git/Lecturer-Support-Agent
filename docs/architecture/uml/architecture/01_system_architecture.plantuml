@@ -1,0 +1,96 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title System Architecture
+left to right direction
+package "Clients" {
+ [Responsive Web / PWA] as Web
+ [Future Mobile Client] as Mobile
+}
+package "Edge and Experience" {
+ [API Gateway / BFF] as BFF
+ [Realtime Streaming] as Stream
+}
+package "Identity and Institution" {
+ [Identity & Session] as Identity
+ [Tenant & Org Hierarchy] as Tenant
+ [Authorization Policy] as Authz
+ [Temporary External Access] as External
+}
+package "Lecturer Support Domains" {
+ [Conversation & Inline Artifacts] as Conversation
+ [Teaching Content] as Teaching
+ [Assessment] as Assessment
+ [Course Assignment] as Assignment
+ [Alignment] as Alignment
+ [Moderation & Review] as Review
+ [Export & Notification] as Export
+}
+package "AI and Trust" {
+ [AI Orchestrator] as Orchestrator
+ [Model Gateway] as Models
+ [Source Discovery] as Discovery
+ [Source Verification] as Verify
+ [Safety & Claim Validation] as Validate
+ [Prompt / Eval Registry] as Registry
+}
+package "Content Platform" {
+ [Bulk Ingestion] as Ingest
+ [File Safety Scanner] as Scan
+ [Classification & Duplicates] as Classify
+ [Version & Provenance] as Version
+ [Search / Vector Index] as Search
+}
+database "PostgreSQL" as DB
+queue "Event / Job Broker" as MQ
+collections "Object Storage
+Immutable Versions" as Object
+rectangle "Redis / Cache" as Cache
+rectangle "Audit / Analytics / Observability" as Ops
+cloud "Claude / OpenAI / Approved Models" as Providers
+cloud "External & Institutional Sources" as SourceSystems
+Web --> BFF
+Mobile --> BFF
+BFF --> Stream
+BFF --> Identity
+BFF --> Conversation
+Conversation --> Authz
+Authz --> Tenant
+External --> Authz
+Conversation --> Orchestrator
+Orchestrator --> Teaching
+Orchestrator --> Assessment
+Orchestrator --> Discovery
+Discovery --> SourceSystems
+Discovery --> Verify
+Verify --> Validate
+Orchestrator --> Models
+Models --> Providers
+Orchestrator --> Registry
+Conversation --> Version
+BFF --> Ingest
+Ingest --> Scan
+Scan --> Classify
+Classify --> Version
+Version --> Object
+Version --> DB
+Search --> DB
+Search --> Object
+Assignment --> DB
+Alignment --> DB
+Review --> DB
+Export --> MQ
+Ingest --> MQ
+MQ --> Search
+Identity --> DB
+Tenant --> DB
+Authz --> DB
+Conversation --> DB
+Cache <--> BFF
+Ops ..> BFF
+Ops ..> Orchestrator
+Ops ..> Ingest
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Assessment Generation and Human Review
+actor Lecturer
+participant UI
+participant Authorization as Auth
+participant Orchestrator as AI
+participant "Assessment Service" as Assess
+participant "Validation Service" as Validate
+participant "Version Service" as Version
+Lecturer -> UI : Create 50-mark test mapped to outcomes
+UI -> Auth : verify authoring scope
+Auth --> UI : allowed
+UI -> AI : task + context
+AI -> Assess : generate blueprint, questions and memorandum
+Assess --> AI : structured draft
+AI -> Validate : check marks, clarity, duplication and level
+Validate --> AI : findings/corrections
+AI -> Version : create Draft version
+Version --> AI : version ID
+AI --> UI : inline assessment + human-review status
+Lecturer -> UI : revise/submit for moderation
+@enduml

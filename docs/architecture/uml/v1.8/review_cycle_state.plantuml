@@ -1,0 +1,16 @@
+@startuml
+[*] --> Assigned
+Assigned --> InReview : reviewer starts
+InReview --> DecisionPending : all assigned tasks submitted
+DecisionPending --> Approved : authorised decision
+DecisionPending --> ConditionallyApproved : conditions recorded
+DecisionPending --> ChangesRequested : correction required
+DecisionPending --> Rejected : authorised rejection
+ConditionallyApproved --> Assigned : corrected version resubmitted
+ChangesRequested --> Assigned : corrected version resubmitted
+Approved --> Completed : output workflow completed
+Rejected --> [*]
+Completed --> [*]
+Assigned --> Expired : governed expiry
+InReview --> Revoked : access/task revoked
+@enduml

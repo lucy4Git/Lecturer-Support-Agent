@@ -1,0 +1,29 @@
+@startuml
+title Institution Administrator Audit Centre
+actor "Institution Administrator" as Admin
+actor "Other Role" as Other
+participant "Unified Workspace" as UI
+participant "Audit Centre API" as API
+participant "Authorisation Service" as Authz
+database "Audit + Security Events" as DB
+
+Other -> UI : Attempt to open Audit Centre
+UI --> Other : navigation hidden
+Other -> API : direct request
+API -> Authz : require audit.centre.read
+Authz --> API : deny
+API --> Other : 403
+
+Admin -> UI : Open Audit Centre
+UI -> API : GET /audit-centre/events(filters)
+API -> Authz : require audit.centre.read
+Authz --> API : allow institution scope
+API -> DB : tenant-filtered event query
+DB --> API : events
+API --> UI : event cards/table
+Admin -> UI : Export filtered evidence
+UI -> API : POST /audit-centre/exports
+API -> Authz : require audit.export
+API -> DB : persist export + SHA-256
+API --> UI : count, format, checksum
+@enduml

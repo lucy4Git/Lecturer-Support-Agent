@@ -1,0 +1,926 @@
+{
+  "permissions": [
+    {
+      "code": "content.read",
+      "resource": "content",
+      "action": "read",
+      "description": "Read authorised teaching and institutional materials.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "content.upload",
+      "resource": "content",
+      "action": "upload",
+      "description": "Upload a single content item within an authorised scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "content.bulk_upload",
+      "resource": "content",
+      "action": "bulk_upload",
+      "description": "Upload multiple content items within an authorised scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "content.version.review",
+      "resource": "content_version",
+      "action": "review",
+      "description": "Review and comment on document versions.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "content.version.approve",
+      "resource": "content_version",
+      "action": "approve",
+      "description": "Approve an authorised document version.",
+      "risk_level": "high"
+    },
+    {
+      "code": "academic.read",
+      "resource": "academic",
+      "action": "read",
+      "description": "Read authorised academic structures and assignments.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "academic.assign_lecturer",
+      "resource": "lecturer_assignment",
+      "action": "create",
+      "description": "Assign lecturers to module offerings.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "academic.assign_coordinator",
+      "resource": "coordinator_assignment",
+      "action": "create",
+      "description": "Assign module or programme coordinators.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "academic.assign_moderator",
+      "resource": "moderator_assignment",
+      "action": "create",
+      "description": "Assign internal or external moderators.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "academic.workload.review",
+      "resource": "teaching_workload",
+      "action": "read",
+      "description": "Review teaching workload in the authorised scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "users.read",
+      "resource": "user",
+      "action": "read",
+      "description": "Read tenant users in an authorised scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "users.manage",
+      "resource": "user",
+      "action": "manage",
+      "description": "Invite, activate, suspend, and deactivate tenant users.",
+      "risk_level": "high"
+    },
+    {
+      "code": "roles.assign",
+      "resource": "role_assignment",
+      "action": "create",
+      "description": "Assign independent roles and scopes.",
+      "risk_level": "high"
+    },
+    {
+      "code": "institution.configure",
+      "resource": "tenant_configuration",
+      "action": "manage",
+      "description": "Configure institutional structures, terminology, calendars, and templates.",
+      "risk_level": "high"
+    },
+    {
+      "code": "department.review",
+      "resource": "department_activity",
+      "action": "read",
+      "description": "Review departmental teaching and learning activity.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "moderation.perform",
+      "resource": "review_task",
+      "action": "update",
+      "description": "Perform an assigned moderation task.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "external_review.perform",
+      "resource": "review_task",
+      "action": "update",
+      "description": "Perform an assigned external review task.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "external_access.manage",
+      "resource": "external_access_grant",
+      "action": "manage",
+      "description": "Create, revoke, and expire scoped external access.",
+      "risk_level": "high"
+    },
+    {
+      "code": "audit.read",
+      "resource": "audit_event",
+      "action": "read",
+      "description": "Read authorised audit evidence.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "ai.use",
+      "resource": "ai_request",
+      "action": "create",
+      "description": "Use the unified AI work area.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "sources.read",
+      "resource": "source",
+      "action": "read",
+      "description": "Open verified sources available to the user.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "outputs.export",
+      "resource": "generated_output",
+      "action": "export",
+      "description": "Export generated outputs.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "positions.manage",
+      "resource": "position_definition",
+      "action": "manage",
+      "description": "Create institutional position labels and assign them to memberships.",
+      "risk_level": "high"
+    },
+    {
+      "code": "sessions.manage_own",
+      "resource": "authentication_session",
+      "action": "revoke",
+      "description": "Review and revoke the current user's authentication sessions.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "outputs.edit",
+      "resource": "generated_output",
+      "action": "edit",
+      "description": "Create immutable edited versions of an owned teaching output.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "outputs.review",
+      "resource": "generated_output",
+      "action": "review",
+      "description": "Review teaching outputs within an authorised academic scope and request changes.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "outputs.approve",
+      "resource": "generated_output",
+      "action": "approve",
+      "description": "Formally approve a reviewed teaching output within an authorised academic scope.",
+      "risk_level": "high"
+    },
+    {
+      "code": "outputs.release",
+      "resource": "generated_output",
+      "action": "release",
+      "description": "Release an approved output for its intended audience.",
+      "risk_level": "high"
+    },
+    {
+      "code": "review_cycles.manage",
+      "resource": "review_cycle",
+      "action": "manage",
+      "description": "Create and manage scoped moderation and external-review cycles.",
+      "risk_level": "high"
+    },
+    {
+      "code": "review_tasks.assign",
+      "resource": "review_task",
+      "action": "assign",
+      "description": "Assign exact review tasks and sealed review packs to authorised reviewers.",
+      "risk_level": "high"
+    },
+    {
+      "code": "review_tasks.read",
+      "resource": "review_task",
+      "action": "read",
+      "description": "Read review cycles and tasks within an authorised scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "review_tasks.perform",
+      "resource": "review_task",
+      "action": "perform",
+      "description": "Accept, perform, and submit only review tasks assigned to the active user.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "review_findings.respond",
+      "resource": "review_finding",
+      "action": "respond",
+      "description": "Respond to review findings and provide correction evidence.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "review_decisions.record",
+      "resource": "review_decision",
+      "action": "record",
+      "description": "Record the authorised academic decision after reviewer submissions.",
+      "risk_level": "high"
+    },
+    {
+      "code": "review_dashboard.read",
+      "resource": "review_dashboard",
+      "action": "read",
+      "description": "Read departmental moderation and review progress within scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "academic_calendar.read",
+      "resource": "academic_calendar",
+      "action": "read",
+      "description": "Read authorised academic calendar events and milestones.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "academic_calendar.manage",
+      "resource": "academic_calendar",
+      "action": "manage",
+      "description": "Create and manage academic calendar events within scope.",
+      "risk_level": "high"
+    },
+    {
+      "code": "teaching_plans.read",
+      "resource": "teaching_plan",
+      "action": "read",
+      "description": "Read teaching plans and delivery progress within scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "teaching_plans.manage",
+      "resource": "teaching_plan",
+      "action": "manage",
+      "description": "Create, version, and monitor teaching plans and sessions within scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "module_readiness.read",
+      "resource": "module_readiness",
+      "action": "read",
+      "description": "Read module readiness evidence and status within scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "module_readiness.manage",
+      "resource": "module_readiness",
+      "action": "manage",
+      "description": "Create and update module readiness requirements and evidence.",
+      "risk_level": "high"
+    },
+    {
+      "code": "workload.read_own",
+      "resource": "workload",
+      "action": "read_own",
+      "description": "Read the active user's own workload allocation.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "workload.manage",
+      "resource": "workload",
+      "action": "manage",
+      "description": "Allocate and adjust scoped lecturer workload activities.",
+      "risk_level": "high"
+    },
+    {
+      "code": "handover.read",
+      "resource": "handover",
+      "action": "read",
+      "description": "Read lecturer handover packages within authorised scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "handover.manage",
+      "resource": "handover",
+      "action": "manage",
+      "description": "Create, version, submit, and oversee lecturer handover packages.",
+      "risk_level": "high"
+    },
+    {
+      "code": "handover.accept",
+      "resource": "handover",
+      "action": "accept",
+      "description": "Accept an assigned lecturer handover package.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "department.operations.read",
+      "resource": "department_operations",
+      "action": "read",
+      "description": "Read departmental teaching operations and attention dashboards.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "workspace.search",
+      "resource": "workspace",
+      "action": "search",
+      "description": "Search authorised conversations, outputs, files, and assigned review work.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "saved_outputs.manage",
+      "resource": "saved_output",
+      "action": "manage",
+      "description": "Save and organise immutable generated-output versions for the active user.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "notifications.read",
+      "resource": "notification",
+      "action": "read",
+      "description": "Read and acknowledge notifications addressed to the active user.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "analytics.read_own",
+      "resource": "analytics",
+      "action": "read_own",
+      "description": "Read personal teaching and AI usage insights.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "analytics.read_department",
+      "resource": "analytics",
+      "action": "read_department",
+      "description": "Read teaching and operational analytics within an authorised academic-unit scope.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "analytics.read_institution",
+      "resource": "analytics",
+      "action": "read_institution",
+      "description": "Read institution-wide commercial and teaching analytics.",
+      "risk_level": "high"
+    },
+    {
+      "code": "reports.generate",
+      "resource": "report",
+      "action": "generate",
+      "description": "Generate a scoped, immutable analytics report run.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "reports.manage",
+      "resource": "report_definition",
+      "action": "manage",
+      "description": "Create and manage reusable institutional report definitions.",
+      "risk_level": "high"
+    },
+    {
+      "code": "ai_governance.read",
+      "resource": "ai_usage_policy",
+      "action": "read",
+      "description": "Read AI provider, usage, token, and policy controls.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "ai_governance.manage",
+      "resource": "ai_usage_policy",
+      "action": "manage",
+      "description": "Configure governed provider allowlists, privacy routes, and usage thresholds.",
+      "risk_level": "high"
+    },
+    {
+      "code": "audit.centre.read",
+      "resource": "audit_centre",
+      "action": "read",
+      "description": "Search authorised audit and security evidence.",
+      "risk_level": "high"
+    },
+    {
+      "code": "audit.export",
+      "resource": "audit_event",
+      "action": "export",
+      "description": "Create a checksum-protected export of authorised audit evidence.",
+      "risk_level": "high"
+    },
+    {
+      "code": "settings.read",
+      "resource": "platform_setting",
+      "action": "read",
+      "description": "Read non-secret commercial platform settings.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "settings.manage",
+      "resource": "platform_setting",
+      "action": "manage",
+      "description": "Manage versioned non-secret institutional platform settings and secret references.",
+      "risk_level": "high"
+    },
+    {
+      "code": "operations.jobs.read",
+      "resource": "background_job",
+      "action": "read",
+      "description": "Read operational job status and dead-letter evidence within the institution.",
+      "risk_level": "high"
+    },
+    {
+      "code": "operations.jobs.manage",
+      "resource": "background_job",
+      "action": "manage",
+      "description": "Create, retry, and administer governed background jobs.",
+      "risk_level": "high"
+    },
+    {
+      "code": "operations.backups.read",
+      "resource": "backup_run",
+      "action": "read",
+      "description": "Read backup and restore-drill evidence.",
+      "risk_level": "high"
+    },
+    {
+      "code": "operations.backups.manage",
+      "resource": "backup_run",
+      "action": "manage",
+      "description": "Request governed backups and isolated restore drills.",
+      "risk_level": "critical"
+    },
+    {
+      "code": "operations.schedules.read",
+      "resource": "scheduled_job",
+      "action": "read",
+      "description": "Read governed background schedules for the institution.",
+      "risk_level": "high"
+    },
+    {
+      "code": "operations.schedules.manage",
+      "resource": "scheduled_job",
+      "action": "manage",
+      "description": "Create, enable, disable, and update governed interval schedules.",
+      "risk_level": "critical"
+    },
+    {
+      "code": "operations.deliveries.read",
+      "resource": "notification_delivery",
+      "action": "read",
+      "description": "Read in-app notification delivery evidence without exposing message secrets.",
+      "risk_level": "high"
+    },
+    {
+      "code": "operations.retention.read",
+      "resource": "retention_run",
+      "action": "read",
+      "description": "Read governed retention planning and execution evidence.",
+      "risk_level": "high"
+    },
+    {
+      "code": "operations.retention.manage",
+      "resource": "retention_run",
+      "action": "manage",
+      "description": "Request dry-run or reversible retention processing; hard deletion remains unsupported.",
+      "risk_level": "critical"
+    },
+    {
+      "code": "integrations.read",
+      "resource": "integration_connection",
+      "action": "read",
+      "description": "Read configured institutional integration connections without revealing credentials.",
+      "risk_level": "high"
+    },
+    {
+      "code": "integrations.manage",
+      "resource": "integration_connection",
+      "action": "manage",
+      "description": "Configure, test, and synchronise approved LMS, SIS, and enterprise integrations.",
+      "risk_level": "high"
+    },
+    {
+      "code": "sso.manage",
+      "resource": "sso_connection",
+      "action": "manage",
+      "description": "Configure tenant-scoped enterprise single sign-on connections and claim mappings.",
+      "risk_level": "high"
+    },
+    {
+      "code": "privacy.legal_holds.manage",
+      "resource": "legal_hold",
+      "action": "manage",
+      "description": "Place and release authorised legal holds that suspend deletion and retention actions.",
+      "risk_level": "critical"
+    },
+    {
+      "code": "privacy.deletion.manage",
+      "resource": "deletion_request",
+      "action": "create",
+      "description": "Create governed deletion previews and disposition requests.",
+      "risk_level": "critical"
+    },
+    {
+      "code": "privacy.deletion.approve",
+      "resource": "deletion_request",
+      "action": "approve",
+      "description": "Provide independent approval or rejection for a governed deletion request.",
+      "risk_level": "critical"
+    },
+    {
+      "code": "feedback.submit",
+      "resource": "user_feedback",
+      "action": "create",
+      "description": "Submit structured quality, source, safety, and usability feedback.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "evaluation.manage",
+      "resource": "evaluation_campaign",
+      "action": "manage",
+      "description": "Create and manage scoped pilot and product-evaluation campaigns.",
+      "risk_level": "high"
+    },
+    {
+      "code": "evaluation.participate",
+      "resource": "evaluation_response",
+      "action": "create",
+      "description": "Participate in an authorised evaluation or pilot task.",
+      "risk_level": "normal"
+    },
+    {
+      "code": "datasets.manage",
+      "resource": "dataset_source_record",
+      "action": "manage",
+      "description": "Register governed candidate data sources and intended uses.",
+      "risk_level": "high"
+    },
+    {
+      "code": "datasets.approve",
+      "resource": "dataset_source_record",
+      "action": "approve",
+      "description": "Approve or reject data sources after licence, privacy, and provenance review.",
+      "risk_level": "critical"
+    },
+    {
+      "code": "datasets.acquire",
+      "resource": "dataset_acquisition_run",
+      "action": "create",
+      "description": "Request acquisition of an approved metadata or openly licensed dataset source.",
+      "risk_level": "high"
+    }
+  ],
+  "roles": [
+    {
+      "code": "institution_administrator",
+      "name": "Institution Administrator",
+      "description": "Independent tenant administration role; it does not inherit Head of Department authority.",
+      "is_external": false,
+      "permissions": [
+        "academic.read",
+        "academic_calendar.manage",
+        "academic_calendar.read",
+        "ai.use",
+        "ai_governance.manage",
+        "ai_governance.read",
+        "analytics.read_institution",
+        "audit.centre.read",
+        "audit.export",
+        "audit.read",
+        "content.bulk_upload",
+        "content.read",
+        "content.upload",
+        "content.version.approve",
+        "content.version.review",
+        "datasets.acquire",
+        "datasets.approve",
+        "datasets.manage",
+        "evaluation.manage",
+        "evaluation.participate",
+        "external_access.manage",
+        "feedback.submit",
+        "institution.configure",
+        "integrations.manage",
+        "integrations.read",
+        "notifications.read",
+        "operations.backups.manage",
+        "operations.backups.read",
+        "operations.deliveries.read",
+        "operations.jobs.manage",
+        "operations.jobs.read",
+        "operations.retention.manage",
+        "operations.retention.read",
+        "operations.schedules.manage",
+        "operations.schedules.read",
+        "outputs.edit",
+        "outputs.export",
+        "positions.manage",
+        "privacy.deletion.approve",
+        "privacy.deletion.manage",
+        "privacy.legal_holds.manage",
+        "reports.generate",
+        "reports.manage",
+        "roles.assign",
+        "saved_outputs.manage",
+        "sessions.manage_own",
+        "settings.manage",
+        "settings.read",
+        "sources.read",
+        "sso.manage",
+        "users.manage",
+        "users.read",
+        "workspace.search"
+      ]
+    },
+    {
+      "code": "head_of_department",
+      "name": "Head Of Department",
+      "description": "Independent departmental teaching-and-learning leadership role; it does not inherit institution administration.",
+      "is_external": false,
+      "permissions": [
+        "academic.assign_coordinator",
+        "academic.assign_lecturer",
+        "academic.assign_moderator",
+        "academic.read",
+        "academic.workload.review",
+        "academic_calendar.manage",
+        "academic_calendar.read",
+        "ai.use",
+        "ai_governance.read",
+        "analytics.read_department",
+        "audit.read",
+        "content.bulk_upload",
+        "content.read",
+        "content.upload",
+        "content.version.approve",
+        "content.version.review",
+        "department.operations.read",
+        "department.review",
+        "evaluation.manage",
+        "evaluation.participate",
+        "external_access.manage",
+        "feedback.submit",
+        "handover.accept",
+        "handover.manage",
+        "handover.read",
+        "module_readiness.manage",
+        "module_readiness.read",
+        "notifications.read",
+        "outputs.approve",
+        "outputs.edit",
+        "outputs.export",
+        "outputs.release",
+        "outputs.review",
+        "reports.generate",
+        "review_cycles.manage",
+        "review_dashboard.read",
+        "review_decisions.record",
+        "review_findings.respond",
+        "review_tasks.assign",
+        "review_tasks.read",
+        "saved_outputs.manage",
+        "sessions.manage_own",
+        "settings.read",
+        "sources.read",
+        "teaching_plans.manage",
+        "teaching_plans.read",
+        "users.read",
+        "workload.manage",
+        "workload.read_own",
+        "workspace.search"
+      ]
+    },
+    {
+      "code": "lecturer",
+      "name": "Lecturer",
+      "description": "Creates and manages authorised teaching and assessment materials.",
+      "is_external": false,
+      "permissions": [
+        "academic.read",
+        "academic_calendar.read",
+        "ai.use",
+        "ai_governance.read",
+        "analytics.read_own",
+        "content.bulk_upload",
+        "content.read",
+        "content.upload",
+        "content.version.review",
+        "evaluation.participate",
+        "feedback.submit",
+        "handover.accept",
+        "handover.manage",
+        "handover.read",
+        "module_readiness.manage",
+        "module_readiness.read",
+        "notifications.read",
+        "outputs.edit",
+        "outputs.export",
+        "reports.generate",
+        "review_findings.respond",
+        "review_tasks.read",
+        "saved_outputs.manage",
+        "sessions.manage_own",
+        "settings.read",
+        "sources.read",
+        "teaching_plans.manage",
+        "teaching_plans.read",
+        "workload.read_own",
+        "workspace.search"
+      ]
+    },
+    {
+      "code": "module_coordinator",
+      "name": "Module Coordinator",
+      "description": "Coordinates authorised module alignment and shared materials.",
+      "is_external": false,
+      "permissions": [
+        "academic.read",
+        "academic.workload.review",
+        "academic_calendar.manage",
+        "academic_calendar.read",
+        "ai.use",
+        "ai_governance.read",
+        "analytics.read_department",
+        "content.bulk_upload",
+        "content.read",
+        "content.upload",
+        "content.version.approve",
+        "content.version.review",
+        "department.operations.read",
+        "evaluation.manage",
+        "evaluation.participate",
+        "feedback.submit",
+        "handover.accept",
+        "handover.manage",
+        "handover.read",
+        "module_readiness.manage",
+        "module_readiness.read",
+        "notifications.read",
+        "outputs.approve",
+        "outputs.edit",
+        "outputs.export",
+        "outputs.release",
+        "outputs.review",
+        "reports.generate",
+        "review_cycles.manage",
+        "review_decisions.record",
+        "review_findings.respond",
+        "review_tasks.assign",
+        "review_tasks.read",
+        "saved_outputs.manage",
+        "sessions.manage_own",
+        "settings.read",
+        "sources.read",
+        "teaching_plans.manage",
+        "teaching_plans.read",
+        "workload.manage",
+        "workload.read_own",
+        "workspace.search"
+      ]
+    },
+    {
+      "code": "programme_coordinator",
+      "name": "Programme Coordinator",
+      "description": "Coordinates authorised programme-level alignment and materials.",
+      "is_external": false,
+      "permissions": [
+        "academic.read",
+        "academic.workload.review",
+        "academic_calendar.manage",
+        "academic_calendar.read",
+        "ai.use",
+        "ai_governance.read",
+        "analytics.read_department",
+        "content.bulk_upload",
+        "content.read",
+        "content.upload",
+        "content.version.approve",
+        "content.version.review",
+        "department.operations.read",
+        "evaluation.manage",
+        "evaluation.participate",
+        "feedback.submit",
+        "handover.accept",
+        "handover.manage",
+        "handover.read",
+        "module_readiness.manage",
+        "module_readiness.read",
+        "notifications.read",
+        "outputs.approve",
+        "outputs.edit",
+        "outputs.export",
+        "outputs.release",
+        "outputs.review",
+        "reports.generate",
+        "review_cycles.manage",
+        "review_decisions.record",
+        "review_findings.respond",
+        "review_tasks.assign",
+        "review_tasks.read",
+        "saved_outputs.manage",
+        "sessions.manage_own",
+        "settings.read",
+        "sources.read",
+        "teaching_plans.manage",
+        "teaching_plans.read",
+        "workload.manage",
+        "workload.read_own",
+        "workspace.search"
+      ]
+    },
+    {
+      "code": "internal_moderator",
+      "name": "Internal Moderator",
+      "description": "Reviews only assigned internal moderation work.",
+      "is_external": false,
+      "permissions": [
+        "academic.read",
+        "academic_calendar.read",
+        "ai.use",
+        "ai_governance.read",
+        "analytics.read_own",
+        "content.bulk_upload",
+        "content.read",
+        "content.upload",
+        "content.version.review",
+        "evaluation.participate",
+        "feedback.submit",
+        "handover.read",
+        "moderation.perform",
+        "module_readiness.read",
+        "notifications.read",
+        "outputs.export",
+        "outputs.review",
+        "reports.generate",
+        "review_tasks.perform",
+        "review_tasks.read",
+        "saved_outputs.manage",
+        "sessions.manage_own",
+        "settings.read",
+        "sources.read",
+        "teaching_plans.read",
+        "workload.read_own",
+        "workspace.search"
+      ]
+    },
+    {
+      "code": "external_moderator",
+      "name": "External Moderator",
+      "description": "Temporary external role limited to assigned assessments and evidence.",
+      "is_external": true,
+      "permissions": [
+        "ai.use",
+        "ai_governance.read",
+        "analytics.read_own",
+        "content.bulk_upload",
+        "content.read",
+        "content.upload",
+        "content.version.review",
+        "evaluation.participate",
+        "feedback.submit",
+        "moderation.perform",
+        "notifications.read",
+        "outputs.export",
+        "outputs.review",
+        "review_tasks.perform",
+        "review_tasks.read",
+        "saved_outputs.manage",
+        "sessions.manage_own",
+        "sources.read",
+        "workspace.search"
+      ]
+    },
+    {
+      "code": "external_reviewer",
+      "name": "External Reviewer",
+      "description": "Temporary external role limited to the assigned review scope.",
+      "is_external": true,
+      "permissions": [
+        "ai.use",
+        "ai_governance.read",
+        "analytics.read_own",
+        "content.bulk_upload",
+        "content.read",
+        "content.upload",
+        "content.version.review",
+        "evaluation.participate",
+        "external_review.perform",
+        "feedback.submit",
+        "notifications.read",
+        "outputs.export",
+        "outputs.review",
+        "review_tasks.perform",
+        "review_tasks.read",
+        "saved_outputs.manage",
+        "sessions.manage_own",
+        "sources.read",
+        "workspace.search"
+      ]
+    }
+  ]
+}

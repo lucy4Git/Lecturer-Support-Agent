@@ -1,0 +1,29 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Unified Prompt to Inline Artifact
+actor User
+participant "Web/PWA" as UI
+participant BFF
+participant Authorization as Auth
+participant "Conversation Service" as Conv
+participant "AI Orchestrator" as AI
+participant "Artifact/Version Service" as Ver
+participant Audit
+User -> UI : Enter lecturer-support request
+UI -> BFF : prompt + attachments + conversation
+BFF -> Auth : authorize tenant/scope/action
+Auth --> BFF : allowed context
+BFF -> Conv : create user message
+Conv -> AI : execute with allowed context
+AI --> Conv : validated response + sources
+Conv -> Ver : save inline artifact version
+Ver --> Conv : version ID
+Conv -> Audit : record execution and sources
+Conv --> BFF : stream response events
+BFF --> UI : render in same conversation
+UI --> User : edit/refine/export/version
+@enduml

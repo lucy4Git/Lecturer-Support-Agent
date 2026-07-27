@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lecturer-support-agent.local/schemas/citation_record.schema.json",
+  "title": "Claim Citation Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "citation_id",
+    "response_id",
+    "claim",
+    "source_id",
+    "retrieval_event",
+    "evidence",
+    "relationship",
+    "display_eligibility",
+    "created_at"
+  ],
+  "properties": {
+    "citation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "response_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "text",
+        "risk"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "span_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "span_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      }
+    },
+    "source_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source_version_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "retrieval_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "tool",
+        "query",
+        "retrieved_at"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "rank": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "locator",
+        "hash",
+        "support_strength"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "passage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "locator": {
+          "type": "string"
+        },
+        "hash": {
+          "type": "string"
+        },
+        "support_strength": {
+          "enum": [
+            "direct",
+            "partial",
+            "background",
+            "contradictory",
+            "unresolved"
+          ]
+        }
+      }
+    },
+    "relationship": {
+      "enum": [
+        "SUPPORTS",
+        "PARTIALLY_SUPPORTS",
+        "BACKGROUND",
+        "CONTRADICTS",
+        "UNRESOLVED"
+      ]
+    },
+    "display_eligibility": {
+      "enum": [
+        "DISPLAY",
+        "DISPLAY_WITH_LIMITATION",
+        "HIDE_UNVERIFIED",
+        "HIDE_PERMISSION",
+        "HIDE_RETRACTED"
+      ]
+    },
+    "verified_by": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

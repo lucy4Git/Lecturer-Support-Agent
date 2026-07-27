@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lecturer-support-agent.local/schemas/acquisition_request.schema.json",
+  "title": "Controlled Dataset Acquisition Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dataset_id",
+    "title",
+    "source_url",
+    "publisher",
+    "licence",
+    "permitted_uses",
+    "approval"
+  ],
+  "properties": {
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,100}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "publisher": {
+      "type": "string",
+      "minLength": 1
+    },
+    "licence": {
+      "type": "string",
+      "minLength": 1
+    },
+    "permitted_uses": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "retrieval",
+          "evaluation",
+          "adaptation",
+          "fine_tuning"
+        ]
+      },
+      "minItems": 1
+    },
+    "expected_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "maximum_bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10737418240
+    },
+    "contains_personal_data": {
+      "type": "boolean",
+      "default": false
+    },
+    "contains_confidential_data": {
+      "type": "boolean",
+      "default": false
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "proposed",
+            "rights_review",
+            "approved",
+            "rejected"
+          ]
+        },
+        "approved_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "approved_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

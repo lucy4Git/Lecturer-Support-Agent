@@ -1,0 +1,20 @@
+@startuml
+title v1.6 Document Ingestion Pipeline
+start
+:Read authorised object version;
+:Select parser by safe file type;
+if (Extractable text?) then (yes)
+  :Normalise extracted text;
+  :Create deterministic chunks;
+  :Generate governed embeddings;
+  :Upsert tenant-scoped Qdrant points;
+  :Record extraction, chunks, metrics and audit;
+else (no)
+  if (Audio/video?) then (yes)
+    :Mark transcript required;
+  else (no)
+    :Mark unsupported/empty without invented text;
+  endif
+endif
+stop
+@enduml

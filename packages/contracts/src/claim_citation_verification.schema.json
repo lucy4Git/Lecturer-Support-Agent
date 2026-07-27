@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lecturer-support-agent.example/contracts/claim-citation-verification-v2.5.json",
+  "title": "Claim Citation Verification Result",
+  "type": "object",
+  "required": ["claim_count", "unsupported_claim_count", "coverage", "semantic_entailment_verified", "claims"],
+  "properties": {
+    "claim_count": {"type": "integer", "minimum": 0},
+    "unsupported_claim_count": {"type": "integer", "minimum": 0},
+    "coverage": {"type": "number", "minimum": 0, "maximum": 1},
+    "semantic_entailment_verified": {"const": false},
+    "claims": {"type": "array", "items": {"type": "object", "required": ["sequence", "text", "verified_source_numbers", "status"]}}
+  }
+}

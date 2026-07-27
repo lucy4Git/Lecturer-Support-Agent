@@ -1,0 +1,89 @@
+name: lecturer-support-agent
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lecturer_support_agent}
+      POSTGRES_USER: ${POSTGRES_OWNER_USER:-lsa_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD:-change-owner-password}
+      LSA_APP_DB_PASSWORD: ${POSTGRES_APP_PASSWORD:-change-app-password}
+      LSA_AUTH_DB_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-change-auth-password}
+      LSA_WORKER_DB_PASSWORD: ${POSTGRES_WORKER_PASSWORD:-change-worker-password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - lsa_postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/database/postgresql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_OWNER_USER:-lsa_owner} -d ${POSTGRES_DB:-lecturer_support_agent}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7.4-alpine}
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-change-redis-password}"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - lsa_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-change-redis-password} ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:latest}
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-lsa-development}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-minio-password}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - lsa_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-bootstrap:
+    image: ${MINIO_CLIENT_IMAGE:-minio/mc:latest}
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-lsa-development}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-minio-password}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-lecturer-support-agent}
+    entrypoint: ["/bin/sh", "/bootstrap/bootstrap.sh"]
+    volumes:
+      - ./infrastructure/database/minio/bootstrap.sh:/bootstrap/bootstrap.sh:ro
+    restart: "no"
+
+  qdrant:
+    image: ${QDRANT_IMAGE:-qdrant/qdrant:v1.12.5}
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_HTTP_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - lsa_qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/6333'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  lsa_postgres_data:
+  lsa_redis_data:
+  lsa_minio_data:
+  lsa_qdrant_data:

@@ -1,0 +1,26 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Institution Administrator Manages Users and Roles
+actor "Institution Administrator" as IA
+participant UI
+participant Authorization as Auth
+participant "Identity/Tenant Service" as Tenant
+participant "Policy Service" as Policy
+participant Audit
+IA -> UI : add/import user or assign role
+UI -> Auth : verify Institution Admin tenant scope
+Auth --> UI : allowed
+UI -> Tenant : validate user and unit
+Tenant -> Policy : validate independent role/scope
+Policy --> Tenant : valid/conflict
+Tenant -> Audit : append user/role event
+Tenant --> UI : result/effective permissions
+note over IA,UI
+No Head of Department or confidential
+academic-content authority is implied.
+end note
+@enduml

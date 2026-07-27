@@ -1,0 +1,43 @@
+@startuml
+skinparam componentStyle rectangle
+title v2.2 Scoped Analytics and Governance Components
+actor "Authorised User" as User
+component "Unified Web Workspace" as Web
+component "Analytics API" as AnalyticsAPI
+component "AI Governance API" as GovAPI
+component "Audit Centre API" as AuditAPI
+component "Platform Settings API" as SettingsAPI
+component "Authorisation Service" as Authz
+component "Analytics Service" as Analytics
+component "AI Usage Governance" as Governance
+component "Audit Centre Service" as Audit
+component "Platform Settings Service" as Settings
+component "Conversation Engine" as Conversation
+component "Provider-neutral Router" as Router
+database "PostgreSQL + RLS" as DB
+component "OpenAI / Claude / Gemini / DeepSeek" as Cloud
+component "Ollama" as Local
+
+User --> Web
+Web --> AnalyticsAPI
+Web --> GovAPI
+Web --> AuditAPI
+Web --> SettingsAPI
+AnalyticsAPI --> Authz
+GovAPI --> Authz
+AuditAPI --> Authz
+SettingsAPI --> Authz
+AnalyticsAPI --> Analytics
+GovAPI --> Governance
+AuditAPI --> Audit
+SettingsAPI --> Settings
+Conversation --> Governance : preflight policy
+Governance --> Router : allow/deny/local-only
+Router --> Cloud
+Router --> Local
+Analytics --> DB
+Governance --> DB
+Audit --> DB
+Settings --> DB
+Conversation --> DB : usage ledger
+@enduml

@@ -1,0 +1,24 @@
+@startuml
+!theme plain
+actor User
+participant "Unified Web" as Web
+participant "Identity API" as API
+database PostgreSQL as DB
+queue "Durable Jobs" as Queue
+participant "Email Gateway" as Email
+
+User -> Web: Request password reset
+Web -> API: institution + email
+API -> DB: create hashed, expiring challenge
+API -> Queue: communications.deliver_email
+Queue -> Email: send reset link
+Email --> User: single-use reset link
+User -> API: reset token + new password
+API -> DB: verify/consume token\nreplace Argon2id hash\nrevoke sessions
+
+User -> API: enrol TOTP
+API -> DB: encrypted pending secret\nhashed recovery codes
+API --> User: provisioning URI + one-time recovery codes
+User -> API: TOTP proof
+API -> DB: activate MFA device
+@enduml

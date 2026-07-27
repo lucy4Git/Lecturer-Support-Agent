@@ -1,0 +1,28 @@
+@startuml
+entity ReviewCycle
+entity ReviewPack
+entity ReviewPackItem
+entity AssignedReviewTask
+entity ReviewFinding
+entity ReviewFindingResponse
+entity ReviewSubmission
+entity ReviewDecision
+entity ReviewCorrectionRound
+entity GeneratedOutput
+entity OutputVersion
+entity ExternalAccessGrant
+
+GeneratedOutput ||--o{ ReviewCycle
+OutputVersion ||--o{ ReviewCycle : initiating version
+ReviewCycle ||--o{ ReviewPack
+ReviewPack ||--o{ ReviewPackItem
+ReviewCycle ||--o{ AssignedReviewTask
+ReviewPack ||--o{ AssignedReviewTask
+ExternalAccessGrant |o--o{ AssignedReviewTask
+AssignedReviewTask ||--o{ ReviewFinding
+ReviewFinding ||--o{ ReviewFindingResponse
+AssignedReviewTask ||--o{ ReviewSubmission
+ReviewCycle ||--o{ ReviewDecision
+ReviewCycle ||--o{ ReviewCorrectionRound
+OutputVersion ||--o{ ReviewPackItem
+@enduml

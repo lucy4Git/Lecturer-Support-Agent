@@ -1,0 +1,26 @@
+@startuml
+!theme plain
+actor "Institution Administrator" as Admin
+participant "Unified Workspace" as UI
+participant "Integration API" as API
+queue Worker
+database "Staging + Mappings" as DB
+participant "Canvas / Moodle / OneRoster" as Source
+
+Admin -> UI: Configure connection using secret reference
+UI -> API: create/test connection
+API -> Source: standards-based connectivity test
+API -> DB: non-sensitive evidence
+Admin -> UI: Request sync
+UI -> API: sync type + direction
+API -> Worker: durable integrations.sync job
+Worker -> Source: retrieve source records
+Source --> Worker: records + cursor
+Worker -> DB: stage payload + checksum
+Worker -> DB: map external IDs or flag needs_review
+Worker -> DB: audit counts and result
+note over Worker,DB
+No silent destructive replacement.
+Canonical writes require mapping policy.
+end note
+@enduml

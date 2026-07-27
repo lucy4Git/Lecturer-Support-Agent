@@ -1,0 +1,25 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Authentication and Scoped Authorization
+actor User
+participant Client
+participant "Identity Provider" as IdP
+participant "Session Service" as Session
+participant "Authorization Policy" as Authz
+participant "Tenant/Org Service" as Org
+User -> Client : sign in
+Client -> IdP : authenticate/MFA
+IdP --> Client : identity assertion
+Client -> Session : exchange assertion
+Session -> Org : resolve memberships/roles
+Org --> Session : scoped assignments
+Session --> Client : secure session
+Client -> Authz : resource action request
+Authz -> Org : evaluate role, scope, validity, attributes
+Org --> Authz : policy context
+Authz --> Client : permit/deny
+@enduml

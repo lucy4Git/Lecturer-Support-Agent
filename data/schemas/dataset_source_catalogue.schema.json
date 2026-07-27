@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lecturer-support-agent.example/schemas/dataset-source-catalogue-v2.5.json",
+  "title": "Dataset Source Catalogue",
+  "type": "object",
+  "required": ["catalogue_version", "generated_at", "sources"],
+  "properties": {
+    "catalogue_version": {"type": "string"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_key", "title", "provider", "canonical_url", "intended_use", "approval_status", "rights_review"],
+        "properties": {
+          "source_key": {"type": "string", "pattern": "^[a-z0-9_.-]+$"},
+          "title": {"type": "string", "minLength": 2},
+          "provider": {"type": "string"},
+          "canonical_url": {"type": "string", "format": "uri"},
+          "source_kind": {"type": "string"},
+          "licence_code": {"type": ["string", "null"]},
+          "licence_url": {"type": ["string", "null"], "format": "uri"},
+          "commercial_use_allowed": {"type": ["boolean", "null"]},
+          "ai_training_allowed": {"type": ["boolean", "null"]},
+          "intended_use": {"enum": ["metadata", "retrieval", "evaluation", "adaptation"]},
+          "approval_status": {"enum": ["approved_metadata_only", "manual_item_review_required", "noncommercial_only", "blocked"]},
+          "rights_review": {"type": "string"},
+          "acquisition_method": {"type": "string"},
+          "notes": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

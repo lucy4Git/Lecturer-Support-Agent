@@ -1,0 +1,22 @@
+@startuml
+title v1.7 Teaching Output Production
+actor Lecturer
+participant "Unified Web Area" as Web
+participant "Conversation API" as API
+participant "Module Context Service" as MCS
+participant "Assessment Safety" as Safety
+participant "AI Gateway" as AI
+database PostgreSQL as DB
+Lecturer -> Web: Prompt + optional module offering
+Web -> API: POST message
+API -> MCS: resolve authorised context
+MCS -> DB: read offering/outcomes/assignment
+MCS --> API: immutable context bundle
+API -> Safety: enforce generation role
+API -> AI: provider-neutral production prompt
+AI --> API: generated Markdown
+API -> Safety: evaluate version 1
+Safety --> API: risk/status/warnings
+API -> DB: persist message, output, version, lifecycle, review
+API --> Web: inline output + controls
+@enduml

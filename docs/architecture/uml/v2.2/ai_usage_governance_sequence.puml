@@ -1,0 +1,37 @@
+@startuml
+title Governed Multi-provider AI Request
+actor Lecturer
+participant "Conversation Engine" as Engine
+participant "Task Classifier" as Classifier
+participant "AI Governance Service" as Policy
+participant "Provider Router" as Router
+participant "Ollama" as Ollama
+participant "Cloud Providers" as Cloud
+database "Usage Ledger" as Ledger
+
+Lecturer -> Engine : Teaching request
+Engine -> Classifier : classify task and privacy
+Classifier --> Engine : task type, privacy class
+Engine -> Policy : evaluate effective policy + monthly usage
+Policy --> Engine : allowed, denied, local-only, source-required, warnings
+alt hard limit reached
+  Engine --> Lecturer : governed limit message
+else local-only required
+  Engine -> Router : allowed={ollama}
+  Router -> Ollama : generate
+  alt Ollama unavailable
+    Ollama --> Router : failure
+    Router --> Engine : fail closed
+    Engine --> Lecturer : local provider unavailable
+  else success
+    Ollama --> Router : response + usage
+  end
+else normal governed routing
+  Engine -> Router : allowed/denied sets
+  Router -> Cloud : attempt authorised provider
+  Router -> Ollama : governed fallback when permitted
+end
+Router --> Engine : response + execution metadata
+Engine -> Ledger : increment user/provider/model/task totals
+Engine --> Lecturer : response + governance warnings
+@enduml

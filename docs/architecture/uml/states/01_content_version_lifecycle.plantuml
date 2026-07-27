@@ -1,0 +1,26 @@
+@startuml
+' Lecturer Support Agent — editable PlantUML source
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+title Content Version Lifecycle
+[*] --> Processing
+Processing --> Quarantined : unsafe/error
+Processing --> Draft : validated
+Draft --> UnderReview : submitted
+UnderReview --> Returned : changes requested
+Returned --> Draft : new version created
+UnderReview --> ApprovedByHuman : authorised approval
+ApprovedByHuman --> Canonical : designated current
+Canonical --> Superseded : later canonical selected
+Draft --> Archived : authorised archive
+Returned --> Archived
+Superseded --> Archived
+Quarantined --> Archived
+Archived --> [*]
+note right of Returned
+Earlier versions remain immutable;
+revision creates a new version.
+end note
+@enduml

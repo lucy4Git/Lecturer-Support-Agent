@@ -1,0 +1,48 @@
+@startuml
+!theme plain
+title Model Readiness and Evaluation Data Flow
+rectangle "Candidate Data Sources" as SOURCES
+rectangle "Rights, Privacy & Provenance Gate" as GATE
+rectangle "Quarantine" as QUAR
+rectangle "Curation & De-identification" as CURATE
+rectangle "Dataset Registry & Manifests" as REG
+rectangle "Runtime Retrieval Corpus" as RAG
+rectangle "Prompt/Workflow Exemplars" as PROMPT
+rectangle "Held-out Evaluation Sets" as EVAL
+rectangle "Red-team & Safety Sets" as RED
+rectangle "Future Fine-tuning Candidate" as FT
+rectangle "Model/Prompt Release Candidate" as MODEL
+rectangle "Automated Evaluation" as AUTO
+rectangle "Human Academic Review" as HUMAN
+rectangle "Security, Privacy & Tenant Tests" as SEC
+rectangle "Release Gate" as RELEASE
+rectangle "Approved Release" as PROD
+
+SOURCES --> GATE
+GATE --> QUAR : unclear rights / sensitive / incomplete
+GATE --> CURATE : admissible
+CURATE --> REG
+REG --> RAG : runtime context permitted
+REG --> PROMPT : exemplar use permitted
+REG --> EVAL : evaluation-only split
+REG --> RED : safety-only split
+REG --> FT : only after explicit model-use approval
+PROMPT --> MODEL
+RAG --> MODEL
+MODEL --> AUTO
+EVAL --> AUTO
+MODEL --> HUMAN
+EVAL --> HUMAN
+MODEL --> SEC
+RED --> SEC
+AUTO --> RELEASE
+HUMAN --> RELEASE
+SEC --> RELEASE
+RELEASE --> MODEL : fail → remediate
+RELEASE --> PROD : pass + documented approval
+
+note bottom of EVAL
+Held-out evaluation cases are excluded from training
+and contamination-checked before each release.
+end note
+@enduml

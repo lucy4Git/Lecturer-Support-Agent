@@ -1,0 +1,17 @@
+groups:
+  - name: lecturer-support-agent
+    rules:
+      - alert: LecturerSupportAgentHighErrorRate
+        expr: sum(rate(lsa_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(lsa_http_requests_total[5m])), 1) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: API error rate exceeds 5%
+      - alert: LecturerSupportAgentRateLimitSpike
+        expr: increase(lsa_rate_limit_rejections_total[10m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Unusual rate-limit activity detected

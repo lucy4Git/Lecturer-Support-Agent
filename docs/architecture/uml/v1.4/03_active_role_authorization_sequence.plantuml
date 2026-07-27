@@ -1,0 +1,32 @@
+@startuml
+!theme plain
+title Active Role and Scope Authorisation
+actor User
+participant "JWT Middleware" as JWT
+participant "Domain Route" as Route
+participant "Authorization Service" as Authz
+database PostgreSQL as DB
+
+User -> JWT: Request with bearer access token
+JWT -> JWT: Validate fixed algorithm, issuer, audience, expiry
+JWT -> Route: RequestContext(tenant, user, membership, role, role_assignment)
+Route -> Authz: require_permission(code, resource scope)
+Authz -> DB: Query selected role_assignment only
+note right of DB
+Filters include:
+- tenant and user
+- signed role code
+- signed role-assignment ID
+- active membership
+- validity and revocation
+- explicit permission
+end note
+Authz -> DB: Resolve organisational descendants through closure table
+DB --> Authz: allowed / no row
+alt permitted
+  Authz --> Route: Continue
+  Route --> User: Scoped result
+else denied
+  Authz --> User: 403 active role and scope do not permit action
+end
+@enduml

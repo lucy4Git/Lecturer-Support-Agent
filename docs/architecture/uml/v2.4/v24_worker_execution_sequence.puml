@@ -1,0 +1,16 @@
+@startuml
+participant Worker
+participant "Schedule Function" as Scheduler
+participant "Job Queue" as Queue
+participant Handler
+participant "Tenant Data" as Data
+Worker -> Queue: recover expired leases
+Worker -> Scheduler: enqueue due interval schedules
+Scheduler -> Queue: insert idempotent jobs
+Worker -> Queue: claim next job
+Queue --> Worker: job + tenant
+Worker -> Handler: execute(job)
+Handler -> Data: tenant-scoped changes
+Handler --> Worker: safe result
+Worker -> Queue: complete or retry/dead-letter
+@enduml

@@ -1,0 +1,18 @@
+@startuml
+title Module Readiness Evaluation
+start
+:Load scoped readiness requirements;
+:Exclude not-applicable requirements;
+:Calculate weighted completion;
+if (Incomplete blocking item?) then (yes)
+  :Status = blocked;
+elseif (100 percent complete?) then (yes)
+  :Status = ready;
+elseif (Score at least 60?) then (yes)
+  :Status = partially ready;
+else (no)
+  :Status = at risk;
+endif
+:Store score, status, blocking count, evaluator and time;
+stop
+@enduml

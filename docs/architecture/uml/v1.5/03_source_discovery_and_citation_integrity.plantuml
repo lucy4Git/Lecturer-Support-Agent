@@ -1,0 +1,25 @@
+@startuml
+actor "Conversation Engine" as Engine
+participant "Crossref Connector" as Crossref
+participant "Prompt Builder" as Prompt
+participant "AI Provider" as Model
+participant "Citation Integrity Guard" as Guard
+participant "Source Integrity Service" as Integrity
+database PostgreSQL as DB
+
+Engine -> Crossref: query bibliographic metadata
+Crossref --> Engine: real titles, DOI/URL, authors, publisher
+Engine -> Prompt: build numbered source pack [S1..Sn]
+Prompt --> Engine: constrained system prompt
+Engine -> Model: generate; cite only source pack
+Model --> Engine: output text
+Engine -> Guard: compare markers/URLs/DOIs with pack
+Guard --> Engine: clean text + cited keys + warnings
+Engine -> Integrity: record actual source retrievals
+Integrity -> DB: sources + retrieval records
+loop cited retrieved sources
+  Engine -> Integrity: create citation
+  Integrity -> DB: enforce same AI request
+  Engine -> Integrity: record partial verification
+end
+@enduml
