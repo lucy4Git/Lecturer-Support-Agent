@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import uuid
 from dataclasses import dataclass
 from typing import Awaitable, Callable
 
@@ -10,6 +12,8 @@ from sqlalchemy import text
 from ..core.database import get_application_engine
 from ..core.settings import Settings, get_settings
 from ..integrations.object_storage import S3ObjectStorage
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +26,41 @@ class ProbeResult:
 class ReadinessService:
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
+
+    @property
+    def _is_development(self) -> bool:
+        return self.settings.environment.lower() in ("development", "test", "local")
+
+    def _safe_detail(self, exc: Exception, correlation_id: str) -> str:
+        """Return a safe probe-failure detail suitable for unauthenticated clients.
+
+        Development: full exception type and sanitised message (no connection
+        strings, passwords, host names or tokens).
+        Production: only the dependency name and a correlation identifier so that
+        operators can correlate against structured server logs.
+        """
+        if self._is_development:
+            # Strip connection strings and passwords from the message
+            raw = str(exc)
+            for secret in (
+                "password", "postgresql+psycopg://", "redis://", "http://",
+                "https://", "@localhost", "@127",
+            ):
+                if secret in raw.lower():
+                    raw = "<detail redacted — connection string>"
+                    break
+            return f"{type(exc).__name__}: {raw}"[:300]
+        # Production: log full detail server-side, return only correlation id
+        logger.error(
+            "Readiness probe failure",
+            extra={
+                "probe": "unknown",
+                "exc_type": type(exc).__name__,
+                "exc_detail": str(exc),
+                "correlation_id": correlation_id,
+            },
+        )
+        return f"dependency_unavailable [ref:{correlation_id}]"
 
     async def _database(self) -> ProbeResult:
         async with get_application_engine().connect() as connection:
@@ -65,8 +104,15 @@ class ReadinessService:
             probes.append(("ollama", self._ollama))
         results: list[ProbeResult] = []
         for name, probe in probes:
+            correlation_id = str(uuid.uuid4())[:8]
             try:
-                results.append(await asyncio.wait_for(probe(), timeout=self.settings.readiness_probe_timeout_seconds))
+                results.append(await asyncio.wait_for(
+                    probe(), timeout=self.settings.readiness_probe_timeout_seconds
+                ))
             except Exception as exc:
-                results.append(ProbeResult(name, False, f"{type(exc).__name__}: {exc!s}"[:200]))
+                logger.warning(
+                    "Readiness probe failed",
+                    extra={"probe": name, "exc_type": type(exc).__name__, "correlation_id": correlation_id},
+                )
+                results.append(ProbeResult(name, False, self._safe_detail(exc, correlation_id)))
         return results

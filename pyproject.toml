@@ -28,7 +28,7 @@ addopts = "-ra --strict-markers"
 pythonpath = ["."]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-markers = ["integration: requires local infrastructure", "security: security and isolation validation"]
+markers = ["integration: requires local infrastructure", "security: security and isolation validation", "slow: test may take > 30s (e.g. LLM generation)"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
