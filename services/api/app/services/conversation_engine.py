@@ -498,6 +498,7 @@ class ConversationEngine:
             },
         )
         await self.session.flush()
+        await self.session.refresh(conversation)
         output = InlineOutput(
             output_type=classification.task_type,
             title=title,

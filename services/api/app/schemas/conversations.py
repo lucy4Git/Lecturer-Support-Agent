@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..ai.contracts import InlineOutput, SourceCard, TaskClassification
 from .common import AuditFields
@@ -51,6 +51,8 @@ class ConversationDetail(BaseModel):
 
 
 class ProviderAttemptRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     provider: str
     model: str
     status: str

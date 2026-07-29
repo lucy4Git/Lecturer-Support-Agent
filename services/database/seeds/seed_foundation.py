@@ -224,7 +224,7 @@ def seed_tenant(session: Session, slug: str, name: str, country_code: str) -> No
     }
     for handle, role_code in users.items():
         user_id = stable_id(f"{slug}:user:{handle}")
-        email = f"{handle}@{slug}.example.invalid"
+        email = f"{handle}.{slug}@example.com"
         session.merge(
             User(
                 id=user_id,
@@ -263,13 +263,17 @@ def seed_tenant(session: Session, slug: str, name: str, country_code: str) -> No
         if role_code.startswith("external_"):
             scope_type = "module"
             scoped_resource = module_id
+        # Academic roles need include_descendants so their department scope covers
+        # module offerings, modules, and programmes within that department.
+        descendant_roles = {"head_of_department", "lecturer", "internal_moderator",
+                            "module_coordinator", "programme_coordinator"}
         session.merge(
             AccessScope(
                 id=scope_id,
                 tenant_id=tenant_id,
                 scope_type=scope_type,
                 scope_id=scoped_resource,
-                include_descendants=role_code == "head_of_department",
+                include_descendants=role_code in descendant_roles,
                 constraints={"synthetic_demo": True},
             )
         )
