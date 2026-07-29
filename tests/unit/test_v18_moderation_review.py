@@ -98,7 +98,7 @@ def test_rejected_output_can_be_reopened_as_new_draft() -> None:
 
 
 def test_review_routes_are_registered() -> None:
-    paths = {getattr(route, "path", "") for route in app.routes}
+    paths = set(app.openapi()["paths"].keys())
     assert {
         "/api/v1/reviews/cycles",
         "/api/v1/reviews/cycles/{cycle_id}",

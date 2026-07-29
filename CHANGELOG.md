@@ -2,6 +2,53 @@
 
 
 
+## [2.5.0-rc1-owner-validation] - 2026-07-29
+
+### Fixed (owner-machine validation)
+
+- **F-009 Windows ProactorEventLoop**: `services/api/run_api.py` now passes
+  `loop=asyncio.SelectorEventLoop` to `uvicorn.run()`. Uvicorn 0.49 forwards
+  this as `loop_factory` to `asyncio.run()`, guaranteeing a `SelectorEventLoop`
+  is created before any psycopg3 connection attempt. `main.py` retains the
+  `WindowsSelectorEventLoopPolicy` guard as defence-in-depth. All four readiness
+  probes (PostgreSQL, Redis, Qdrant, MinIO) now return healthy on Windows.
+- **F-001/F-002/F-003 Next.js Suspense**: `accept-invitation`, `reset-password`
+  and `sso/callback` pages extract `useSearchParams()` callers into child
+  components wrapped in `<Suspense>`, unblocking the production build.
+- **F-004 Forbidden-path loop logic**: validation scripts changed `break` to
+  `continue` so `.git/` and `.next/` paths are skipped rather than erroring.
+- **F-005 Windows cp1252 encoding**: all `.read_text()` calls in tests and
+  validators now pass `encoding="utf-8"` explicitly.
+- **F-006 v1.3 migration schema gap**: added `analytics`, `operations`,
+  `governance` to the `SCHEMAS` tuple so all 14 schemas are created before
+  `Base.metadata.create_all()` runs.
+- **F-007 v1.8/v2.5 idempotent migrations**: replaced `op.add_column()` and
+  `op.create_foreign_key()` with `ADD COLUMN IF NOT EXISTS` and conditional
+  constraint SQL so migrations are safe on databases bootstrapped by `create_all`.
+- **F-008 Health version string**: `routes/health.py` now returns `"2.5.0"`.
+- **Route introspection**: all tests and validators use
+  `app.openapi()["paths"].keys()` instead of `route.path for route in app.routes`
+  (FastAPI 0.139 returns `_IncludedRouter` objects that have no `.path`).
+
+### Added (owner-machine validation)
+
+- `tests/unit/test_windows_event_loop.py` — 5 regression tests covering
+  `WindowsSelectorEventLoopPolicy` installation, loop-type assertion, live async
+  DB query on SelectorEventLoop, and uvicorn loop-factory acceptance.
+- Qdrant collection `lecturer_support_documents` created during validation.
+- `runtime/validation/` directory with timestamped evidence records.
+
+### Status (owner-machine 2026-07-29)
+
+- **Phases A–E validated**: static checks pass, all 11 migrations applied,
+  124 tables, 14 schemas, RLS confirmed, all four readiness probes healthy,
+  MinIO versioning confirmed, Qdrant collection created, Ollama generation model
+  present. Unit suite: **142/142 pass**.
+- **Approved limitation**: Ollama embedding model `nomic-embed-text-v2-moe`
+  not yet pulled; run `ollama pull nomic-embed-text-v2-moe` before ingestion.
+- **Phases F–L**: tenant isolation, AI providers, citation integrity, user
+  workflows, background jobs and commercial foundations validation pending.
+
 ## [2.5.0] - 2026-07-26
 
 ### Added

@@ -32,7 +32,7 @@ def test_uuid_parser_rejects_opaque_invalid_text() -> None:
 
 
 def test_v24_operations_routes_are_registered() -> None:
-    paths = {route.path for route in app.routes}
+    paths = set(app.openapi()["paths"].keys())
     assert {
         "/api/v1/operations/schedules",
         "/api/v1/operations/schedules/{schedule_id}",

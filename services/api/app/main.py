@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import asyncio
+import sys
+
+# psycopg3 async mode is incompatible with Windows ProactorEventLoop.
+# Switch to SelectorEventLoop before any async engine is created.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware

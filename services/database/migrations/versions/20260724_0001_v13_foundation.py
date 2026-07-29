@@ -20,6 +20,7 @@ depends_on: str | Sequence[str] | None = None
 SCHEMAS = (
     "tenant", "iam", "academic", "ingestion", "content", "conversation",
     "ai", "source", "review", "audit", "privacy",
+    "analytics", "operations", "governance",
 )
 
 

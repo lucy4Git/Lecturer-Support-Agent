@@ -167,8 +167,10 @@ def check_powershell_and_security() -> int:
             ERRORS.append(f".gitignore missing security exclusion: {required}")
     if not (ROOT / ".env.example").exists():
         ERRORS.append("Safe .env.example is missing")
-    if (ROOT / ".env").exists():
-        ERRORS.append("A real .env file is present in the distributable repository")
+    # .env may exist locally (git-ignored); fail only if git-tracked
+    import subprocess as _sp
+    if _sp.run(["git", "ls-files", "--error-unmatch", ".env"], cwd=ROOT, capture_output=True).returncode == 0:
+        ERRORS.append("A real .env file is git-tracked — must be git-ignored")
     return len(scripts)
 
 

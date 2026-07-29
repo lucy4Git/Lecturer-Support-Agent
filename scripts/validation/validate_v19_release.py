@@ -22,6 +22,6 @@ assert expected <= perms
 from services.database.models import Base
 assert len(Base.metadata.tables)>=88
 from services.api.app.main import app
-paths={getattr(r,'path','') for r in app.routes}
+paths=set(app.openapi()["paths"].keys())
 assert '/api/v1/department-operations/dashboards/departments/{organisational_unit_id}' in paths
 print(f'v1.9 release validation passed: {len(Base.metadata.tables)} cumulative tables, departmental operations routes, permissions, migration, tests, and documentation present.')

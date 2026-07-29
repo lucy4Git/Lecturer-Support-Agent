@@ -61,8 +61,13 @@ def upgrade() -> None:
     for schema in ("iam", "governance", "operations", "privacy", "analytics"):
         op.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
     bind = op.get_bind()
-    op.add_column("storage_objects", sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True), schema="content")
-    op.add_column("storage_objects", sa.Column("deletion_evidence_sha256", sa.String(length=64), nullable=True), schema="content")
+    # IF NOT EXISTS for idempotency — create_all() in the first migration creates
+    # these columns when running on a fresh database.
+    op.execute("""
+        ALTER TABLE content.storage_objects
+            ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS deletion_evidence_sha256 VARCHAR(64)
+    """)
     for table in NEW_TABLES:
         table.create(bind=bind, checkfirst=True)
 

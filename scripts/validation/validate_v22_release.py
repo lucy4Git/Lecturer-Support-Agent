@@ -61,7 +61,7 @@ required_tables = {
 }
 assert required_tables <= set(Base.metadata.tables)
 
-paths = {route.path for route in app.routes}
+paths = set(app.openapi()["paths"].keys())
 for path in [
     "/api/v1/analytics/overview",
     "/api/v1/analytics/ai-usage",
@@ -77,7 +77,7 @@ for path in [
 ]:
     assert path in paths, path
 
-catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text())
+catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text(encoding="utf-8"))
 permission_codes = {item["code"] for item in catalogue["permissions"]}
 required_permissions = {
     "analytics.read_own",
@@ -100,17 +100,17 @@ assert "settings.manage" not in roles["head_of_department"]
 assert "analytics.read_department" in roles["head_of_department"]
 assert "analytics.read_own" in roles["lecturer"]
 
-migration = (ROOT / "services/database/migrations/versions/20260726_0008_v22_analytics_governance.py").read_text()
-rls = (ROOT / "services/database/policies/row_level_security.sql").read_text()
+migration = (ROOT / "services/database/migrations/versions/20260726_0008_v22_analytics_governance.py").read_text(encoding="utf-8")
+rls = (ROOT / "services/database/policies/row_level_security.sql").read_text(encoding="utf-8")
 assert 'CREATE SCHEMA IF NOT EXISTS "analytics"' in migration
 assert "row_level_security.sql" in migration
 assert "'analytics'" in rls
 
-web_package = json.loads((ROOT / "apps/web/package.json").read_text())
+web_package = json.loads((ROOT / "apps/web/package.json").read_text(encoding="utf-8"))
 assert tuple(map(int, web_package["version"].split("."))) >= (2, 2, 0)
-assert 'version = "2.' in (ROOT / "pyproject.toml").read_text()
-shell = (ROOT / "apps/web/src/components/workspace-shell.tsx").read_text()
-panels = (ROOT / "apps/web/src/components/commercial-governance-panels.tsx").read_text()
+assert 'version = "2.' in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+shell = (ROOT / "apps/web/src/components/workspace-shell.tsx").read_text(encoding="utf-8")
+panels = (ROOT / "apps/web/src/components/commercial-governance-panels.tsx").read_text(encoding="utf-8")
 for label in ["Insights", "Reports", "Audit centre", "Platform settings"]:
     assert label in shell or label in panels
 for token in ["InsightsPanel", "ReportsPanel", "AuditPanel", "SettingsPanel"]:
@@ -119,7 +119,7 @@ for token in ["InsightsPanel", "ReportsPanel", "AuditPanel", "SettingsPanel"]:
 uml_files = list((ROOT / "docs/architecture/uml/v2.2").glob("*.puml"))
 assert len(uml_files) == 7
 for file in uml_files:
-    text = file.read_text()
+    text = file.read_text(encoding="utf-8")
     assert text.lstrip().startswith("@startuml") and text.rstrip().endswith("@enduml"), file
 
 print(

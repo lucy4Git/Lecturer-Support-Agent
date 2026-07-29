@@ -63,7 +63,7 @@ assert ALLOWED_JOB_TYPES == set(HANDLERS)
 for job_type in ALLOWED_JOB_TYPES:
     assert HANDLERS[job_type].__name__ != "owner_machine_handler_required"
 
-paths = {route.path for route in app.routes}
+paths = set(app.openapi()["paths"].keys())
 for path in [
     "/api/v1/operations/schedules",
     "/api/v1/operations/schedules/{schedule_id}",
@@ -72,7 +72,7 @@ for path in [
 ]:
     assert path in paths, path
 
-catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text())
+catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text(encoding="utf-8"))
 permission_codes = {item["code"] for item in catalogue["permissions"]}
 required_permissions = {
     "operations.schedules.read", "operations.schedules.manage",
@@ -84,11 +84,11 @@ assert required_permissions <= roles["institution_administrator"]
 for role in ("head_of_department", "lecturer", "internal_moderator", "external_reviewer"):
     assert not required_permissions.intersection(roles[role])
 
-migration = (ROOT / "services/database/migrations/versions/20260726_0010_v24_domain_automation.py").read_text()
+migration = (ROOT / "services/database/migrations/versions/20260726_0010_v24_domain_automation.py").read_text(encoding="utf-8")
 assert "enqueue_due_scheduled_jobs" in migration
 assert "SECURITY DEFINER" in migration
 assert "schedule_kind = 'interval'" in migration
-handlers = (ROOT / "services/worker/handlers.py").read_text()
+handlers = (ROOT / "services/worker/handlers.py").read_text(encoding="utf-8")
 for token in [
     "dispatch_notifications_handler", "publish_outbox_handler", "expire_external_access_handler",
     "apply_retention_handler", "generate_report_handler", "generate_audit_export_handler",
@@ -97,15 +97,15 @@ for token in [
     assert token in handlers
 assert "hard_delete_supported\": False" in handlers
 
-web = (ROOT / "apps/web/src/components/commercial-governance-panels.tsx").read_text()
+web = (ROOT / "apps/web/src/components/commercial-governance-panels.tsx").read_text(encoding="utf-8")
 assert "PlatformOperationsPanel" in web and "Run preview" in web
-assert 'version = "2.5.0"' in (ROOT / "pyproject.toml").read_text()
-assert tuple(map(int, json.loads((ROOT / "apps/web/package.json").read_text())["version"].split("."))) >= (2, 4, 0)
+assert 'version = "2.5.0"' in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+assert tuple(map(int, json.loads((ROOT / "apps/web/package.json").read_text(encoding="utf-8"))["version"].split("."))) >= (2, 4, 0)
 
 uml_files = list((ROOT / "docs/architecture/uml/v2.4").glob("*.puml"))
 assert len(uml_files) == 6
 for file in uml_files:
-    text = file.read_text()
+    text = file.read_text(encoding="utf-8")
     assert text.lstrip().startswith("@startuml") and text.rstrip().endswith("@enduml"), file
 
 print(

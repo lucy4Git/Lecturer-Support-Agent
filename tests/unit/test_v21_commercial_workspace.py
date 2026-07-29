@@ -40,7 +40,7 @@ def test_search_query_is_normalised_and_bounded() -> None:
 
 
 def test_role_catalogue_grants_personal_workspace_permissions_to_every_role() -> None:
-    catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text())
+    catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text(encoding="utf-8"))
     required = {"workspace.search", "saved_outputs.manage", "notifications.read"}
     assert required.issubset({item["code"] for item in catalogue["permissions"]})
     for role in catalogue["roles"]:
@@ -48,8 +48,8 @@ def test_role_catalogue_grants_personal_workspace_permissions_to_every_role() ->
 
 
 def test_frontend_exposes_commercial_views_without_separate_artifact_workspace() -> None:
-    shell = (ROOT / "apps/web/src/components/workspace-shell.tsx").read_text()
-    panels = (ROOT / "apps/web/src/components/workspace-resource-panels.tsx").read_text()
+    shell = (ROOT / "apps/web/src/components/workspace-shell.tsx").read_text(encoding="utf-8")
+    panels = (ROOT / "apps/web/src/components/workspace-resource-panels.tsx").read_text(encoding="utf-8")
     assert 'activeView' in shell
     for label in ["Search", "Library", "Files", "Saved outputs", "Notifications"]:
         assert label in shell or label in panels
@@ -58,8 +58,8 @@ def test_frontend_exposes_commercial_views_without_separate_artifact_workspace()
 
 
 def test_v21_migration_reapplies_rls_including_governance_schema() -> None:
-    migration = (ROOT / "services/database/migrations/versions/20260725_0007_v21_commercial_workspace.py").read_text()
-    rls = (ROOT / "services/database/policies/row_level_security.sql").read_text()
+    migration = (ROOT / "services/database/migrations/versions/20260725_0007_v21_commercial_workspace.py").read_text(encoding="utf-8")
+    rls = (ROOT / "services/database/policies/row_level_security.sql").read_text(encoding="utf-8")
     assert "SavedOutput.__table__" in migration
     assert "Notification.__table__" in migration
     assert "row_level_security.sql" in migration
@@ -72,7 +72,7 @@ def test_operational_services_emit_actionable_notifications() -> None:
         ROOT / "services/api/app/services/external_access.py",
         ROOT / "services/api/app/services/moderation_review.py",
     ]
-    combined = "\n".join(path.read_text() for path in files)
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in files)
     for event in [
         "module_assignment",
         "moderation_assignment",

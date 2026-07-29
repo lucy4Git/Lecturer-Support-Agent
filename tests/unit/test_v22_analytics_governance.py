@@ -144,7 +144,7 @@ def test_v22_navigation_is_role_specific_without_separate_applications() -> None
 
 
 def test_v22_permissions_keep_audit_and_settings_admin_only() -> None:
-    catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text())
+    catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text(encoding="utf-8"))
     roles = {item["code"]: set(item["permissions"]) for item in catalogue["roles"]}
     assert {"audit.centre.read", "audit.export", "settings.manage", "ai_governance.manage"}.issubset(roles["institution_administrator"])
     assert "audit.centre.read" not in roles["head_of_department"]
@@ -154,8 +154,8 @@ def test_v22_permissions_keep_audit_and_settings_admin_only() -> None:
 
 
 def test_v22_migration_and_rls_cover_analytics_schema() -> None:
-    migration = (ROOT / "services/database/migrations/versions/20260726_0008_v22_analytics_governance.py").read_text()
-    rls = (ROOT / "services/database/policies/row_level_security.sql").read_text()
+    migration = (ROOT / "services/database/migrations/versions/20260726_0008_v22_analytics_governance.py").read_text(encoding="utf-8")
+    rls = (ROOT / "services/database/policies/row_level_security.sql").read_text(encoding="utf-8")
     assert 'CREATE SCHEMA IF NOT EXISTS "analytics"' in migration
     assert "AIUsagePolicy.__table__" in migration
     assert "AnalyticsSnapshot.__table__" in migration
@@ -164,8 +164,8 @@ def test_v22_migration_and_rls_cover_analytics_schema() -> None:
 
 
 def test_v22_frontend_keeps_commercial_controls_in_unified_shell() -> None:
-    shell = (ROOT / "apps/web/src/components/workspace-shell.tsx").read_text()
-    panels = (ROOT / "apps/web/src/components/commercial-governance-panels.tsx").read_text()
+    shell = (ROOT / "apps/web/src/components/workspace-shell.tsx").read_text(encoding="utf-8")
+    panels = (ROOT / "apps/web/src/components/commercial-governance-panels.tsx").read_text(encoding="utf-8")
     for label in ["Insights", "Reports", "Audit centre", "Platform settings"]:
         assert label in shell or label in panels
     for token in ["InsightsPanel", "ReportsPanel", "AuditPanel", "SettingsPanel"]:

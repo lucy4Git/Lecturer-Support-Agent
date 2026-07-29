@@ -147,7 +147,8 @@ def test_prompt_contains_authorised_module_context_and_release_rule() -> None:
 
 
 def test_v17_api_routes_are_registered_before_dynamic_output_route() -> None:
-    paths = [getattr(route, "path", "") for route in app.routes]
+    # app.openapi() flattens all included routers correctly in FastAPI >= 0.95
+    paths = list(app.openapi()["paths"].keys())
     download = paths.index("/api/v1/teaching-outputs/exports/{export_id}/download")
     dynamic = paths.index("/api/v1/teaching-outputs/{output_id}")
     assert download < dynamic

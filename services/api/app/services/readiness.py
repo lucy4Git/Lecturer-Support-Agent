@@ -68,5 +68,5 @@ class ReadinessService:
             try:
                 results.append(await asyncio.wait_for(probe(), timeout=self.settings.readiness_probe_timeout_seconds))
             except Exception as exc:
-                results.append(ProbeResult(name, False, type(exc).__name__))
+                results.append(ProbeResult(name, False, f"{type(exc).__name__}: {exc!s}"[:200]))
         return results

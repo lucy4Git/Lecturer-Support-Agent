@@ -117,7 +117,7 @@ def test_production_configuration_fails_closed_without_controls() -> None:
 
 
 def test_v23_operations_routes_and_public_observability_endpoints_exist() -> None:
-    paths = {route.path for route in app.routes}
+    paths = set(app.openapi()["paths"].keys())
     assert {
         "/health",
         "/ready",

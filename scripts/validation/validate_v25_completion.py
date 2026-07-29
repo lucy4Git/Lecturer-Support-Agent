@@ -86,7 +86,7 @@ assert HANDLERS["operations.backup"].__name__ == "backup_handler"
 assert HANDLERS["operations.restore_drill"].__name__ == "restore_drill_handler"
 assert all(handler.__name__ != "owner_machine_handler_required" for handler in HANDLERS.values())
 
-paths = {route.path for route in app.routes}
+paths = set(app.openapi()["paths"].keys())
 for path in [
     "/api/v1/auth/password-reset/request", "/api/v1/auth/password-reset/confirm",
     "/api/v1/auth/sso/start", "/api/v1/auth/sso/callback", "/api/v1/auth/sso/exchange",
@@ -96,7 +96,7 @@ for path in [
 ]:
     assert path in paths, path
 
-catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text())
+catalogue = json.loads((ROOT / "services/database/seeds/role_permissions.json").read_text(encoding="utf-8"))
 permissions = {item["code"] for item in catalogue["permissions"]}
 required = {
     "integrations.read", "integrations.manage", "sso.manage",
@@ -111,22 +111,28 @@ assert "academic.assign_lecturer" not in roles["institution_administrator"]
 assert "academic.assign_lecturer" in roles["head_of_department"]
 assert "integrations.manage" not in roles["head_of_department"]
 
-schema = json.loads((ROOT / "data/schemas/dataset_source_catalogue.schema.json").read_text())
-source_catalogue = json.loads((ROOT / "data/catalogues/verified_oer_and_metadata_sources_v2.5.json").read_text())
+schema = json.loads((ROOT / "data/schemas/dataset_source_catalogue.schema.json").read_text(encoding="utf-8"))
+source_catalogue = json.loads((ROOT / "data/catalogues/verified_oer_and_metadata_sources_v2.5.json").read_text(encoding="utf-8"))
 Draft202012Validator.check_schema(schema)
 Draft202012Validator(schema).validate(source_catalogue)
 assert not any("full_text" in source for source in source_catalogue["sources"])
 assert any(source["source_key"] == "openalex_metadata" for source in source_catalogue["sources"])
 
-assert 'version = "2.5.0"' in (ROOT / "pyproject.toml").read_text()
-assert json.loads((ROOT / "apps/web/package.json").read_text())["version"] == "2.5.0"
-assert "BACKUP_STORAGE_ENCRYPTION_ATTESTED" in (ROOT / ".env.example").read_text()
-assert not (ROOT / ".env").exists()
+assert 'version = "2.5.0"' in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+assert json.loads((ROOT / "apps/web/package.json").read_text(encoding="utf-8"))["version"] == "2.5.0"
+assert "BACKUP_STORAGE_ENCRYPTION_ATTESTED" in (ROOT / ".env.example").read_text(encoding="utf-8")
+# .env must be git-ignored (may exist on owner machine, must never be tracked)
+import subprocess as _sp
+_git_check = _sp.run(
+    ["git", "ls-files", "--error-unmatch", ".env"],
+    cwd=ROOT, capture_output=True
+)
+assert _git_check.returncode != 0, ".env is tracked by git — must be git-ignored"
 
 uml_files = list((ROOT / "docs/architecture/uml/v2.5").glob("*.puml"))
 assert len(uml_files) == 7
 for file in uml_files:
-    text = file.read_text()
+    text = file.read_text(encoding="utf-8")
     assert text.lstrip().startswith("@startuml") and text.rstrip().endswith("@enduml"), file
 
 print(

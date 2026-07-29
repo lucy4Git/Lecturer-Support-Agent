@@ -89,7 +89,7 @@ def test_canonical_checksum_is_order_independent() -> None:
 
 
 def test_v19_routes_are_registered() -> None:
-    paths={getattr(route,'path','') for route in app.routes}
+    paths = set(app.openapi()["paths"].keys())
     assert {
         '/api/v1/department-operations/calendar/events',
         '/api/v1/department-operations/teaching-plans',

@@ -27,7 +27,9 @@ def main() -> None:
     for path in ROOT.rglob("*.py"):
         ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     for path in ROOT.rglob("*.json"):
-        json.loads(path.read_text(encoding="utf-8"))
+        if any(part in {"node_modules", ".next", "runtime"} for part in path.parts):
+            continue
+        json.loads(path.read_text(encoding="utf-8-sig"))
     ingestion = (ROOT / "services/database/models/ingestion.py").read_text(encoding="utf-8")
     for model in ["IngestionJob", "ExtractedContent", "DocumentChunk", "DocumentVersionTransition", "InstitutionalRetrievalTrace"]:
         assert f"class {model}" in ingestion

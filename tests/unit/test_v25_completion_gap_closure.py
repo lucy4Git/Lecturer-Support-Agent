@@ -34,7 +34,7 @@ def test_v25_tables_and_routes_are_registered() -> None:
     }
     assert len(Base.metadata.tables) == 124
     assert expected_tables <= set(Base.metadata.tables)
-    paths = {route.path for route in app.routes}
+    paths = set(app.openapi()["paths"].keys())
     assert {
         "/api/v1/auth/password-reset/request", "/api/v1/auth/password-reset/confirm",
         "/api/v1/auth/sso/start", "/api/v1/auth/sso/callback", "/api/v1/auth/sso/exchange",

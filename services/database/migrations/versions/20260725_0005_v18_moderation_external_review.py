@@ -44,29 +44,48 @@ def upgrade() -> None:
     for table in NEW_TABLES:
         table.create(bind=bind, checkfirst=True)
 
-    op.add_column("assigned_review_tasks", sa.Column("review_cycle_id", sa.Uuid(), nullable=True), schema="review")
-    op.add_column("assigned_review_tasks", sa.Column("review_pack_id", sa.Uuid(), nullable=True), schema="review")
-    op.add_column("assigned_review_tasks", sa.Column("reviewer_role_code", sa.String(80), nullable=True), schema="review")
-    op.add_column("assigned_review_tasks", sa.Column("review_kind", sa.String(60), nullable=True), schema="review")
-    op.add_column("assigned_review_tasks", sa.Column("round_number", sa.Integer(), nullable=False, server_default="1"), schema="review")
-    op.add_column("assigned_review_tasks", sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=True), schema="review")
-    op.add_column("assigned_review_tasks", sa.Column("started_at", sa.DateTime(timezone=True), nullable=True), schema="review")
-    op.add_column("assigned_review_tasks", sa.Column("submitted_at", sa.DateTime(timezone=True), nullable=True), schema="review")
-    op.add_column("assigned_review_tasks", sa.Column("metadata", sa.dialects.postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")), schema="review")
-    op.create_foreign_key(
-        "fk_assigned_review_tasks_review_cycle_id_review_cycles",
-        "assigned_review_tasks", "review_cycles", ["review_cycle_id"], ["id"],
-        source_schema="review", referent_schema="review",
-    )
-    op.create_foreign_key(
-        "fk_assigned_review_tasks_review_pack_id_review_packs",
-        "assigned_review_tasks", "review_packs", ["review_pack_id"], ["id"],
-        source_schema="review", referent_schema="review",
-    )
-    op.create_index(
-        "ix_review_task_cycle_round", "assigned_review_tasks",
-        ["tenant_id", "review_cycle_id", "round_number"], schema="review",
-    )
+    # Use IF NOT EXISTS so this migration is idempotent when the first migration's
+    # create_all() has already created these columns on a fresh database.
+    op.execute("""
+        ALTER TABLE review.assigned_review_tasks
+            ADD COLUMN IF NOT EXISTS review_cycle_id UUID,
+            ADD COLUMN IF NOT EXISTS review_pack_id UUID,
+            ADD COLUMN IF NOT EXISTS reviewer_role_code VARCHAR(80),
+            ADD COLUMN IF NOT EXISTS review_kind VARCHAR(60),
+            ADD COLUMN IF NOT EXISTS round_number INTEGER NOT NULL DEFAULT 1,
+            ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::jsonb
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'fk_assigned_review_tasks_review_cycle_id_review_cycles'
+            ) THEN
+                ALTER TABLE review.assigned_review_tasks
+                    ADD CONSTRAINT fk_assigned_review_tasks_review_cycle_id_review_cycles
+                    FOREIGN KEY (review_cycle_id) REFERENCES review.review_cycles(id);
+            END IF;
+        END $$
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'fk_assigned_review_tasks_review_pack_id_review_packs'
+            ) THEN
+                ALTER TABLE review.assigned_review_tasks
+                    ADD CONSTRAINT fk_assigned_review_tasks_review_pack_id_review_packs
+                    FOREIGN KEY (review_pack_id) REFERENCES review.review_packs(id);
+            END IF;
+        END $$
+    """)
+    op.execute("""
+        CREATE INDEX IF NOT EXISTS ix_review_task_cycle_round
+        ON review.assigned_review_tasks (tenant_id, review_cycle_id, round_number)
+    """)
 
     op.execute(
         "GRANT SELECT, INSERT, UPDATE, DELETE ON review.review_cycles, review.review_packs, "
