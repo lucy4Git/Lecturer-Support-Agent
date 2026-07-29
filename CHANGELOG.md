@@ -2,6 +2,45 @@
 
 
 
+## [2.5.0-rc2-phases-f-l] - 2026-07-29
+
+### Fixed (Phases F–L owner-machine validation)
+
+- **J-001 Public password-reset paths**: `RequestContextMiddleware` now lists
+  `/api/v1/auth/password-reset/`, `/api/v1/auth/email-verification/`, and
+  `/api/v1/auth/sso/` in `PUBLIC_PATH_PREFIXES`. Previously these endpoints
+  returned 401, blocking account recovery without authentication.
+- **F-009 security cleanup**: `ReadinessService._safe_detail()` is now
+  environment-aware. Production and staging return only a sanitised dependency
+  name and correlation ID. Development returns the exception type plus a
+  redacted message. Full exception detail is always written to the structured
+  server logger. Nine unit tests verify production sanitisation.
+- **L-007 FederatedIdentity assertion**: integration test corrected to assert
+  `sso_connection_id` column (was checking incorrect names `provider`/`connection_id`).
+
+### Added
+
+- `tests/integration/test_phases_f_through_l.py`: 93-test integration suite
+  covering Phases F through L (tenant isolation, storage, AI routing, citation
+  integrity, core workflows, background jobs, enterprise foundations).
+- `tests/unit/test_readiness_diagnostics.py`: 9 unit tests for production
+  readiness-probe sanitisation.
+- `pyproject.toml`: registered `slow` pytest marker.
+
+### Infrastructure Findings
+
+- **H-001 (owner-machine, not a code defect)**: qwen3:8b cannot be loaded on
+  the owner machine — llama-server OOM (3.3 GB CPU buffer allocation fails).
+  Embedding (nomic-embed-text-v2-moe) works correctly at 768 dimensions.
+  AI routing source code, structured output, provider fallback, token recording
+  and local-only enforcement are all present and tested at contract level.
+
+### Test Counts
+
+- Unit: 151 passed
+- Integration: 92 passed, 1 skipped (H-001 infrastructure)
+- Release validators: 13/13 PASS
+
 ## [2.5.0-rc1-owner-validation] - 2026-07-29
 
 ### Fixed (owner-machine validation)
