@@ -4,7 +4,7 @@
   --surface: rgba(255, 255, 255, 0.92);
   --surface-strong: #ffffff;
   --ink: #14213d;
-  --muted: #667085;
+  --muted: #535d6e;
   --line: #e4e9f2;
   --accent: #315efb;
   --accent-strong: #2448c7;
@@ -139,7 +139,7 @@ input:focus, select:focus { border-color: #84a1ff; box-shadow: 0 0 0 3px rgba(49
 .integrity-warning { margin-top: 10px; padding: 10px 12px; background: #fef3f2; border: 1px solid #fecdca; border-radius: 10px; color: #b42318; font-size: 12px; }
 .source-section { margin-top: 20px; }
 .source-toggle { display: flex; align-items: center; gap: 9px; border: 1px solid #dfe5f0; background: #fff; border-radius: 12px; padding: 9px 12px; color: #344054; font-size: 13px; font-weight: 750; }
-.source-toggle > span:last-child { color: #667085; font-size: 11px; font-weight: 650; margin-left: 4px; }
+.source-toggle > span:last-child { color: var(--muted); font-size: 11px; font-weight: 650; margin-left: 4px; }
 .source-stack { display: flex; width: 30px; height: 22px; align-items: center; }
 .source-stack i { width: 19px; height: 19px; border: 2px solid white; background: #7c8fb7; border-radius: 50%; margin-left: -8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .source-stack i:first-child { margin-left: 0; background: #315efb; }
@@ -150,11 +150,11 @@ input:focus, select:focus { border-color: #84a1ff; box-shadow: 0 0 0 3px rgba(49
 .source-item:hover { border-color: #9db2ff; background: #f5f7ff; }
 .source-number { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; background: #e9efff; color: #315efb; font-size: 11px; font-weight: 850; }
 .source-item strong { display: block; font-size: 13px; line-height: 1.35; }
-.source-item p { margin: 4px 0 2px; color: #667085; font-size: 11px; }
+.source-item p { margin: 4px 0 2px; color: var(--muted); font-size: 11px; }
 .source-item small { color: #8792a5; font-size: 10px; }
-.verification-pill { border-radius: 999px; padding: 4px 7px; background: #f2f4f7; color: #667085; font-size: 9px; font-weight: 800; }
+.verification-pill { border-radius: 999px; padding: 4px 7px; background: #f2f4f7; color: var(--muted); font-size: 9px; font-weight: 800; }
 .verification-pill.cited { background: #ecfdf3; color: #067647; }
-.assistant-thinking { display: flex; align-items: center; gap: 5px; min-height: 30px; color: #667085; font-size: 13px; }
+.assistant-thinking { display: flex; align-items: center; gap: 5px; min-height: 30px; color: var(--muted); font-size: 13px; }
 .assistant-thinking > span, .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: #8498c2; animation: thinkingPulse 1.2s infinite ease-in-out; }
 .assistant-thinking > span:nth-child(2), .typing-dot:nth-child(2) { animation-delay: .15s; }
 .assistant-thinking > span:nth-child(3), .typing-dot:nth-child(3) { animation-delay: .3s; }
@@ -256,7 +256,7 @@ input:focus, select:focus { border-color: #84a1ff; box-shadow: 0 0 0 3px rgba(49
 }
 .review-workflow-panel > p {
   margin: 0;
-  color: var(--muted-foreground, #667085);
+  color: var(--muted-foreground, var(--muted));
   line-height: 1.55;
 }
 .nested-review-form {

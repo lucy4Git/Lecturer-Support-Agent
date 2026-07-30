@@ -15,6 +15,9 @@ from services.database.models import (
     AccessScope,
     AIUsageDaily,
     AIUsagePolicy,
+    AssignedReviewTask,
+    CoordinatorAssignment,
+    ExternalAccessGrant,
     InsightAlert,
     Institution,
     LecturerAssignment,
@@ -28,6 +31,8 @@ from services.database.models import (
     OrganisationalUnitType,
     PasswordCredential,
     PlatformSetting,
+    Programme,
+    ProgrammeModule,
     ReportDefinition,
     Permission,
     Role,
@@ -215,12 +220,87 @@ def seed_tenant(session: Session, slug: str, name: str, country_code: str) -> No
             )
         )
 
+    # Second module for programme coordinator cross-module coverage
+    module2_id = stable_id(f"{slug}:module:net201")
+    offering2_id = stable_id(f"{slug}:offering:net201:2026-s1")
+    session.merge(
+        Module(
+            id=module2_id,
+            tenant_id=tenant_id,
+            owning_unit_id=department_id,
+            code="NET201",
+            name="Network Fundamentals for IoT",
+            credit_value=Decimal("12.00"),
+            level_framework="demonstration-level-framework",
+            level_value="Diploma Year 2",
+            default_contact_hours=48,
+            attributes={"synthetic_demo": True},
+        )
+    )
+    session.merge(
+        ModuleOffering(
+            id=offering2_id,
+            tenant_id=tenant_id,
+            module_id=module2_id,
+            academic_period_id=period_id,
+            org_unit_id=department_id,
+            offering_code="NET201-2026-S1",
+            delivery_mode="blended",
+        )
+    )
+    for sequence, (code, statement, cognitive) in enumerate((
+        ("LO1", "Describe OSI and TCP/IP network models relevant to IoT deployments.", "understand"),
+        ("LO2", "Configure basic IP addressing and subnetting for IoT device networks.", "apply"),
+    ), start=1):
+        session.merge(
+            LearningOutcome(
+                id=stable_id(f"{slug}:learning-outcome:net201-{code.lower()}"),
+                tenant_id=tenant_id,
+                module_id=module2_id,
+                outcome_code=code,
+                statement=statement,
+                cognitive_level=cognitive,
+                sequence_order=sequence,
+            )
+        )
+
+    # Programme containing both modules
+    programme_id = stable_id(f"{slug}:programme:diot")
+    session.merge(
+        Programme(
+            id=programme_id,
+            tenant_id=tenant_id,
+            owning_unit_id=department_id,
+            code="DIOT",
+            name="Diploma in Internet of Things",
+            delivery_mode="blended",
+            attributes={"synthetic_demo": True},
+        )
+    )
+    for pm_module_id, year, semester, core in (
+        (module_id, 1, "S1", True),
+        (module2_id, 2, "S1", True),
+    ):
+        session.merge(
+            ProgrammeModule(
+                tenant_id=tenant_id,
+                programme_id=programme_id,
+                module_id=pm_module_id,
+                study_year=year,
+                semester_or_term=semester,
+                is_core=core,
+            )
+        )
+
     users = {
         "admin": "institution_administrator",
         "hod": "head_of_department",
         "lecturer": "lecturer",
         "moderator": "internal_moderator",
         "external": "external_reviewer",
+        "modcoord": "module_coordinator",
+        "progcoord": "programme_coordinator",
+        "extmod": "external_moderator",
     }
     for handle, role_code in users.items():
         user_id = stable_id(f"{slug}:user:{handle}")
@@ -267,6 +347,10 @@ def seed_tenant(session: Session, slug: str, name: str, country_code: str) -> No
         # module offerings, modules, and programmes within that department.
         descendant_roles = {"head_of_department", "lecturer", "internal_moderator",
                             "module_coordinator", "programme_coordinator"}
+        # external_moderator is scoped to the IOT101 module like external_reviewer
+        if role_code == "external_moderator":
+            scope_type = "module"
+            scoped_resource = module_id
         session.merge(
             AccessScope(
                 id=scope_id,
@@ -286,9 +370,80 @@ def seed_tenant(session: Session, slug: str, name: str, country_code: str) -> No
                 access_scope_id=scope_id,
                 assigned_by_user_id=stable_id(f"{slug}:user:admin"),
                 valid_from=datetime(2026, 1, 1, tzinfo=timezone.utc),
-                reason="Synthetic v1.4 demonstration assignment.",
+                reason="Synthetic v2.5 demonstration assignment.",
             )
         )
+
+    # Coordinator assignments
+    session.merge(
+        CoordinatorAssignment(
+            id=stable_id(f"{slug}:coord-assign:modcoord:iot101"),
+            tenant_id=tenant_id,
+            user_id=stable_id(f"{slug}:user:modcoord"),
+            coordinator_type="module_coordinator",
+            target_type="module",
+            target_id=module_id,
+            assigned_by_user_id=stable_id(f"{slug}:user:hod"),
+            valid_from=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            status="active",
+        )
+    )
+    session.merge(
+        CoordinatorAssignment(
+            id=stable_id(f"{slug}:coord-assign:progcoord:diot"),
+            tenant_id=tenant_id,
+            user_id=stable_id(f"{slug}:user:progcoord"),
+            coordinator_type="programme_coordinator",
+            target_type="programme",
+            target_id=programme_id,
+            assigned_by_user_id=stable_id(f"{slug}:user:hod"),
+            valid_from=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            status="active",
+        )
+    )
+
+    # External moderator grant and review task
+    ext_mod_grant_id = stable_id(f"{slug}:ext-grant:extmod:iot101")
+    session.merge(
+        ExternalAccessGrant(
+            id=ext_mod_grant_id,
+            tenant_id=tenant_id,
+            external_user_id=stable_id(f"{slug}:user:extmod"),
+            granted_by_user_id=stable_id(f"{slug}:user:hod"),
+            purpose="Synthetic external moderation of IOT101 assessment for demonstration validation.",
+            status="active",
+            starts_at=datetime(2026, 7, 1, tzinfo=timezone.utc),
+            expires_at=datetime(2026, 9, 30, 23, 59, 59, tzinfo=timezone.utc),
+            allowed_actions=["read_review_pack", "record_finding", "submit_recommendation"],
+            resource_scope={
+                "module_id": str(module_id),
+                "module_code": "IOT101",
+                "synthetic_demo": True,
+            },
+        )
+    )
+    session.merge(
+        AssignedReviewTask(
+            id=stable_id(f"{slug}:review-task:extmod:iot101"),
+            tenant_id=tenant_id,
+            assigned_user_id=stable_id(f"{slug}:user:extmod"),
+            assigned_by_user_id=stable_id(f"{slug}:user:hod"),
+            external_access_grant_id=ext_mod_grant_id,
+            reviewer_role_code="external_moderator",
+            review_kind="external_moderation",
+            task_type="moderation_review",
+            target_type="module",
+            target_id=module_id,
+            status="assigned",
+            instructions=(
+                "Review the IOT101 assessment portfolio for alignment with Diploma Year 1 "
+                "learning outcomes, mark allocation, cognitive-level coverage, and rubric clarity. "
+                "Record all findings with evidence locators. Submit an immutable recommendation."
+            ),
+            permissions_snapshot={"synthetic_demo": True},
+            task_metadata={"synthetic_demo": True, "release": "2.5.0"},
+        )
+    )
 
     # v2.2 non-secret commercial configuration and governed AI defaults.
     system_user_id = stable_id(f"{slug}:user:admin")
@@ -428,6 +583,9 @@ def seed_tenant(session: Session, slug: str, name: str, country_code: str) -> No
         "lecturer": ("module_assignment", "You were assigned IOT101", "Prepare the teaching plan and upload the semester teaching pack from the unified work area.", "information", "action:teachingPlan"),
         "moderator": ("review_assignment", "Moderation task awaiting review", "A synthetic moderation scenario is available for owner-machine workflow validation.", "information", "action:reviewTasks"),
         "external": ("temporary_access", "External review access is limited", "Your demonstration access is restricted to the assigned review task and its evidence.", "warning", "action:reviewTasks"),
+        "modcoord": ("module_assignment", "You are coordinating IOT101", "Review module learning outcomes, teaching outputs, and readiness evidence for IOT101.", "information", "action:moduleReadiness"),
+        "progcoord": ("programme_assignment", "You are coordinating DIOT programme", "Review cross-module alignment and programme readiness for the Diploma in Internet of Things.", "information", "action:moduleReadiness"),
+        "extmod": ("temporary_access", "External moderation access active", "Your temporary access covers IOT101 assessment moderation only. Access expires 30 September 2026.", "warning", "action:reviewTasks"),
     }
     for handle, (kind, title, body, severity, action_path) in demo_notifications.items():
         session.merge(

@@ -174,6 +174,7 @@ class DocumentVersioningService:
             media_type=stored.media_type,
         )
         self.session.add(storage_object)
+        await self.session.flush()
         version = DocumentVersion(
             id=uuid4(),
             tenant_id=self.context.tenant_id,
@@ -191,6 +192,7 @@ class DocumentVersioningService:
             provenance=provenance or {"source": "user_upload"},
         )
         self.session.add(version)
+        await self.session.flush()
         document.current_version_id = version.id
         document.title = title
         document.document_type = document_type

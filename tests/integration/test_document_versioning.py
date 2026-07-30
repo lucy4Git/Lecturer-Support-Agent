@@ -22,6 +22,7 @@ async def test_new_content_creates_append_only_versions() -> None:
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     tenant_id = UUID("88c37d6a-b76f-5ee4-9c02-75e4fdcac2aa")
     user_id = UUID("dbaa170b-37d5-530d-89fe-31ded307b3d9")
+    module_id = UUID("863d1777-6d2f-5bc1-9271-a3545676e9a0")
     context = RequestContext(tenant_id, user_id, "lecturer", "test-correlation")
     try:
         async with factory() as session, session.begin():
@@ -30,11 +31,12 @@ async def test_new_content_creates_append_only_versions() -> None:
             first = await service.create_version(
                 title="Test lesson", document_type="lesson_plan", filename="lesson.txt",
                 content=b"first", media_type="text/plain", change_reason="initial",
+                module_id=module_id,
             )
             second = await service.create_version(
                 title="Test lesson", document_type="lesson_plan", filename="lesson.txt",
                 content=b"second", media_type="text/plain", change_reason="revision",
-                document_id=first.document.id,
+                document_id=first.document.id, module_id=module_id,
             )
             assert first.version.version_number == 1
             assert second.version.version_number == 2

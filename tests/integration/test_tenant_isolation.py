@@ -34,7 +34,7 @@ def test_rls_blocks_cross_tenant_reads_and_writes() -> None:
         with connection.cursor() as cursor:
             cursor.execute("SELECT set_config('app.tenant_id', %s, true)", (str(north),))
             cursor.execute("SELECT count(*) FROM iam.memberships")
-            assert cursor.fetchone()[0] == 5
+            assert cursor.fetchone()[0] == 8
             cursor.execute("SELECT count(*) FROM iam.memberships WHERE tenant_id = %s", (south,))
             assert cursor.fetchone()[0] == 0
 

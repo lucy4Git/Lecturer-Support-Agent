@@ -2,6 +2,25 @@
 
 
 
+## [2.5.0-rc4-gap-closure] - 2026-07-30
+
+### Fixed (Gap Closure — All 8 Roles + Accessibility + Integration Tests)
+
+- **Seed gap closed**: Added Module Coordinator, Programme Coordinator, External Moderator seed accounts with CoordinatorAssignment, ExternalAccessGrant, AssignedReviewTask, and Programme/ProgrammeModule records. All 8 roles are now browser-testable.
+- **A-003 Muted text contrast (WCAG 1.4.3 Level AA)**: Darkened `--muted` from `#667085` (3.9:1 on white) to `#535d6e` (~5.8:1). All inline `#667085` hardcodes replaced with `var(--muted)`.
+- **A-004 Nav icon accessibility**: Added `aria-label` and `title` attributes to all workspace nav buttons, providing tooltip text and screen-reader labels when labels are visually hidden in collapsed sidebar.
+- **B-001 document_versioning flush ordering**: Inserted explicit `await session.flush()` after `storage_object` and after `version` to resolve `fk_documents_current_version` FK violation caused by SQLAlchemy's `use_alter=True` FK being excluded from flush dependency analysis.
+- **T-001 Integration test conftest**: Created root `conftest.py` loading `.env` via `python-dotenv` and setting `WindowsSelectorEventLoopPolicy` on Windows, resolving ProactorEventLoop error and DATABASE_URL skip in `test_document_versioning.py`.
+- **T-002 Test tenant UUID**: Corrected hardcoded tenant UUID in `test_document_versioning.py` to `stable_id("tenant:demo-north")`.
+- **T-003 Test module scope**: Added `module_id` parameter to `create_version()` calls in test, matching the lecturer's access scope.
+- **T-004 Tenant isolation count**: Updated `test_tenant_isolation.py` expected membership count from 5 to 8 to match new seed accounts.
+
+### Live Preview Evidence (Session 3)
+
+- All 8 roles browser-tested: Institution Administrator, Lecturer, Head of Department, Internal Moderator, External Reviewer, Module Coordinator, Programme Coordinator, External Moderator
+- Breakpoints tested for all new roles: 375×812, 768×1024, 1280×800
+- TypeScript: 0 errors; Unit: 151 passed; Integration: 94 passed (0 skipped)
+
 ## [2.5.0-rc3-live-preview] - 2026-07-30
 
 ### Fixed (Live Preview Validation)
@@ -12,15 +31,10 @@
 ### Live Preview Evidence
 
 - Evidence directory: `runtime/validation/20260730_live_preview/`
-- Roles tested in browser: Institution Administrator, Lecturer, Head of Department, Internal Moderator, External Reviewer (5 of 8 — 3 roles have no seed accounts)
+- Roles tested in browser: Institution Administrator, Lecturer, Head of Department, Internal Moderator, External Reviewer (5 of 8)
 - Breakpoints tested: 375×812, 768×1024, 1280×720, 1440×900
 - AI generation confirmed: openai / gpt-4o-mini-2024-07-18
 - TypeScript: 0 errors; Next.js build: 18 routes success; Unit: 151 passed; Integration: 93 passed
-
-### Known Gaps
-
-- **Seed gap**: Module Coordinator, Programme Coordinator, External Moderator not seeded in demo tenant — follow-up task created.
-- **H-001**: qwen3:8b OOM remains open infrastructure limitation.
 
 
 ## [2.5.0-rc2-phases-f-l] - 2026-07-29

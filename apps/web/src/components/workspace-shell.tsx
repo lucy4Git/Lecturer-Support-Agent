@@ -485,8 +485,8 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
             ...(activeRole === "institution_administrator" ? [{ key: "audit" as const, icon: "◇", label: "Audit centre" }] : []),
             ...(activeRole === "institution_administrator" ? [{ key: "settings" as const, icon: "⚙", label: "Platform settings" }, { key: "operations" as const, icon: "◈", label: "Platform operations" }] : []),
           ].map((item) => (
-            <button key={item.key} type="button" className={activeView === item.key ? "nav-item active" : "nav-item"} onClick={() => changeView(item.key)}>
-              <span aria-hidden="true">{item.icon}</span><span>{item.label}</span>
+            <button key={item.key} type="button" aria-label={item.label} title={item.label} className={activeView === item.key ? "nav-item active" : "nav-item"} onClick={() => changeView(item.key)}>
+              <span aria-hidden="true">{item.icon}</span><span aria-hidden="true">{item.label}</span>
               {item.shortcut && <kbd>{item.shortcut}</kbd>}
               {!!item.badge && <b className="nav-badge">{item.badge > 99 ? "99+" : item.badge}</b>}
             </button>
