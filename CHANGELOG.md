@@ -2,6 +2,27 @@
 
 
 
+## [2.5.0-rc3-live-preview] - 2026-07-30
+
+### Fixed (Live Preview Validation)
+
+- **A-001 Skip navigation link (WCAG 2.4.1 Level A)**: Added `.skip-nav` link as first element in `<body>` targeting `#main-content`. Keyboard users can now bypass sidebar navigation. Added `id="main-content"` to `<main>` in workspace shell and sign-in page.
+- **A-002 Focus ring for interactive elements (WCAG 2.4.7 Level AA)**: Added global `:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }` to `globals.css`. Previously only `input` and `select` had focus styles.
+
+### Live Preview Evidence
+
+- Evidence directory: `runtime/validation/20260730_live_preview/`
+- Roles tested in browser: Institution Administrator, Lecturer, Head of Department, Internal Moderator, External Reviewer (5 of 8 — 3 roles have no seed accounts)
+- Breakpoints tested: 375×812, 768×1024, 1280×720, 1440×900
+- AI generation confirmed: openai / gpt-4o-mini-2024-07-18
+- TypeScript: 0 errors; Next.js build: 18 routes success; Unit: 151 passed; Integration: 93 passed
+
+### Known Gaps
+
+- **Seed gap**: Module Coordinator, Programme Coordinator, External Moderator not seeded in demo tenant — follow-up task created.
+- **H-001**: qwen3:8b OOM remains open infrastructure limitation.
+
+
 ## [2.5.0-rc2-phases-f-l] - 2026-07-29
 
 ### Fixed (Phases F–L owner-machine validation)

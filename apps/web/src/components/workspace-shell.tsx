@@ -443,7 +443,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   };
 
   return (
-    <main className="workspace-grid">
+    <main id="main-content" className="workspace-grid">
       <button
         className="mobile-sidebar-toggle"
         type="button"

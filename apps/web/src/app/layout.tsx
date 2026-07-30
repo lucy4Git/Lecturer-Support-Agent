@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body><PWARegister />{children}</body>
+      <body><a href="#main-content" className="skip-nav">Skip to main content</a><PWARegister />{children}</body>
     </html>
   );
 }

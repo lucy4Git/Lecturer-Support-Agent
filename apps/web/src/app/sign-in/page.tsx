@@ -70,7 +70,7 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="auth-page">
+    <main id="main-content" className="auth-page">
       <section className="auth-card">
         <div className="brand-mark">LS</div>
         <span className="eyebrow">Lecturer Support Agent</span>
