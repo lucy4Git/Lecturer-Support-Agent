@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
+import string
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -47,6 +49,58 @@ def stable_id(value: str) -> UUID:
     return uuid5(NAMESPACE_URL, f"lecturer-support-agent:{value}")
 
 
+_CRED_FILE = Path("runtime") / "seed_credentials.txt"
+
+
+def _generate_password(length: int = 24) -> str:
+    """Generate a random password that satisfies the platform password policy.
+
+    Guarantees: ≥1 uppercase, ≥1 lowercase, ≥1 digit, ≥1 special character.
+    """
+    specials = "!@#$%^&*"
+    pool = string.ascii_letters + string.digits + specials
+    while True:
+        pw = "".join(secrets.choice(pool) for _ in range(length))
+        if (
+            any(c.isupper() for c in pw)
+            and any(c.islower() for c in pw)
+            and any(c.isdigit() for c in pw)
+            and any(c in specials for c in pw)
+        ):
+            return pw
+
+
+def _resolve_demo_password() -> str:
+    """Return the demonstration password, generating a fresh one when needed.
+
+    Priority:
+    1. SEED_DEMO_PASSWORD environment variable (owner-controlled, never committed).
+    2. Cached value in runtime/seed_credentials.txt (git-ignored).
+    3. Freshly generated random password written to that file.
+
+    The plaintext password is NEVER embedded in source code.
+    """
+    env_pw = os.getenv("SEED_DEMO_PASSWORD", "").strip()
+    if env_pw:
+        return env_pw
+    if _CRED_FILE.exists():
+        lines = _CRED_FILE.read_text(encoding="utf-8").splitlines()
+        for line in lines:
+            if line.startswith("DEMO_PASSWORD="):
+                return line.split("=", 1)[1].strip()
+    pw = _generate_password()
+    _CRED_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _CRED_FILE.write_text(
+        "# Synthetic demonstration credentials — NOT for production use.\n"
+        "# This file is git-ignored. Re-run the seed to regenerate.\n"
+        f"DEMO_PASSWORD={pw}\n"
+        "# Accounts: admin/hod/lecturer/moderator/external/modcoord/progcoord/extmod\n"
+        "# Email pattern: <handle>.<slug>@example.com  (e.g. lecturer.demo-north@example.com)\n",
+        encoding="utf-8",
+    )
+    return pw
+
+
 def load_role_catalogue() -> dict:
     path = Path(__file__).with_name("role_permissions.json")
     return json.loads(path.read_text(encoding="utf-8"))
@@ -90,7 +144,7 @@ def seed_catalogue(session: Session) -> tuple[dict[str, Role], dict[str, Permiss
     return roles, permissions
 
 
-def seed_tenant(session: Session, slug: str, name: str, country_code: str) -> None:
+def seed_tenant(session: Session, slug: str, name: str, country_code: str, *, demo_password: str) -> None:
     tenant_id = stable_id(f"tenant:{slug}")
     institution = Institution(
         id=tenant_id,
@@ -321,7 +375,7 @@ def seed_tenant(session: Session, slug: str, name: str, country_code: str) -> No
             PasswordCredential(
                 id=stable_id(f"{slug}:credential:{handle}"),
                 user_id=user_id,
-                password_hash=PasswordManager().hash("DemoOnly!Pass2026"),
+                password_hash=PasswordManager().hash(demo_password),
                 password_changed_at=datetime.now(timezone.utc),
                 must_change_password=True,
             )
@@ -608,12 +662,14 @@ def main() -> None:
         "MIGRATION_DATABASE_URL",
         "postgresql+psycopg://lsa_owner:change-owner-password@localhost:5432/lecturer_support_agent",
     )
+    demo_password = _resolve_demo_password()
     engine = create_engine(url)
     with Session(engine) as session, session.begin():
         seed_catalogue(session)
-        seed_tenant(session, "demo-north", "North Demonstration University", "ZA")
-        seed_tenant(session, "demo-south", "South Demonstration Institute", "ZA")
+        seed_tenant(session, "demo-north", "North Demonstration University", "ZA", demo_password=demo_password)
+        seed_tenant(session, "demo-south", "South Demonstration Institute", "ZA", demo_password=demo_password)
     print("Seeded role catalogue and two isolated synthetic demonstration tenants.")
+    print(f"Credentials written to: {_CRED_FILE.resolve()}")
 
 
 if __name__ == "__main__":
