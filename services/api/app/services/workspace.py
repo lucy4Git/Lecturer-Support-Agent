@@ -312,8 +312,7 @@ class WorkspaceService:
             existing.folder = data.folder
             existing.tags = data.tags
             existing.is_pinned = data.is_pinned
-            await self.session.commit()
-            await self.session.refresh(existing)
+            await self.session.flush()
             return existing
         saved = SavedOutput(
             tenant_id=self.context.tenant_id,
@@ -327,8 +326,7 @@ class WorkspaceService:
             is_pinned=data.is_pinned,
         )
         self.session.add(saved)
-        await self.session.commit()
-        await self.session.refresh(saved)
+        await self.session.flush()
         return saved
 
     async def saved_outputs(self, limit: int) -> list[dict]:
@@ -377,7 +375,7 @@ class WorkspaceService:
         if saved is None:
             raise HTTPException(status_code=404, detail="Saved output not found.")
         await self.session.delete(saved)
-        await self.session.commit()
+        await self.session.flush()
 
     async def notifications(self, *, unread_only: bool, limit: int) -> list[Notification]:
         statement = select(Notification).where(
@@ -401,8 +399,7 @@ class WorkspaceService:
         if notification is None:
             raise HTTPException(status_code=404, detail="Notification not found.")
         notification.read_at = datetime.now(timezone.utc) if read else None
-        await self.session.commit()
-        await self.session.refresh(notification)
+        await self.session.flush()
         return notification
 
     async def mark_all_notifications_read(self) -> int:
@@ -410,7 +407,7 @@ class WorkspaceService:
         now = datetime.now(timezone.utc)
         for item in items:
             item.read_at = now
-        await self.session.commit()
+        await self.session.flush()
         return len(items)
 
     async def summary(self) -> dict:
