@@ -3,7 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 const evidenceRoot = process.env.VALIDATION_EVIDENCE_DIR;
-const password = process.env.E2E_DEMO_PASSWORD ?? "DemoOnly!Pass2026";
+const password = process.env.E2E_DEMO_PASSWORD;
+if (!password) {
+  test.skip(true, "E2E_DEMO_PASSWORD not set — read from runtime/seed_credentials.txt and export before running E2E tests.");
+}
 
 async function screenshot(page: Page, name: string) {
   if (!evidenceRoot) return;

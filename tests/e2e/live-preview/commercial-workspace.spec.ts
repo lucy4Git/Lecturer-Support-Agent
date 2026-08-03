@@ -1,6 +1,9 @@
 import { expect, Page, test } from "@playwright/test";
 
-const password = process.env.E2E_DEMO_PASSWORD ?? "DemoOnly!Pass2026";
+const password = process.env.E2E_DEMO_PASSWORD;
+if (!password) {
+  test.skip(true, "E2E_DEMO_PASSWORD not set — read from runtime/seed_credentials.txt and export before running E2E tests.");
+}
 
 async function signIn(page: Page, handle = "lecturer", role = "lecturer") {
   await page.goto("/sign-in");
