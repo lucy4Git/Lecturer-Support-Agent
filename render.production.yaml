@@ -1,0 +1,190 @@
+# Lecturer Support Agent — production Blueprint template.
+# Populate the shared hosted-configuration environment group in Render.
+# Never copy staging secrets, seed credentials, sessions, Redis state, or unapproved data.
+envVarGroups:
+- name: lsa-production-generated-secrets
+  envVars:
+  - key: JWT_SECRET_KEY
+    generateValue: true
+  - key: MFA_SECRET_ENCRYPTION_KEY
+    generateValue: true
+  - key: MESSAGE_CONTENT_ENCRYPTION_KEY
+    generateValue: true
+  - key: METRICS_TOKEN
+    generateValue: true
+- name: lsa-production-hosted-configuration
+  envVars: []
+services:
+- type: keyvalue
+  name: lsa-production-redis
+  plan: standard
+  region: frankfurt
+  ipAllowList: []
+  maxmemoryPolicy: noeviction
+  persistenceMode: 'off'
+- type: pserv
+  name: lsa-production-clamav
+  runtime: docker
+  plan: standard
+  region: frankfurt
+  dockerfilePath: infrastructure/docker/clamav.Dockerfile
+  dockerContext: .
+  autoDeployTrigger: checksPass
+- type: web
+  name: lsa-production-api
+  runtime: docker
+  plan: standard
+  region: frankfurt
+  dockerfilePath: infrastructure/docker/api.Dockerfile
+  dockerContext: .
+  autoDeployTrigger: checksPass
+  healthCheckPath: /health
+  maxShutdownDelaySeconds: 90
+  maintenanceMode:
+    enabled: false
+  preDeployCommand: python scripts/deployment/predeploy.py
+  envVars:
+  - fromGroup: lsa-production-generated-secrets
+  - fromGroup: lsa-production-hosted-configuration
+  - key: ENVIRONMENT
+    value: production
+  - key: DEPLOYMENT_VERSION
+    value: 2.6.0
+  - key: ENABLE_DEMO_SEED
+    value: 'false'
+  - key: DEBUG
+    value: 'false'
+  - key: DEVELOPMENT_HEADER_AUTH
+    value: 'false'
+  - key: EXPOSE_DEVELOPMENT_INVITATION_TOKENS
+    value: 'false'
+  - key: AI_ENABLE_DEVELOPMENT_MOCK
+    value: 'false'
+  - key: AI_DEFAULT_PROVIDER
+    value: auto
+  - key: AI_FALLBACK_ORDER
+    value: google_gemini,anthropic,openai,deepseek
+  - key: EMBEDDING_PROVIDER
+    value: google_gemini
+  - key: GOOGLE_GEMINI_EMBEDDING_MODEL
+    value: gemini-embedding-2
+  - key: EMBEDDING_DIMENSION
+    value: '768'
+  - key: READINESS_REQUIRE_OLLAMA
+    value: 'false'
+  - key: RATE_LIMIT_ENABLED
+    value: 'true'
+  - key: RATE_LIMIT_FAIL_CLOSED
+    value: 'true'
+  - key: MALWARE_SCAN_ENABLED
+    value: 'true'
+  - key: MALWARE_SCAN_FAIL_CLOSED
+    value: 'true'
+  - key: BACKUP_STORAGE_ENCRYPTION_ATTESTED
+    value: 'true'
+  - key: OBJECT_STORAGE_SECURE
+    value: 'true'
+  - key: OBJECT_STORAGE_VERSIONING_MODE
+    value: managed
+  - key: EMAIL_DELIVERY_ENABLED
+    value: 'true'
+  - key: SMTP_USE_TLS
+    value: 'true'
+  - key: JSON_LOGS
+    value: 'true'
+  - key: REDIS_URL
+    fromService:
+      type: keyvalue
+      name: lsa-production-redis
+      property: connectionString
+  - key: CLAMAV_HOST
+    fromService:
+      type: pserv
+      name: lsa-production-clamav
+      property: host
+  - key: CLAMAV_PORT
+    fromService:
+      type: pserv
+      name: lsa-production-clamav
+      property: port
+  - key: QDRANT_COLLECTION
+    value: lecturer_support_documents_production
+  - key: SMTP_PORT
+    value: '465'
+- type: worker
+  name: lsa-production-worker
+  runtime: docker
+  plan: standard
+  region: frankfurt
+  dockerfilePath: infrastructure/docker/worker.Dockerfile
+  dockerContext: .
+  autoDeployTrigger: checksPass
+  maxShutdownDelaySeconds: 180
+  envVars:
+  - fromGroup: lsa-production-generated-secrets
+  - fromGroup: lsa-production-hosted-configuration
+  - key: ENVIRONMENT
+    value: production
+  - key: DEPLOYMENT_VERSION
+    value: 2.6.0
+  - key: ENABLE_DEMO_SEED
+    value: 'false'
+  - key: DEBUG
+    value: 'false'
+  - key: DEVELOPMENT_HEADER_AUTH
+    value: 'false'
+  - key: EXPOSE_DEVELOPMENT_INVITATION_TOKENS
+    value: 'false'
+  - key: AI_ENABLE_DEVELOPMENT_MOCK
+    value: 'false'
+  - key: AI_DEFAULT_PROVIDER
+    value: auto
+  - key: AI_FALLBACK_ORDER
+    value: google_gemini,anthropic,openai,deepseek
+  - key: EMBEDDING_PROVIDER
+    value: google_gemini
+  - key: GOOGLE_GEMINI_EMBEDDING_MODEL
+    value: gemini-embedding-2
+  - key: EMBEDDING_DIMENSION
+    value: '768'
+  - key: READINESS_REQUIRE_OLLAMA
+    value: 'false'
+  - key: RATE_LIMIT_ENABLED
+    value: 'true'
+  - key: RATE_LIMIT_FAIL_CLOSED
+    value: 'true'
+  - key: MALWARE_SCAN_ENABLED
+    value: 'true'
+  - key: MALWARE_SCAN_FAIL_CLOSED
+    value: 'true'
+  - key: BACKUP_STORAGE_ENCRYPTION_ATTESTED
+    value: 'true'
+  - key: OBJECT_STORAGE_SECURE
+    value: 'true'
+  - key: OBJECT_STORAGE_VERSIONING_MODE
+    value: managed
+  - key: EMAIL_DELIVERY_ENABLED
+    value: 'true'
+  - key: SMTP_USE_TLS
+    value: 'true'
+  - key: JSON_LOGS
+    value: 'true'
+  - key: REDIS_URL
+    fromService:
+      type: keyvalue
+      name: lsa-production-redis
+      property: connectionString
+  - key: CLAMAV_HOST
+    fromService:
+      type: pserv
+      name: lsa-production-clamav
+      property: host
+  - key: CLAMAV_PORT
+    fromService:
+      type: pserv
+      name: lsa-production-clamav
+      property: port
+  - key: QDRANT_COLLECTION
+    value: lecturer_support_documents_production
+  - key: SMTP_PORT
+    value: '465'

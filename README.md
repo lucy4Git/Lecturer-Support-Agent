@@ -1,6 +1,14 @@
-# Lecturer Support Agent
+# Lecturer Support Agent v2.6.0
 
 A standalone, commercial-ready, AI-native platform for lecturers and authorised teaching-and-learning stakeholders across any higher education institution, academic discipline, organisational structure, and modern device.
+
+## Deployment-ready release
+
+The repository now includes deployment descriptors and controlled migration tooling for Vercel, Render, Neon, AWS S3, Qdrant Cloud, Render Key Value, ClamAV and SMTP. Start with [`PUSH_AND_DEPLOY.md`](PUSH_AND_DEPLOY.md), then follow [`DEPLOYMENT_QUICKSTART.md`](DEPLOYMENT_QUICKSTART.md). Release details are in [`RELEASE_NOTES_v2.6.0.md`](RELEASE_NOTES_v2.6.0.md).
+
+The production identity model is institutional SSO first, secure invitation acceptance second, and administrator-reviewed access requests third. Public users cannot assign themselves a privileged role.
+
+Deployment parity is mandatory: staging and production must use the same validated application version, Alembic chain, role/permission catalogue and approved manifests. PostgreSQL, object storage and Qdrant are checksum-verified; Redis starts clean.
 
 ## Product vision
 
@@ -23,14 +31,16 @@ Generic assistance is the default. Institutional context is used only when relev
 
 ## Primary roles
 
-- Lecturer
-- Module or Programme Coordinator
-- Head of Department
 - Institution Administrator
+- Lecturer
+- Module Coordinator
+- Programme Coordinator
+- Head of Department
 - Internal Moderator
 - External Moderator
 - External Reviewer
-- Platform Operator, limited to technical SaaS operations
+
+Technical service accounts and platform operators are operational identities, not user-selectable academic roles.
 
 ## Repository map
 
@@ -70,12 +80,17 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 Model binaries are not bundled in the ZIP or Git repository. See `docs/operations/OLLAMA_WINDOWS_SETUP.md` and `docs/ai/MULTI_PROVIDER_MODEL_STRATEGY.md`.
 
-## Current implementation checkpoint: v2.5
+## Current implementation checkpoint: v2.6.0
 
-v2.5 closes the implementable commercial gaps before live institutional deployment: password recovery, email verification, TOTP MFA, OIDC SSO, Canvas/Moodle/OneRoster integration contracts, staged synchronisation, legal holds and governed deletion, connected tenant-scoped backup/restore-drill handlers, real-data rights gates, feedback/evaluation capture, PWA foundations, and commercial/legal/pilot packages.
+v2.6.0 is the deployment-completion release. It includes Vercel and Render descriptors, Neon migration/runtime-role bootstrap, hosted Gemini/OpenAI embeddings, S3 object-version controls, controlled access requests, approved-data migration tooling, local-to-deployed parity verification, CI/CodeQL gates, and safe release packaging.
 
-No real provider credentials, institutional secrets, copyrighted full-text corpus, or production evidence is bundled. Runtime-dependent behaviour remains owner-machine and institutional acceptance validation pending.
+The owner-machine baseline completed all eight role previews, 151 unit tests, and 94 integration tests before the deployment-completion changes. The clean v2.6 package passes 153 unit tests in the packaging environment, with five Windows-only event-loop tests correctly skipped on Linux, and passes every cumulative release validator. Vendor deployment still requires the owner to create protected service resources and enter secrets in Vercel, Render, Neon, S3, Qdrant and SMTP dashboards.
 
-```powershell
-.\scripts\validation\Validate-V2.5.ps1 -RunTests
+Start with:
+
+```text
+PUSH_AND_DEPLOY.md
+DEPLOYMENT_QUICKSTART.md
 ```
+
+No real provider credentials, `.env` file, local session state, model binaries, unapproved institutional data, or unredacted runtime evidence is included.

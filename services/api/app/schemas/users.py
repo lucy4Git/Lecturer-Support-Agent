@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from .common import ORMModel
 
@@ -128,3 +128,24 @@ class MembershipPositionResponse(ORMModel):
     valid_from: datetime
     valid_until: datetime | None
     created_at: datetime
+
+class AccessRequestSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    tenant_id: UUID
+    email: str
+    given_name: str
+    family_name: str
+    position_title: str | None
+    requested_role_code: str | None
+    request_message: str | None
+    status: str
+    created_at: datetime
+    reviewed_at: datetime | None
+    decision_reason: str | None
+
+
+class AccessRequestDecision(BaseModel):
+    status: str = Field(pattern="^(approved|rejected|needs_information)$")
+    decision_reason: str | None = Field(default=None, max_length=2000)

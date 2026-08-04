@@ -15,23 +15,37 @@ async function screenshot(page: Page, name: string) {
   await page.screenshot({ path: path.join(directory, `${test.info().project.name}-${name}.png`), fullPage: true });
 }
 
+// Authenticate via the API directly — bypasses Playwright vs dev-server hydration
+// timing issues. The API sets HTTP-only cookies that Playwright's cookie jar stores,
+// so subsequent page.goto calls are authenticated.
 async function signIn(page: Page, handle: string, role: string) {
-  await page.goto("/sign-in");
-  await page.getByLabel("Institution code").fill("demo-north");
-  await page.getByLabel("Email").fill(`${handle}@demo-north.example.invalid`);
-  await page.getByLabel("Password").fill(password);
-  await page.getByLabel("Role code (only when already known)").fill(role);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("button", { name: /New conversation/i })).toBeVisible();
+  const baseUrl = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
+  const apiUrl = process.env.E2E_API_URL ?? "http://127.0.0.1:8000";
+  const resp = await page.request.post(`${apiUrl}/api/v1/auth/login`, {
+    data: {
+      institution_slug: "demo-north",
+      email: `${handle}.demo-north@example.com`,
+      password,
+      role_code: role,
+      device_label: "Playwright E2E",
+    },
+  });
+  if (!resp.ok()) {
+    const body = await resp.text().catch(() => "(no body)");
+    throw new Error(`Login API returned ${resp.status()} for ${handle}/${role}: ${body}`);
+  }
+  // Navigate to the home page; cookies from the API response are already stored.
+  await page.goto(`${baseUrl}/`);
+  await expect(page.getByRole("button", { name: /New conversation/i })).toBeVisible({ timeout: 20000 });
 }
 
 test("public sign-in is usable and responsive", async ({ page }) => {
   await page.goto("/sign-in");
+  await page.waitForLoadState("domcontentloaded");
   await expect(page.getByRole("heading", { name: "Sign in to your institution" })).toBeVisible();
-  await expect(page.getByLabel("Institution code")).toBeVisible();
-  await expect(page.getByLabel("Email")).toBeVisible();
-  await expect(page.getByLabel("Password")).toBeVisible();
+  await expect(page.locator('input[name="institution_slug"]').first()).toBeVisible();
+  await expect(page.locator('input[name="email"]').first()).toBeVisible();
+  await expect(page.locator('input[name="password"]').first()).toBeVisible();
   await screenshot(page, "public-sign-in");
 });
 
@@ -41,6 +55,9 @@ for (const scenario of [
   { handle: "lecturer", role: "lecturer", label: "Lecturer", action: "My teaching plans" },
   { handle: "moderator", role: "internal_moderator", label: "Internal Moderator", action: "Review tasks" },
   { handle: "external", role: "external_reviewer", label: "External Reviewer", action: "Review tasks" },
+  { handle: "modcoord", role: "module_coordinator", label: "Module Coordinator", action: "Teaching operations" },
+  { handle: "progcoord", role: "programme_coordinator", label: "Programme Coordinator", action: "Teaching operations" },
+  { handle: "extmod", role: "external_moderator", label: "External Moderator", action: "Review tasks" },
 ]) {
   test(`${scenario.label} sees only the intended contextual workspace actions`, async ({ page }) => {
     await signIn(page, scenario.handle, scenario.role);

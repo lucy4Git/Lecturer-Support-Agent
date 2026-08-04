@@ -1,0 +1,190 @@
+# Lecturer Support Agent — staging Blueprint.
+# Populate the shared hosted-configuration environment group in Render;
+# secret values are never stored in this repository.
+envVarGroups:
+- name: lsa-staging-generated-secrets
+  envVars:
+  - key: JWT_SECRET_KEY
+    generateValue: true
+  - key: MFA_SECRET_ENCRYPTION_KEY
+    generateValue: true
+  - key: MESSAGE_CONTENT_ENCRYPTION_KEY
+    generateValue: true
+  - key: METRICS_TOKEN
+    generateValue: true
+- name: lsa-staging-hosted-configuration
+  envVars: []
+previews:
+  generation: manual
+services:
+- type: keyvalue
+  name: lsa-staging-redis
+  plan: starter
+  region: frankfurt
+  ipAllowList: []
+  maxmemoryPolicy: noeviction
+  persistenceMode: 'off'
+- type: pserv
+  name: lsa-staging-clamav
+  runtime: docker
+  plan: starter
+  region: frankfurt
+  dockerfilePath: infrastructure/docker/clamav.Dockerfile
+  dockerContext: .
+  autoDeployTrigger: checksPass
+- type: web
+  name: lsa-staging-api
+  runtime: docker
+  plan: starter
+  region: frankfurt
+  dockerfilePath: infrastructure/docker/api.Dockerfile
+  dockerContext: .
+  autoDeployTrigger: checksPass
+  healthCheckPath: /health
+  maxShutdownDelaySeconds: 60
+  preDeployCommand: python scripts/deployment/predeploy.py
+  envVars:
+  - fromGroup: lsa-staging-generated-secrets
+  - fromGroup: lsa-staging-hosted-configuration
+  - key: ENVIRONMENT
+    value: staging
+  - key: DEPLOYMENT_VERSION
+    value: 2.6.0
+  - key: ENABLE_DEMO_SEED
+    value: 'false'
+  - key: DEBUG
+    value: 'false'
+  - key: DEVELOPMENT_HEADER_AUTH
+    value: 'false'
+  - key: EXPOSE_DEVELOPMENT_INVITATION_TOKENS
+    value: 'false'
+  - key: AI_ENABLE_DEVELOPMENT_MOCK
+    value: 'false'
+  - key: AI_DEFAULT_PROVIDER
+    value: auto
+  - key: AI_FALLBACK_ORDER
+    value: google_gemini,anthropic,openai,deepseek
+  - key: EMBEDDING_PROVIDER
+    value: google_gemini
+  - key: GOOGLE_GEMINI_EMBEDDING_MODEL
+    value: gemini-embedding-2
+  - key: EMBEDDING_DIMENSION
+    value: '768'
+  - key: READINESS_REQUIRE_OLLAMA
+    value: 'false'
+  - key: RATE_LIMIT_ENABLED
+    value: 'true'
+  - key: RATE_LIMIT_FAIL_CLOSED
+    value: 'true'
+  - key: MALWARE_SCAN_ENABLED
+    value: 'true'
+  - key: MALWARE_SCAN_FAIL_CLOSED
+    value: 'true'
+  - key: BACKUP_STORAGE_ENCRYPTION_ATTESTED
+    value: 'true'
+  - key: OBJECT_STORAGE_SECURE
+    value: 'true'
+  - key: OBJECT_STORAGE_VERSIONING_MODE
+    value: managed
+  - key: EMAIL_DELIVERY_ENABLED
+    value: 'true'
+  - key: SMTP_USE_TLS
+    value: 'true'
+  - key: JSON_LOGS
+    value: 'true'
+  - key: REDIS_URL
+    fromService:
+      type: keyvalue
+      name: lsa-staging-redis
+      property: connectionString
+  - key: CLAMAV_HOST
+    fromService:
+      type: pserv
+      name: lsa-staging-clamav
+      property: host
+  - key: CLAMAV_PORT
+    fromService:
+      type: pserv
+      name: lsa-staging-clamav
+      property: port
+  - key: QDRANT_COLLECTION
+    value: lecturer_support_documents_staging
+  - key: SMTP_PORT
+    value: '465'
+- type: worker
+  name: lsa-staging-worker
+  runtime: docker
+  plan: starter
+  region: frankfurt
+  dockerfilePath: infrastructure/docker/worker.Dockerfile
+  dockerContext: .
+  autoDeployTrigger: checksPass
+  maxShutdownDelaySeconds: 120
+  envVars:
+  - fromGroup: lsa-staging-generated-secrets
+  - fromGroup: lsa-staging-hosted-configuration
+  - key: ENVIRONMENT
+    value: staging
+  - key: DEPLOYMENT_VERSION
+    value: 2.6.0
+  - key: ENABLE_DEMO_SEED
+    value: 'false'
+  - key: DEBUG
+    value: 'false'
+  - key: DEVELOPMENT_HEADER_AUTH
+    value: 'false'
+  - key: EXPOSE_DEVELOPMENT_INVITATION_TOKENS
+    value: 'false'
+  - key: AI_ENABLE_DEVELOPMENT_MOCK
+    value: 'false'
+  - key: AI_DEFAULT_PROVIDER
+    value: auto
+  - key: AI_FALLBACK_ORDER
+    value: google_gemini,anthropic,openai,deepseek
+  - key: EMBEDDING_PROVIDER
+    value: google_gemini
+  - key: GOOGLE_GEMINI_EMBEDDING_MODEL
+    value: gemini-embedding-2
+  - key: EMBEDDING_DIMENSION
+    value: '768'
+  - key: READINESS_REQUIRE_OLLAMA
+    value: 'false'
+  - key: RATE_LIMIT_ENABLED
+    value: 'true'
+  - key: RATE_LIMIT_FAIL_CLOSED
+    value: 'true'
+  - key: MALWARE_SCAN_ENABLED
+    value: 'true'
+  - key: MALWARE_SCAN_FAIL_CLOSED
+    value: 'true'
+  - key: BACKUP_STORAGE_ENCRYPTION_ATTESTED
+    value: 'true'
+  - key: OBJECT_STORAGE_SECURE
+    value: 'true'
+  - key: OBJECT_STORAGE_VERSIONING_MODE
+    value: managed
+  - key: EMAIL_DELIVERY_ENABLED
+    value: 'true'
+  - key: SMTP_USE_TLS
+    value: 'true'
+  - key: JSON_LOGS
+    value: 'true'
+  - key: REDIS_URL
+    fromService:
+      type: keyvalue
+      name: lsa-staging-redis
+      property: connectionString
+  - key: CLAMAV_HOST
+    fromService:
+      type: pserv
+      name: lsa-staging-clamav
+      property: host
+  - key: CLAMAV_PORT
+    fromService:
+      type: pserv
+      name: lsa-staging-clamav
+      property: port
+  - key: QDRANT_COLLECTION
+    value: lecturer_support_documents_staging
+  - key: SMTP_PORT
+    value: '465'

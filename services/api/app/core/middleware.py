@@ -22,6 +22,7 @@ PUBLIC_PATH_PREFIXES = (
     "/api/v1/auth/refresh",
     "/api/v1/auth/logout",
     "/api/v1/auth/invitations/accept",
+    "/api/v1/auth/access-requests",
     "/api/v1/auth/password-reset/",
     "/api/v1/auth/email-verification/",
     "/api/v1/auth/sso/",

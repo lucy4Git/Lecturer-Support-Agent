@@ -275,3 +275,34 @@ class AuthenticationSession(Base, UUIDPrimaryKeyMixin, TenantOwnedMixin, Timesta
     device_label: Mapped[str | None] = mapped_column(String(180))
     user_agent_hash: Mapped[str | None] = mapped_column(String(64))
     source_ip_hash: Mapped[str | None] = mapped_column(String(64))
+
+class InstitutionalAccessRequest(Base, UUIDPrimaryKeyMixin, TenantOwnedMixin, TimestampMixin):
+    """A non-privileged request for institutional access.
+
+    Submission never creates a user, membership, or role assignment. An
+    Institution Administrator must review the request and use the existing
+    invitation workflow to grant an approved role and scope.
+    """
+
+    __tablename__ = "institutional_access_requests"
+    __table_args__ = (
+        Index("ix_access_request_status", "tenant_id", "status", "created_at"),
+        Index("ix_access_request_email", "tenant_id", "email_normalized"),
+        {"schema": "iam"},
+    )
+
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    email_normalized: Mapped[str] = mapped_column(String(320), nullable=False)
+    given_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    family_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    position_title: Mapped[str | None] = mapped_column(String(180))
+    requested_role_code: Mapped[str | None] = mapped_column(String(80))
+    request_message: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)
+    reviewed_by_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("iam.users.id"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_reason: Mapped[str | None] = mapped_column(Text)
+    invitation_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("iam.user_invitations.id", ondelete="SET NULL")
+    )
+    metadata_payload: Mapped[dict] = mapped_column("metadata", JSONB, default=dict, nullable=False)

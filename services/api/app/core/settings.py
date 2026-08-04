@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     object_storage_secret_key: SecretStr = SecretStr("change-me")
     object_storage_bucket: str = "lecturer-support-agent"
     object_storage_secure: bool = False
+    object_storage_versioning_mode: str = "managed"
 
     jwt_issuer: str = "lecturer-support-agent"
     jwt_audience: str = "lecturer-support-agent-api"
@@ -101,6 +102,8 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_default_model: str = "qwen3:8b"
     ollama_embedding_model: str = "nomic-embed-text-v2-moe"
+    google_gemini_embedding_model: str = "gemini-embedding-2"
+    openai_embedding_model: str = "text-embedding-3-small"
 
     source_discovery_enabled: bool = True
     crossref_base_url: str = "https://api.crossref.org"
@@ -204,6 +207,9 @@ class Settings(BaseSettings):
     backup_storage_encryption_attested: bool = False
     restore_drill_executable: str | None = None
 
+    enable_demo_seed: bool = False
+    deployment_version: str = "2.6.0"
+
     maximum_upload_bytes: int = Field(default=1_073_741_824, ge=1)
     allowed_upload_media_types: list[str] = Field(
         default_factory=lambda: [
@@ -226,6 +232,8 @@ class Settings(BaseSettings):
         if self.environment.lower() == "production":
             if self.development_header_auth or self.expose_development_invitation_tokens:
                 raise ValueError("Development authentication features must be disabled in production.")
+            if self.enable_demo_seed:
+                raise ValueError("Production must keep ENABLE_DEMO_SEED disabled.")
             if self.ai_enable_development_mock:
                 raise ValueError("The development AI mock must be disabled in production.")
             if not self.rate_limit_enabled or not self.rate_limit_fail_closed:
@@ -238,6 +246,14 @@ class Settings(BaseSettings):
                 raise ValueError("Production backup storage requires an explicit encryption-at-rest attestation.")
             if not self.mfa_secret_encryption_key:
                 raise ValueError("Production MFA requires a dedicated MFA_SECRET_ENCRYPTION_KEY.")
+            if self.embedding_provider == "ollama" and self.readiness_require_ollama is False:
+                raise ValueError("Production Ollama embeddings require an explicitly reachable private Ollama service.")
+            if self.embedding_provider in {"gemini", "google_gemini"} and not self.google_gemini_api_key:
+                raise ValueError("Production Gemini embeddings require GOOGLE_GEMINI_API_KEY.")
+            if self.embedding_provider == "openai" and not self.openai_api_key:
+                raise ValueError("Production OpenAI embeddings require OPENAI_API_KEY.")
+            if self.object_storage_versioning_mode not in {"managed", "provider_enforced"}:
+                raise ValueError("OBJECT_STORAGE_VERSIONING_MODE must be managed or provider_enforced.")
             if not self.message_content_encryption_key:
                 raise ValueError("Production queued messages require MESSAGE_CONTENT_ENCRYPTION_KEY.")
             database_values = {

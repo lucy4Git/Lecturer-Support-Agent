@@ -45,5 +45,37 @@ data/validated-public/
 data/institution-private/
 data/evaluation-holdout/
 
+# Large downloaded datasets — must not be committed to Git
+# Acquire during controlled staging/production data onboarding
+data/downloads/
+data/raw/
+data/processed/
+data/embeddings/
+
+# Completed institutional user import files — contain real PII
+data/templates/*.actual.csv
+data/templates/*_completed.csv
+data/templates/*_real.csv
+
+# Qdrant snapshots (may contain unapproved data)
+*.qdrant
+qdrant_snapshots/
+
+# Database dumps
+*.dump
+*.sql.gz
+pg_dump/
+
+# Object storage exports
+minio-export/
+object-storage-export/
+
 # TypeScript incremental build state
 *.tsbuildinfo
+
+# Playwright test output
+apps/web/test-results/
+test-results/
+
+# Windows device file artifact (NUL is a reserved device name on Windows)
+NUL

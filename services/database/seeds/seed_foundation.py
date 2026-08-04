@@ -658,6 +658,18 @@ def seed_tenant(session: Session, slug: str, name: str, country_code: str, *, de
 
 
 def main() -> None:
+    environment = os.getenv("ENVIRONMENT", "development").strip().lower()
+    enabled = os.getenv("ENABLE_DEMO_SEED", "false").strip().lower() in {"1", "true", "yes", "on"}
+    if environment == "production":
+        raise SystemExit("Synthetic demonstration seeding is prohibited in production.")
+    if not enabled:
+        raise SystemExit(
+            "Demo seeding is disabled. Set ENABLE_DEMO_SEED=true only for local or staging validation."
+        )
+    if environment == "staging" and not os.getenv("SEED_DEMO_PASSWORD", "").strip():
+        raise SystemExit(
+            "Staging demonstration seeding requires SEED_DEMO_PASSWORD from the deployment secret manager."
+        )
     url = os.getenv(
         "MIGRATION_DATABASE_URL",
         "postgresql+psycopg://lsa_owner:change-owner-password@localhost:5432/lecturer_support_agent",

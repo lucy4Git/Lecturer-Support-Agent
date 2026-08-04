@@ -1,0 +1,24 @@
+@startuml
+actor Owner
+participant "Approved local source" as Local
+participant "Export preflight" as Preflight
+participant "Neon staging" as Neon
+participant "Destination S3" as S3
+participant "Qdrant staging" as Qdrant
+participant "Parity verifier" as Verify
+
+Owner -> Preflight : approve source + allowlist tenant IDs
+Preflight -> Local : verify environment and tenant inventory
+Preflight --> Owner : safe manifest / GO or fail closed
+Owner -> Local : export approved relational data
+Owner -> Neon : apply migrations and import in transaction
+Owner -> S3 : stream approved object versions
+S3 --> Owner : destination version map + checksums
+Owner -> Neon : apply verified storage-version mapping
+Owner -> Qdrant : copy/rebuild approved tenant vectors
+Owner -> Verify : compare local/deployed manifests
+Verify -> Neon : revision, tables, roles, permissions, counts
+Verify -> S3 : logical keys, sizes, SHA-256
+Verify -> Qdrant : vector config, payload fingerprint, count
+Verify --> Owner : parity PASS / fail closed
+@enduml

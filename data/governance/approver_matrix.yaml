@@ -1,0 +1,147 @@
+# Lecturer Support Agent — Approver Matrix
+# Version: 2.5.1
+# Created: 2026-08-03
+#
+# RULE: Approvers must be assigned by authorised institutional personnel.
+# For local and staging, use SYNTHETIC approvers only.
+# Never populate production roles from this file directly.
+
+approver_matrix_version: "2.5.1"
+
+approval_domains:
+
+  tenant_onboarding:
+    description: "Approval to onboard a new institution to the platform"
+    required_roles: ["platform_operator", "it_security"]
+    minimum_approvers: 1
+    local_synthetic_approver: "synthetic-platform-operator@demo-north.example.com"
+    staging_synthetic_approver: "synthetic-platform-operator@demo-north.example.com"
+    production_approver: "REPLACE_WITH_AUTHORISED_PLATFORM_OPERATOR"
+
+  institution_administrator_approval:
+    description: "Approval to grant Institution Administrator role"
+    required_roles: ["platform_operator", "institution_legal_authority"]
+    minimum_approvers: 1
+    local_synthetic_approver: "synthetic-admin.demo-north@example.com"
+    staging_synthetic_approver: "synthetic-admin.demo-north@example.com"
+    production_approver: "REPLACE_WITH_AUTHORISED_INSTITUTIONAL_AUTHORITY"
+
+  lecturer_access_approval:
+    description: "Approval for Lecturer role assignment"
+    required_roles: ["head_of_department", "institution_administrator"]
+    minimum_approvers: 1
+    local_synthetic_approver: "hod.demo-north@example.com"
+    staging_synthetic_approver: "hod.demo-north@example.com"
+    production_approver: "REPLACE_WITH_HOD_OR_ADMIN"
+
+  coordinator_assignment_approval:
+    description: "Approval for Module or Programme Coordinator assignment"
+    required_roles: ["head_of_department"]
+    minimum_approvers: 1
+    local_synthetic_approver: "hod.demo-north@example.com"
+    staging_synthetic_approver: "hod.demo-north@example.com"
+    production_approver: "REPLACE_WITH_HOD"
+
+  hod_assignment_approval:
+    description: "Approval for Head of Department assignment"
+    required_roles: ["institution_administrator"]
+    minimum_approvers: 1
+    local_synthetic_approver: "admin.demo-north@example.com"
+    staging_synthetic_approver: "admin.demo-north@example.com"
+    production_approver: "REPLACE_WITH_ADMIN"
+
+  internal_moderator_approval:
+    description: "Approval for Internal Moderator assignment"
+    required_roles: ["head_of_department"]
+    minimum_approvers: 1
+    local_synthetic_approver: "hod.demo-north@example.com"
+    staging_synthetic_approver: "hod.demo-north@example.com"
+    production_approver: "REPLACE_WITH_HOD"
+
+  external_moderator_approval:
+    description: "Approval for External Moderator grant (time-limited)"
+    required_roles: ["head_of_department", "institution_administrator"]
+    minimum_approvers: 1
+    local_synthetic_approver: "admin.demo-north@example.com"
+    staging_synthetic_approver: "admin.demo-north@example.com"
+    production_approver: "REPLACE_WITH_ADMIN_OR_HOD"
+
+  external_reviewer_approval:
+    description: "Approval for External Reviewer grant (time-limited)"
+    required_roles: ["head_of_department"]
+    minimum_approvers: 1
+    local_synthetic_approver: "hod.demo-north@example.com"
+    staging_synthetic_approver: "hod.demo-north@example.com"
+    production_approver: "REPLACE_WITH_HOD"
+
+  dataset_rights_approval:
+    description: "Approval that a dataset's licence permits intended use"
+    required_roles: ["data_governance_lead", "legal"]
+    minimum_approvers: 1
+    local_synthetic_approver: "synthetic-data-governance@demo-north.example.com"
+    staging_synthetic_approver: "synthetic-data-governance@demo-north.example.com"
+    production_approver: "REPLACE_WITH_DATA_GOVERNANCE_LEAD"
+
+  dataset_staging_approval:
+    description: "Approval to promote a dataset to staging environment"
+    required_roles: ["data_governance_lead"]
+    minimum_approvers: 1
+    local_synthetic_approver: "N/A"
+    staging_synthetic_approver: "synthetic-data-governance@demo-north.example.com"
+    production_approver: "REPLACE_WITH_DATA_GOVERNANCE_LEAD"
+
+  dataset_production_approval:
+    description: "Approval to promote a dataset to production environment"
+    required_roles: ["data_governance_lead", "legal", "institution_administrator"]
+    minimum_approvers: 2
+    local_synthetic_approver: "N/A"
+    staging_synthetic_approver: "N/A"
+    production_approver: "REPLACE_WITH_AUTHORISED_PERSONS — minimum 2 required"
+
+  real_data_import_approval:
+    description: "Approval to import real institutional user data"
+    required_roles: ["institution_administrator", "privacy_officer"]
+    minimum_approvers: 2
+    local_synthetic_approver: "N/A — no real data on local"
+    staging_synthetic_approver: "N/A — no real data on staging"
+    production_approver: "REPLACE_WITH_ADMIN_AND_PRIVACY_OFFICER"
+
+  legal_approval:
+    description: "Legal sign-off on contracts, terms, data processing agreements"
+    required_roles: ["legal"]
+    minimum_approvers: 1
+    local_synthetic_approver: "N/A"
+    staging_synthetic_approver: "N/A"
+    production_approver: "REPLACE_WITH_LEGAL_OFFICER"
+
+  privacy_approval:
+    description: "Privacy/DPO sign-off on personal data processing"
+    required_roles: ["privacy_officer", "dpo"]
+    minimum_approvers: 1
+    local_synthetic_approver: "N/A"
+    staging_synthetic_approver: "N/A"
+    production_approver: "REPLACE_WITH_DPO"
+
+  ethics_approval:
+    description: "Research ethics approval where applicable"
+    required_roles: ["ethics_board"]
+    minimum_approvers: 1
+    local_synthetic_approver: "N/A"
+    staging_synthetic_approver: "N/A"
+    production_approver: "REPLACE_WITH_ETHICS_BOARD_REFERENCE"
+
+  it_security_approval:
+    description: "IT security sign-off for infrastructure and deployment"
+    required_roles: ["it_security"]
+    minimum_approvers: 1
+    local_synthetic_approver: "N/A"
+    staging_synthetic_approver: "N/A"
+    production_approver: "REPLACE_WITH_IT_SECURITY_OFFICER"
+
+  production_release_approval:
+    description: "Final production release gate — all checks must pass"
+    required_roles: ["platform_operator", "it_security", "data_governance_lead"]
+    minimum_approvers: 2
+    local_synthetic_approver: "N/A"
+    staging_synthetic_approver: "N/A"
+    production_approver: "REPLACE_WITH_MINIMUM_2_AUTHORISED_PERSONS"

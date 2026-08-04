@@ -1,6 +1,6 @@
 {
   "name": "@lecturer-support-agent/web",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -20,6 +20,6 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "typescript": "^5.8.0",
-    "@playwright/test": "^1.55.0"
+    "@playwright/test": "1.62.1"
   }
 }

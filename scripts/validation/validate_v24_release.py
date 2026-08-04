@@ -99,7 +99,7 @@ assert "hard_delete_supported\": False" in handlers
 
 web = (ROOT / "apps/web/src/components/commercial-governance-panels.tsx").read_text(encoding="utf-8")
 assert "PlatformOperationsPanel" in web and "Run preview" in web
-assert 'version = "2.5.0"' in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+assert 'version = "2.6.0"' in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 assert tuple(map(int, json.loads((ROOT / "apps/web/package.json").read_text(encoding="utf-8"))["version"].split("."))) >= (2, 4, 0)
 
 uml_files = list((ROOT / "docs/architecture/uml/v2.4").glob("*.puml"))

@@ -46,9 +46,9 @@ settings = get_settings()
 configure_logging(level=settings.log_level, json_logs=settings.json_logs)
 app = FastAPI(
     title=settings.app_name,
-    version="2.5.0",
+    version="2.6.0",
     description=(
-        "Commercial Lecturer Support Agent with enterprise integration, account-security gap closure, "
+        "Deployment-ready Lecturer Support Agent with enterprise integration, controlled onboarding, "
         "governed real-data preparation, commercial release controls, and one unified AI workspace."
     ),
 )

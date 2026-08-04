@@ -70,3 +70,18 @@ class InvitationAcceptedResponse(BaseModel):
     membership_id: UUID
     assigned_role_codes: list[str]
     message: str
+
+class InstitutionalAccessRequestCreate(BaseModel):
+    institution_slug: str = Field(min_length=2, max_length=80)
+    email: EmailStr
+    given_name: str = Field(min_length=1, max_length=120)
+    family_name: str = Field(min_length=1, max_length=120)
+    position_title: str | None = Field(default=None, max_length=180)
+    requested_role_code: str | None = Field(default=None, max_length=80)
+    request_message: str | None = Field(default=None, max_length=4000)
+
+
+class InstitutionalAccessRequestResponse(BaseModel):
+    request_id: UUID
+    status: str
+    message: str

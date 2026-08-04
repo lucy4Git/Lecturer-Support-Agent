@@ -1,0 +1,136 @@
+{
+  "corpus_id": "DS-011",
+  "corpus_version": "2.5.1",
+  "description": "Synthetic citation integrity evaluation corpus — hallucination detection and DOI validation challenges",
+  "created": "2026-08-03",
+  "licence": "MIT",
+  "retrieval_use": false,
+  "evaluation_use_only": true,
+  "cases": [
+    {
+      "case_id": "CIT-001",
+      "category": "valid_doi",
+      "description": "Valid DOI for a known open-access education paper",
+      "input": "10.3390/educsci10080213",
+      "expected": "VALID",
+      "expected_title_fragment": "education",
+      "source": "Crossref API (synthetic reference — do not resolve in tests without network)"
+    },
+    {
+      "case_id": "CIT-002",
+      "category": "invalid_doi_format",
+      "description": "DOI with invalid prefix",
+      "input": "99.XXXX/not-a-real-doi",
+      "expected": "INVALID_FORMAT",
+      "expected_error": "DOI prefix not registered"
+    },
+    {
+      "case_id": "CIT-003",
+      "category": "fabricated_reference",
+      "description": "Completely fabricated author and journal",
+      "input": {
+        "author": "Smith, J. & Jones, K.",
+        "title": "Universal Lesson Plan Framework for All Disciplines",
+        "journal": "Journal of Everything Educational",
+        "year": 2019,
+        "doi": "10.0000/fabricated.2019.001"
+      },
+      "expected": "FABRICATED",
+      "hallucination_type": "invented_source"
+    },
+    {
+      "case_id": "CIT-004",
+      "category": "wrong_author",
+      "description": "Real DOI but wrong author attributed",
+      "input": {
+        "doi": "10.3390/educsci10080213",
+        "claimed_author": "Einstein, A.",
+        "claimed_year": 1920
+      },
+      "expected": "INCORRECT_ATTRIBUTION",
+      "hallucination_type": "wrong_author"
+    },
+    {
+      "case_id": "CIT-005",
+      "category": "broken_url",
+      "description": "URL that returns 404",
+      "input": "https://example.com/nonexistent-policy-document-2019.pdf",
+      "expected": "BROKEN_URL",
+      "hallucination_type": "inaccessible_source"
+    },
+    {
+      "case_id": "CIT-006",
+      "category": "unsupported_policy_claim",
+      "description": "AI claims a specific institutional policy without a verifiable source",
+      "input": "According to the National Qualifications Framework Circular 7 of 2021, all assessments must include a minimum of three learning outcomes.",
+      "expected": "UNSUPPORTED_CLAIM",
+      "hallucination_type": "fabricated_policy_reference",
+      "notes": "No such circular exists in this form — claim cannot be verified"
+    },
+    {
+      "case_id": "CIT-007",
+      "category": "missing_source",
+      "description": "AI response contains a factual claim with no citation",
+      "input": "Active learning improves student retention by 43% compared to passive listening.",
+      "expected": "MISSING_SOURCE",
+      "hallucination_type": "unsourced_statistic"
+    },
+    {
+      "case_id": "CIT-008",
+      "category": "incorrect_date",
+      "description": "Reference to a paper with wrong publication year",
+      "input": {
+        "title": "Taxonomy of Educational Objectives",
+        "author": "Bloom, B.S.",
+        "claimed_year": 2005
+      },
+      "expected": "INCORRECT_DATE",
+      "correct_year": 1956,
+      "hallucination_type": "wrong_date"
+    },
+    {
+      "case_id": "CIT-009",
+      "category": "valid_open_access",
+      "description": "Verifiable CC-licensed open access reference",
+      "input": {
+        "title": "Guidelines on the Development of Open Educational Resources Policies",
+        "author": "UNESCO and Commonwealth of Learning",
+        "year": 2019,
+        "url": "https://unesdoc.unesco.org/ark:/48223/pf0000371129",
+        "licence": "CC BY-SA 3.0 IGO"
+      },
+      "expected": "VALID",
+      "notes": "Verifiable via UNESDOC"
+    },
+    {
+      "case_id": "CIT-010",
+      "category": "citation_completeness",
+      "description": "Citation missing required fields for APA format",
+      "input": {
+        "author": "Brown, T.",
+        "title": "Assessment Design in Higher Education"
+      },
+      "expected": "INCOMPLETE",
+      "missing_fields": ["year", "journal_or_publisher", "doi_or_url"],
+      "hallucination_type": "incomplete_citation"
+    }
+  ],
+  "evaluation_dimensions": [
+    "learning_outcome_alignment",
+    "lesson_plan_completeness",
+    "rubric_quality",
+    "assessment_validity",
+    "marking_guide_consistency",
+    "discipline_suitability",
+    "qualification_level_suitability",
+    "citation_accuracy",
+    "hallucination_detection",
+    "provider_routing_accuracy",
+    "rbac_compliance",
+    "tenant_isolation",
+    "response_quality",
+    "latency",
+    "accessibility",
+    "mobile_usability"
+  ]
+}

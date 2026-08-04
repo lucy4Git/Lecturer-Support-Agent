@@ -1,0 +1,2 @@
+assignment_id,institutional_identifier,institution_code,module_code,module_name,role_in_module,academic_year,semester,approved_by,approval_reference,notes
+REPLACE_ASSIGN_ID,REPLACE_STAFF_ID,REPLACE_CODE,REPLACE_MODULE_CODE,REPLACE_MODULE_NAME,"module_coordinator|lecturer|internal_moderator|external_moderator",REPLACE_YEAR,REPLACE_SEM,REPLACE_APPROVER,REPLACE_REF,

@@ -99,6 +99,8 @@ export default function SignInPage() {
           {message && <div className={availableRoles.length ? "notice" : "error-notice"}>{message}</div>}
           <button className="submit-button" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
           <Link href="/forgot-password" className="link-button">Forgot password?</Link>
+          <Link href="/accept-invitation" className="link-button">Have an invitation? Accept it</Link>
+          <Link href="/request-access" className="link-button">Need access? Request institutional access</Link>
         </form>
         <div className="auth-divider"><span>or use institution SSO</span></div>
         <form onSubmit={startSSO}>

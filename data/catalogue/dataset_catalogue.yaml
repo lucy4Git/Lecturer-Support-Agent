@@ -1,0 +1,584 @@
+# Lecturer Support Agent — Dataset Catalogue
+# Version: 2.5.1
+# Last updated: 2026-08-03
+# Maintained by: Data Governance lead
+# All entries must have a governance_state before ingest.
+
+catalogue_version: "2.5.1"
+created: "2026-08-03"
+description: >
+  Machine-readable catalogue of all datasets considered, acquired, or
+  quarantined for the Lecturer Support Agent. Each entry carries provenance,
+  licence, rights status, approval state, and ingestion metadata.
+
+datasets:
+
+  # ── GENERAL PEDAGOGY ──────────────────────────────────────────────────────
+
+  - id: DS-001
+    title: "OER Commons Full Repository Index"
+    description: >
+      Aggregated index of openly licensed learning materials across all
+      disciplines and qualification levels, including lesson plans, syllabi,
+      activities and rubrics. Accessed via OER Commons API.
+    source_organisation: "OER Commons / ISKME"
+    official_source_url: "https://www.oercommons.org"
+    download_url_or_api: "https://www.oercommons.org/api/v1/"
+    licence: "Various (CC BY, CC BY-SA, CC BY-NC-SA per item)"
+    licence_url: "https://creativecommons.org/licenses/"
+    copyright_owner: "Individual authors; platform by ISKME"
+    permitted_uses:
+      - reuse_with_attribution
+      - remix_under_same_licence
+      - educational_use
+    prohibited_uses:
+      - commercial_redistribution_without_permission
+      - removal_of_attribution
+    access_date: "2026-08-03"
+    publication_date: "Ongoing"
+    academic_discipline: ["All disciplines"]
+    qualification_level: ["All levels"]
+    content_type: ["lesson_plan", "syllabus", "activity", "assessment", "textbook"]
+    language: "en"
+    geographic_scope: "Global"
+    file_format: "JSON (API)"
+    file_size: "Variable"
+    sha256_checksum: "PENDING"
+    version: "Live API"
+    provenance: "Direct API access; per-item licence metadata returned in payload"
+    personal_information: false
+    confidentiality_classification: "PUBLIC"
+    retrieval_use: true
+    evaluation_use: false
+    model_training_permission: "Per item — must verify CC licence"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "PENDING"
+    production_approval_status: "PENDING"
+    approval_authority: "Data Governance Lead"
+    approval_date: "2026-08-03"
+    retention_period: "Indefinite while API accessible"
+    withdrawal_instructions: >
+      Remove item-level metadata from PostgreSQL and re-index Qdrant.
+      Retain rights ledger entry.
+    notes: "Per-item licence must be checked at ingestion time; items with unclear licences must be classified PENDING_RIGHTS_REVIEW."
+
+  - id: DS-002
+    title: "MIT OpenCourseWare — Full Course Archive"
+    description: >
+      Freely available educational materials from thousands of MIT courses
+      covering all undergraduate and graduate disciplines. Includes syllabi,
+      lecture notes, problem sets, and exams.
+    source_organisation: "Massachusetts Institute of Technology"
+    official_source_url: "https://ocw.mit.edu"
+    download_url_or_api: "https://ocw.mit.edu/courses/"
+    licence: "Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)"
+    licence_url: "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+    copyright_owner: "MIT"
+    permitted_uses:
+      - non_commercial_reuse_with_attribution
+      - remix_under_same_licence
+      - educational_use
+    prohibited_uses:
+      - commercial_use
+      - removal_of_attribution
+    access_date: "2026-08-03"
+    publication_date: "2001 – ongoing"
+    academic_discipline:
+      - computing_and_information_technology
+      - engineering
+      - natural_sciences
+      - mathematics_and_statistics
+      - business_and_management
+      - economics
+      - education
+      - humanities
+      - social_sciences
+    qualification_level: ["bachelor", "honours", "master", "doctoral"]
+    content_type: ["syllabus", "lecture_notes", "problem_set", "exam", "rubric", "case_study"]
+    language: "en"
+    geographic_scope: "USA (globally applicable)"
+    file_format: "HTML, PDF"
+    file_size: "~10 GB full archive"
+    sha256_checksum: "PENDING_DOWNLOAD"
+    version: "2026 snapshot"
+    provenance: "MIT OCW public website; CC BY-NC-SA stated on all course pages"
+    personal_information: false
+    confidentiality_classification: "PUBLIC"
+    retrieval_use: true
+    evaluation_use: true
+    model_training_permission: "NC licence restricts commercial model training"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "PENDING"
+    production_approval_status: "PENDING"
+    approval_authority: "Data Governance Lead"
+    approval_date: "2026-08-03"
+    retention_period: "5 years or until MIT OCW changes licence"
+    withdrawal_instructions: >
+      Delete from object storage; remove PostgreSQL metadata records;
+      re-index Qdrant excluding this dataset.
+    notes: "NC clause prohibits use in commercial SaaS without separate licence."
+
+  - id: DS-003
+    title: "OpenStax Peer-Reviewed Open Textbooks"
+    description: >
+      Peer-reviewed, openly licensed textbooks for undergraduate education
+      across science, mathematics, social sciences, business, and humanities.
+      Published by Rice University under CC BY licence.
+    source_organisation: "OpenStax / Rice University"
+    official_source_url: "https://openstax.org"
+    download_url_or_api: "https://openstax.org/subjects"
+    licence: "Creative Commons Attribution 4.0 (CC BY 4.0)"
+    licence_url: "https://creativecommons.org/licenses/by/4.0/"
+    copyright_owner: "Rice University"
+    permitted_uses:
+      - free_reuse_with_attribution
+      - commercial_use_with_attribution
+      - remix_with_attribution
+      - educational_use
+    prohibited_uses:
+      - removal_of_attribution
+      - misrepresentation_of_origin
+    access_date: "2026-08-03"
+    publication_date: "2012 – ongoing"
+    academic_discipline:
+      - natural_sciences
+      - mathematics_and_statistics
+      - business_and_management
+      - economics_and_accounting
+      - social_sciences
+      - humanities
+      - health_sciences
+    qualification_level: ["certificate", "diploma", "bachelor"]
+    content_type: ["textbook", "assessment", "activity"]
+    language: "en"
+    geographic_scope: "Global"
+    file_format: "PDF, HTML, ePub"
+    file_size: "Variable per book (~5–20 MB each)"
+    sha256_checksum: "PENDING_DOWNLOAD"
+    version: "2024–2025 editions"
+    provenance: "openstax.org; CC BY 4.0 stated on all books"
+    personal_information: false
+    confidentiality_classification: "PUBLIC"
+    retrieval_use: true
+    evaluation_use: true
+    model_training_permission: "YES — CC BY 4.0 permits training with attribution"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "APPROVED"
+    production_approval_status: "PENDING"
+    approval_authority: "Data Governance Lead"
+    approval_date: "2026-08-03"
+    retention_period: "Indefinite while CC BY licence maintained"
+    withdrawal_instructions: "Delete from object storage and re-index."
+    notes: "Most permissive licence in catalogue — suitable for retrieval and evaluation."
+
+  - id: DS-004
+    title: "OpenAlex Scholarly Metadata — Education Subset"
+    description: >
+      Scholarly metadata from the OpenAlex open index covering works in
+      education, educational technology, higher education, and pedagogy.
+      Accessed via the free OpenAlex REST API. Data under CC0.
+    source_organisation: "OurResearch (OpenAlex)"
+    official_source_url: "https://openalex.org"
+    download_url_or_api: "https://api.openalex.org/works?filter=concepts.display_name:Education"
+    licence: "Creative Commons Zero (CC0 1.0 Universal)"
+    licence_url: "https://creativecommons.org/publicdomain/zero/1.0/"
+    copyright_owner: "No copyright claimed (CC0)"
+    permitted_uses:
+      - unrestricted_reuse
+      - commercial_use
+      - model_training
+      - redistribution
+    prohibited_uses: []
+    access_date: "2026-08-03"
+    publication_date: "2022 – ongoing (updated daily)"
+    academic_discipline: ["education", "educational_technology", "higher_education"]
+    qualification_level: ["All levels"]
+    content_type: ["citation_metadata", "abstract", "doi_record"]
+    language: "en (and multilingual)"
+    geographic_scope: "Global"
+    file_format: "JSON (API)"
+    file_size: "Variable"
+    sha256_checksum: "PENDING"
+    version: "Live API"
+    provenance: "OpenAlex public API; CC0 stated in API documentation"
+    personal_information: false
+    confidentiality_classification: "PUBLIC"
+    retrieval_use: true
+    evaluation_use: true
+    model_training_permission: "YES — CC0"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "APPROVED"
+    production_approval_status: "PENDING"
+    approval_authority: "Data Governance Lead"
+    approval_date: "2026-08-03"
+    retention_period: "Indefinite (CC0)"
+    withdrawal_instructions: "Remove API-ingested records from PostgreSQL and Qdrant."
+    notes: >
+      Use polite pool by including mailto: parameter in API calls.
+      Ideal for citation-verification and DOI-validation evaluation datasets.
+
+  - id: DS-005
+    title: "Crossref Metadata API — Education Works"
+    description: >
+      Bibliographic metadata for scholarly works registered with Crossref DOIs
+      in the field of education and educational research. Free, open API.
+    source_organisation: "Crossref"
+    official_source_url: "https://www.crossref.org"
+    download_url_or_api: "https://api.crossref.org/works?query=education&filter=has-abstract:true"
+    licence: "Crossref Metadata Plus — free tier; metadata CC0"
+    licence_url: "https://www.crossref.org/documentation/retrieve-metadata/rest-api/"
+    copyright_owner: "Crossref (metadata); original publishers (full-text)"
+    permitted_uses:
+      - metadata_retrieval
+      - doi_validation
+      - citation_checking
+      - educational_use
+    prohibited_uses:
+      - bulk_download_of_full_text_without_permission
+    access_date: "2026-08-03"
+    publication_date: "Ongoing"
+    academic_discipline: ["education", "educational_technology"]
+    qualification_level: ["All levels"]
+    content_type: ["citation_metadata", "doi_record"]
+    language: "Multilingual"
+    geographic_scope: "Global"
+    file_format: "JSON (API)"
+    file_size: "Variable"
+    sha256_checksum: "PENDING"
+    version: "Live API"
+    provenance: "Crossref public REST API"
+    personal_information: false
+    confidentiality_classification: "PUBLIC"
+    retrieval_use: false
+    evaluation_use: true
+    model_training_permission: "Metadata only; verify per publisher"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "APPROVED"
+    production_approval_status: "PENDING"
+    approval_authority: "Data Governance Lead"
+    approval_date: "2026-08-03"
+    retention_period: "Cache 30 days; refresh via API"
+    withdrawal_instructions: "Remove cached Crossref records from PostgreSQL."
+    notes: "Primary use: citation-integrity evaluation and DOI-validation testing."
+
+  - id: DS-006
+    title: "MERLOT — Higher Education Teaching Materials"
+    description: >
+      Free and open online community of curated learning materials for higher
+      education across all disciplines. Includes lesson plans, simulations,
+      case studies, and assessment activities.
+    source_organisation: "MERLOT / California State University"
+    official_source_url: "https://www.merlot.org"
+    download_url_or_api: "https://www.merlot.org/merlot/materials.htm"
+    licence: "Various CC licences per item"
+    licence_url: "https://creativecommons.org/licenses/"
+    copyright_owner: "Individual contributors"
+    permitted_uses:
+      - educational_reuse_per_item_licence
+    prohibited_uses:
+      - commercial_use_without_checking_item_licence
+    access_date: "2026-08-03"
+    publication_date: "1997 – ongoing"
+    academic_discipline: ["All disciplines"]
+    qualification_level: ["certificate", "diploma", "bachelor", "honours", "master"]
+    content_type: ["lesson_plan", "simulation", "case_study", "assessment", "activity"]
+    language: "en (multilingual available)"
+    geographic_scope: "Global"
+    file_format: "HTML, PDF, various"
+    file_size: "Variable"
+    sha256_checksum: "PENDING"
+    version: "Live"
+    provenance: "merlot.org public catalogue"
+    personal_information: false
+    confidentiality_classification: "PUBLIC"
+    retrieval_use: true
+    evaluation_use: false
+    model_training_permission: "Per item — must verify"
+    governance_state: "PENDING_RIGHTS_REVIEW"
+    local_approval_status: "PENDING"
+    staging_approval_status: "PENDING"
+    production_approval_status: "PENDING"
+    approval_authority: "Data Governance Lead"
+    approval_date: null
+    retention_period: "TBD"
+    withdrawal_instructions: "Do not ingest until rights verified."
+    notes: "Per-item licence check required before any ingestion. Quarantined pending review."
+
+  - id: DS-007
+    title: "Directory of Open Access Books (DOAB)"
+    description: >
+      Index of over 94,000 peer-reviewed open-access academic books across all
+      disciplines. Books are openly licensed, predominantly CC BY or CC BY-NC.
+    source_organisation: "DOAB / OAPEN"
+    official_source_url: "https://www.doabooks.org"
+    download_url_or_api: "https://directory.doabooks.org/rest/search?query=education&expand=metadata"
+    licence: "Various open licences (predominantly CC BY, CC BY-NC)"
+    licence_url: "https://www.doabooks.org/en/resources/faq"
+    copyright_owner: "Individual publishers and authors"
+    permitted_uses:
+      - open_access_per_item_licence
+    prohibited_uses:
+      - aggregation_for_commercial_resale_without_permission
+    access_date: "2026-08-03"
+    publication_date: "2010 – ongoing"
+    academic_discipline: ["All disciplines"]
+    qualification_level: ["bachelor", "honours", "master", "doctoral", "postgraduate_diploma"]
+    content_type: ["textbook", "academic_book", "chapter"]
+    language: "Multilingual"
+    geographic_scope: "Global"
+    file_format: "PDF, ePub"
+    file_size: "Variable"
+    sha256_checksum: "PENDING"
+    version: "2026 snapshot"
+    provenance: "DOAB REST API; per-book licence stated in metadata"
+    personal_information: false
+    confidentiality_classification: "PUBLIC"
+    retrieval_use: true
+    evaluation_use: false
+    model_training_permission: "Per book — check CC licence"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "PENDING"
+    production_approval_status: "PENDING"
+    approval_authority: "Data Governance Lead"
+    approval_date: "2026-08-03"
+    retention_period: "5 years"
+    withdrawal_instructions: "Remove from object storage and Qdrant."
+    notes: "Filter to CC BY books for production retrieval to avoid NC complications."
+
+  - id: DS-008
+    title: "UNESCO OER Policy Guidelines and Framework Documents"
+    description: >
+      UNESCO 2019 Recommendation on Open Educational Resources and related
+      OER policy guidelines. Public domain / CC BY-SA intergovernmental licence.
+    source_organisation: "UNESCO"
+    official_source_url: "https://www.unesco.org/en/open-educational-resources"
+    download_url_or_api: "https://unesdoc.unesco.org/ark:/48223/pf0000371129"
+    licence: "CC BY-SA 3.0 IGO"
+    licence_url: "https://creativecommons.org/licenses/by-sa/3.0/igo/"
+    copyright_owner: "UNESCO"
+    permitted_uses:
+      - reuse_with_attribution
+      - remix_under_same_licence
+      - educational_use
+    prohibited_uses:
+      - commercial_use_without_permission
+    access_date: "2026-08-03"
+    publication_date: "2019"
+    academic_discipline: ["education"]
+    qualification_level: ["All levels"]
+    content_type: ["policy_document", "framework", "guideline"]
+    language: "en, fr, es, ar, zh, ru"
+    geographic_scope: "Global"
+    file_format: "PDF"
+    file_size: "~2 MB"
+    sha256_checksum: "PENDING_DOWNLOAD"
+    version: "2019 edition"
+    provenance: "unesdoc.unesco.org official repository"
+    personal_information: false
+    confidentiality_classification: "PUBLIC"
+    retrieval_use: true
+    evaluation_use: false
+    model_training_permission: "YES with attribution under CC BY-SA 3.0 IGO"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "APPROVED"
+    production_approval_status: "PENDING"
+    approval_authority: "Data Governance Lead"
+    approval_date: "2026-08-03"
+    retention_period: "10 years"
+    withdrawal_instructions: "Remove PDF from object storage and Qdrant chunks."
+    notes: "Suitable as policy-alignment context for AI outputs."
+
+  # ── ASSESSMENT AND MODERATION ──────────────────────────────────────────────
+
+  - id: DS-009
+    title: "Bloom's Taxonomy — Public Domain Cognitive Framework"
+    description: >
+      Bloom's Taxonomy of Educational Objectives (1956, revised 2001) — the
+      foundational cognitive framework for learning-outcome alignment and
+      assessment design. Public domain due to age.
+    source_organisation: "Benjamin Bloom et al. / Lorin Anderson et al."
+    official_source_url: "https://cft.vanderbilt.edu/guides-sub-pages/blooms-taxonomy/"
+    download_url_or_api: "https://cft.vanderbilt.edu/guides-sub-pages/blooms-taxonomy/"
+    licence: "Public Domain (original 1956); modern summaries CC BY"
+    licence_url: "https://creativecommons.org/publicdomain/mark/1.0/"
+    copyright_owner: "Public Domain"
+    permitted_uses:
+      - unrestricted_reuse
+      - educational_use
+      - commercial_use
+    prohibited_uses: []
+    access_date: "2026-08-03"
+    publication_date: "1956 (revised 2001)"
+    academic_discipline: ["education", "all_disciplines"]
+    qualification_level: ["All levels"]
+    content_type: ["framework", "taxonomy", "assessment_guidance"]
+    language: "en"
+    geographic_scope: "Global"
+    file_format: "HTML, PDF"
+    file_size: "< 1 MB"
+    sha256_checksum: "PENDING_DOWNLOAD"
+    version: "2001 revised edition references"
+    provenance: "Vanderbilt University CFT public summary"
+    personal_information: false
+    confidentiality_classification: "PUBLIC"
+    retrieval_use: true
+    evaluation_use: true
+    model_training_permission: "YES — public domain"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "APPROVED"
+    production_approval_status: "APPROVED"
+    approval_authority: "Data Governance Lead"
+    approval_date: "2026-08-03"
+    retention_period: "Indefinite"
+    withdrawal_instructions: "N/A (public domain)"
+    notes: "Core reference for learning-outcome alignment evaluation."
+
+  - id: DS-010
+    title: "Synthetic Assessment Blueprint and Rubric Templates"
+    description: >
+      Internally authored synthetic assessment blueprints, rubric templates,
+      marking-guide structures, moderation forms and internal/external review
+      templates. Created specifically for the Lecturer Support Agent.
+    source_organisation: "Lecturer Support Agent Project"
+    official_source_url: "local"
+    download_url_or_api: "data/fixtures/"
+    licence: "Project Internal — MIT licence"
+    licence_url: "https://opensource.org/licenses/MIT"
+    copyright_owner: "Project authors"
+    permitted_uses:
+      - unrestricted_project_use
+      - evaluation_use
+      - retrieval_use
+    prohibited_uses:
+      - external_redistribution_without_permission
+    access_date: "2026-08-03"
+    publication_date: "2026-08-03"
+    academic_discipline: ["All disciplines"]
+    qualification_level: ["All levels"]
+    content_type:
+      - assessment_blueprint
+      - rubric_template
+      - marking_guide
+      - moderation_form
+      - review_template
+    language: "en"
+    geographic_scope: "N/A"
+    file_format: "JSON, YAML"
+    file_size: "< 1 MB"
+    sha256_checksum: "COMPUTED_ON_BUILD"
+    version: "2.5.1"
+    provenance: "Internally authored; no external source"
+    personal_information: false
+    confidentiality_classification: "INTERNAL"
+    retrieval_use: true
+    evaluation_use: true
+    model_training_permission: "YES"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "APPROVED"
+    production_approval_status: "APPROVED"
+    approval_authority: "Project owner"
+    approval_date: "2026-08-03"
+    retention_period: "Indefinite"
+    withdrawal_instructions: "Delete from fixtures directory and re-index."
+    notes: "Primary source for evaluation corpus."
+
+  # ── CITATION AND HALLUCINATION EVALUATION ─────────────────────────────────
+
+  - id: DS-011
+    title: "Citation Integrity Evaluation Corpus — Synthetic Challenges"
+    description: >
+      Synthetic dataset of valid DOIs, invalid DOIs, correct author metadata,
+      fabricated references, broken URLs, incorrect dates, and unsupported
+      policy claims. Created for hallucination detection and citation-integrity
+      evaluation of the AI response pipeline.
+    source_organisation: "Lecturer Support Agent Project"
+    official_source_url: "local"
+    download_url_or_api: "data/evaluation/"
+    licence: "Project Internal — MIT licence"
+    licence_url: "https://opensource.org/licenses/MIT"
+    copyright_owner: "Project authors"
+    permitted_uses:
+      - evaluation_use
+    prohibited_uses:
+      - retrieval_use
+      - production_ingest
+    access_date: "2026-08-03"
+    publication_date: "2026-08-03"
+    academic_discipline: ["All disciplines"]
+    qualification_level: ["All levels"]
+    content_type: ["evaluation_case", "hallucination_challenge", "citation_check"]
+    language: "en"
+    geographic_scope: "N/A"
+    file_format: "JSON"
+    file_size: "< 500 KB"
+    sha256_checksum: "COMPUTED_ON_BUILD"
+    version: "2.5.1"
+    provenance: "Internally authored; synthetic data only"
+    personal_information: false
+    confidentiality_classification: "INTERNAL"
+    retrieval_use: false
+    evaluation_use: true
+    model_training_permission: "YES"
+    governance_state: "APPROVED_FOR_LOCAL"
+    local_approval_status: "APPROVED"
+    staging_approval_status: "APPROVED"
+    production_approval_status: "APPROVED"
+    approval_authority: "Project owner"
+    approval_date: "2026-08-03"
+    retention_period: "Indefinite"
+    withdrawal_instructions: "Delete evaluation corpus; update parity verifier."
+    notes: >
+      Must remain physically separate from retrieval data.
+      NEVER ingest into Qdrant retrieval collection.
+
+  # ── PENDING RIGHTS REVIEW ─────────────────────────────────────────────────
+
+  - id: DS-012
+    title: "MERLOT Item-Level Teaching Materials"
+    description: >
+      Individual teaching materials from the MERLOT catalogue that require
+      per-item licence verification before ingestion.
+    source_organisation: "MERLOT / California State University"
+    official_source_url: "https://www.merlot.org"
+    download_url_or_api: null
+    licence: "PENDING_RIGHTS_REVIEW"
+    licence_url: null
+    copyright_owner: "Individual contributors"
+    permitted_uses: []
+    prohibited_uses:
+      - ingest_without_rights_verification
+    access_date: "2026-08-03"
+    publication_date: null
+    academic_discipline: ["All disciplines"]
+    qualification_level: ["All levels"]
+    content_type: ["lesson_plan", "activity", "assessment"]
+    language: "en"
+    geographic_scope: "Global"
+    file_format: "Various"
+    file_size: "TBD"
+    sha256_checksum: null
+    version: null
+    provenance: "PENDING"
+    personal_information: false
+    confidentiality_classification: "PENDING"
+    retrieval_use: false
+    evaluation_use: false
+    model_training_permission: "PENDING"
+    governance_state: "PENDING_RIGHTS_REVIEW"
+    local_approval_status: "PENDING"
+    staging_approval_status: "PENDING"
+    production_approval_status: "PENDING"
+    approval_authority: null
+    approval_date: null
+    retention_period: "TBD"
+    withdrawal_instructions: "Do not ingest. Review rights per item before approval."
+    notes: "Quarantined. Requires legal review of each item's licence before any use."

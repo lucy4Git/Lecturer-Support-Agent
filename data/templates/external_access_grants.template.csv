@@ -1,0 +1,2 @@
+grant_id,institutional_identifier,institution_code,approved_system_role,granted_resources,granted_actions,valid_from,valid_until,revocable,revocation_reason,approving_authority,approval_reference,notes
+REPLACE_GRANT_ID,REPLACE_STAFF_ID,REPLACE_CODE,"external_moderator|external_reviewer",REPLACE_RESOURCES,REPLACE_ACTIONS,YYYY-MM-DD,YYYY-MM-DD,true,,REPLACE_APPROVER,REPLACE_REF,

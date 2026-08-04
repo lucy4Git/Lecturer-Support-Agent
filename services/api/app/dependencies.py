@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from .core.settings import get_settings
-from .ingestion.embeddings import EmbeddingClient, OllamaEmbeddingClient
+from .ingestion.embeddings import EmbeddingClient, build_embedding_client
 from .integrations.malware_scanner import ClamAVMalwareScanner, DisabledMalwareScanner, MalwareScanner
 from .integrations.object_storage import ObjectStorage, S3ObjectStorage
 from .integrations.qdrant import QdrantGateway
@@ -21,10 +21,7 @@ def get_qdrant_gateway() -> QdrantGateway:
 
 @lru_cache(maxsize=1)
 def get_embedding_client() -> EmbeddingClient:
-    settings = get_settings()
-    if settings.embedding_provider != "ollama":
-        raise RuntimeError("v1.6 currently requires the governed Ollama embedding provider.")
-    return OllamaEmbeddingClient(settings)
+    return build_embedding_client(get_settings())
 
 
 @lru_cache(maxsize=1)

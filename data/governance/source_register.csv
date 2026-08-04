@@ -1,0 +1,13 @@
+source_id,dataset_id,source_name,source_url,source_type,access_method,requires_api_key,api_key_reference,robots_txt_checked,terms_checked,scraping_permitted,notes
+SRC-001,DS-001,OER Commons,https://www.oercommons.org,OER_REPOSITORY,REST_API,YES,OERCOMMONS_API_KEY_REF,YES,YES,YES,"API access is the approved method"
+SRC-002,DS-002,MIT OpenCourseWare,https://ocw.mit.edu,UNIVERSITY_OPENCOURSEWARE,HTTP_DOWNLOAD,NO,,YES,YES,YES,"Public website; CC BY-NC-SA stated"
+SRC-003,DS-003,OpenStax,https://openstax.org,OPEN_TEXTBOOK,HTTP_DOWNLOAD,NO,,YES,YES,YES,"CC BY 4.0 stated on all books"
+SRC-004,DS-004,OpenAlex,https://api.openalex.org,SCHOLARLY_INDEX,REST_API,NO,,YES,YES,YES,"Polite pool: add mailto param"
+SRC-005,DS-005,Crossref,https://api.crossref.org,DOI_REGISTRY,REST_API,NO,,YES,YES,YES,"Free tier; metadata CC0"
+SRC-006,DS-006,MERLOT,https://www.merlot.org,OER_REPOSITORY,HTTP_BROWSE,NO,,YES,YES,CONDITIONAL,"Per-item check required; no bulk scraping"
+SRC-007,DS-007,DOAB / OAPEN,https://directory.doabooks.org,OPEN_ACCESS_BOOKS,REST_API,NO,,YES,YES,YES,"REST API available"
+SRC-008,DS-008,UNESCO UNESDOC,https://unesdoc.unesco.org,INTERGOVERNMENTAL_BODY,HTTP_DOWNLOAD,NO,,YES,YES,YES,"Public document repository"
+SRC-009,DS-009,Vanderbilt CFT,https://cft.vanderbilt.edu,UNIVERSITY_RESOURCE,HTTP_DOWNLOAD,NO,,YES,YES,YES,"Summary of public domain work"
+SRC-010,DS-010,Internal,local,INTERNAL,FILE_SYSTEM,NO,,N/A,N/A,N/A,"Internally authored fixtures"
+SRC-011,DS-011,Internal,local,INTERNAL,FILE_SYSTEM,NO,,N/A,N/A,N/A,"Internally authored evaluation corpus"
+SRC-012,DS-012,MERLOT,https://www.merlot.org,OER_REPOSITORY,HTTP_BROWSE,NO,,YES,YES,CONDITIONAL,"Quarantined; per-item rights review pending"

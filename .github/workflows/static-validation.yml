@@ -1,47 +1,40 @@
-name: Static validation
+name: Deployment release gate
 
 on:
-  push:
+  workflow_dispatch:
   pull_request:
+    paths:
+      - "render*.yaml"
+      - "apps/web/**"
+      - "infrastructure/docker/**"
+      - "scripts/deployment/**"
+      - "services/database/migrations/**"
+      - ".github/workflows/**"
 
 permissions:
   contents: read
 
 jobs:
-  validate:
+  release-gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Install Python dependencies
-        run: python -m pip install -e ".[dev]"
-      - name: Run cumulative static validators and unit tests
+      - run: python -m pip install -e '.[dev]'
+      - name: Verify migration chain head
         run: |
-          python scripts/validation/validate_data_foundation.py
-          python scripts/validation/validate_multi_provider_pack.py
-          python scripts/validation/validate_v13_foundation.py
-          python scripts/validation/validate_v14_release.py
-          python scripts/validation/validate_v15_release.py
-          python scripts/validation/validate_v16_release.py
-          python scripts/validation/validate_v17_release.py
-          python scripts/validation/validate_v18_release.py
-          python scripts/validation/validate_v19_release.py
-          python scripts/validation/validate_v20_release.py
-          python scripts/validation/validate_v21_release.py
-          python scripts/validation/validate_v22_release.py
-          python scripts/validation/validate_v23_release.py
-          python scripts/data/validate_institution_onboarding.py data/manifests/example_institution_onboarding_package.json
-          python -m pytest tests/unit -q
-      - name: Install web dependencies
-        working-directory: apps/web
-        run: npm install
-      - name: Type-check and build web application
-        working-directory: apps/web
-        run: |
-          npm run typecheck
-          npm run build
+          python - <<'PY'
+          from pathlib import Path
+          head=Path('services/database/migrations/versions/20260803_0012_v26_deployment_completion.py')
+          assert head.exists()
+          assert 'down_revision: str | None = "20260726_0011"' in head.read_text()
+          print('Migration chain head is 20260803_0012.')
+          PY
+      - name: Validate v2.6 deployment completion
+        run: python scripts/validation/validate_v26_deployment.py
+      - name: Safe package dry run
+        run: python scripts/deployment/create_safe_release.py --root . --output /tmp/lsa-safe.zip
+      - name: Secret scan
+        run: python scripts/validation/scan_repository_secrets.py

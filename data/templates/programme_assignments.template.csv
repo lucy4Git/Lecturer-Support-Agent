@@ -1,0 +1,2 @@
+assignment_id,institutional_identifier,institution_code,programme_code,programme_name,role_in_programme,academic_year,approved_by,approval_reference,notes
+REPLACE_ASSIGN_ID,REPLACE_STAFF_ID,REPLACE_CODE,REPLACE_PROG_CODE,REPLACE_PROG_NAME,"programme_coordinator|head_of_department",REPLACE_YEAR,REPLACE_APPROVER,REPLACE_REF,

@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.6.0] - 2026-08-03
+
+### Added
+
+- Vercel frontend, Render API/worker/Redis/ClamAV, Neon PostgreSQL, S3, Qdrant Cloud and SMTP deployment contracts.
+- Shared Render generated-secret and hosted-configuration groups across API and worker services, preventing cryptographic and external-service configuration drift.
+- Neon pre-deploy validation, Alembic migration head `20260803_0012`, least-privilege runtime-role bootstrap and hosted-service readiness gates.
+- Google Gemini and OpenAI embedding adapters for hosted deployments while retaining Ollama for local/private use.
+- Public institutional access requests with administrator review and no automatic account or privileged-role creation.
+- Approved-source preflight, relational export/import, versioned object migration, Qdrant migration and secret-free parity manifests.
+- Logical S3 and Qdrant parity checks that do not depend on provider-specific bucket version IDs or collection names.
+- GitHub CI, CodeQL, deployment release gate and secret-safe archive generation.
+
+### Security
+
+- Production refuses demonstration seeding; staging starts with seeding disabled until approved local data is imported.
+- Staging seeding requires an owner-supplied secret-manager password and must be disabled again after test credentials are generated.
+- Approved-data export refuses production or mixed-tenant source databases and requires an explicit tenant allowlist.
+- Real `.env` files, API keys, database credentials, tokens, model binaries and runtime evidence are excluded from release archives.
+- Redis state is never migrated; PostgreSQL, object storage and Qdrant are verified through controlled manifests and checksums.
+
+### Deployment acceptance
+
+- Deployment is not complete until the validated commit, migration revision, role/permission catalogue, approved relational data, object checksums, Qdrant payload identity, tenant isolation, authentication and all eight staging workflows match the approved local baseline.
+
 
 
 ## [2.5.0-rc4-gap-closure] - 2026-07-30
@@ -429,3 +454,22 @@
 
 - Professional repository scaffold.
 - Master blueprint, requirements, role separation, bulk-upload scenarios, immutable versioning, PlantUML diagrams, UX, AI, security, testing, operations, and research documentation.
+
+## 2.6.0 — 2026-08-03 — Deployment-ready completion
+
+### Added
+- Vercel, Render, Neon, AWS S3, Qdrant Cloud and SMTP deployment topology.
+- Staging and production Render Blueprints and Vercel project configuration.
+- Alembic revision `20260803_0012` and controlled institutional access requests.
+- Google Gemini and OpenAI hosted embedding adapters for deployments without Ollama.
+- Neon least-privilege runtime-role bootstrap and idempotent pre-deploy gate.
+- Production refusal of demonstration seeding.
+- Controlled local-data export/import, object-version migration, Qdrant migration and parity verification.
+- GitHub CI, CodeQL, deployment release gate and secret-free release packaging.
+- Mandatory deployment parity, security and managed-platform runbooks.
+
+### Security
+- Public access requests never assign roles; an Institution Administrator must send a scoped invitation.
+- Production configuration fails when demo seeding is enabled.
+- Secrets remain external to Git and release archives.
+- Local/staging/production Redis state is never migrated.

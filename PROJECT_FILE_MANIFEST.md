@@ -2,53 +2,57 @@
 
 ## Release
 
-- Cumulative release: **v2.5.0**
-- Checkpoint: completion gap closure, account security, enterprise integration, real-data rights governance, evaluation capture, tenant backup execution, PWA and commercial-release preparation
-- Runtime state: **implemented and statically validated; owner-machine, legal and institutional acceptance validation pending**
+- Cumulative release: **v2.6.0**
+- Checkpoint: deployment completion for GitHub, Vercel, Render, Neon, versioned object storage, Qdrant, SMTP and provider-neutral AI
+- Runtime state: **source package complete and statically validated; protected vendor deployment and institutional acceptance pending**
 
 ## Inventory
 
 | Category | Count |
 |---|---:|
-| Total files | 864 |
-| Markdown | 317 |
-| PlantUML (`.plantuml` and `.puml`) | 117 |
-| JSON | 37 |
+| Total files | 911 |
+| Markdown | 329 |
+| PlantUML (`.plantuml` and `.puml`) | 119 |
+| JSON | 40 |
 | JSON Schemas | 22 |
-| Python | 207 |
-| PowerShell | 40 |
-| TypeScript/TSX | 30 |
-| SQLAlchemy tables | 124 |
-| FastAPI routes | 160 |
-| Unique API paths | 138 |
+| Python | 227 |
+| PowerShell | 42 |
+| TypeScript/TSX | 32 |
+| SQLAlchemy tables | 125 |
+| FastAPI routes | 163 |
+| Unique OpenAPI paths | 137 |
 
-## Key v2.5 additions
+## Key v2.6 additions
 
-- Seventeen tenant-owned tables and Alembic revision `20260726_0011` for account challenges, MFA, SSO, messaging, integrations, legal holds/deletion, feedback/evaluation and data acquisition.
-- Password reset, email verification, encrypted queued message bodies, TOTP MFA, recovery codes, OIDC PKCE/JWKS validation and federated identity linking.
-- Canvas, Moodle, OneRoster CSV/REST and governed generic REST staging adapters with secret references and outbound URL controls.
-- Legal-hold-aware deletion, exact object/vector deletion, tenant relational/object/vector backups, SHA-256 manifests and truthful restore-readiness drills.
-- OpenAlex/Crossref metadata acquisition, item-level OER rights gates, evaluation campaigns, feedback, PWA/offline safety, legal/commercial templates and pilot pack.
-- Seven v2.5 PlantUML diagrams, cumulative validation scripts and owner-machine procedures.
+- Vercel frontend configuration and Render staging/production Blueprints for API, worker, Redis-compatible temporary state and ClamAV.
+- Neon migration role bootstrap, least-privilege runtime roles and Alembic head `20260803_0012`.
+- Hosted Gemini/OpenAI embeddings, S3-compatible managed/provider-enforced object versioning and controlled institutional access requests.
+- Production-safe demonstration seeding and all eight approved synthetic staging roles.
+- Approved-source preflight; PostgreSQL, object-version and Qdrant migration; storage-version remapping; logical parity manifests and fail-closed verification.
+- GitHub CI, CodeQL, dependency review, secret scanning, container builds and safe-release packaging.
+- Deployment quickstart, parity runbook, acceptance criteria, validation evidence, deployment ADR and v2.6 PlantUML diagrams.
 
 ## Important boundaries
 
-- No API credentials, real `.env`, model binaries, confidential institutional content or unapproved third-party full text is included.
-- Enterprise synchronisation stages external records and does not silently overwrite canonical academic records.
-- Whole-platform disaster-recovery dumps remain operator-controlled; the application backup job exports only tenant-scoped relational rows, object versions and vector points.
-- Legal templates require qualified review. Runtime, interoperability, deployment, accessibility, performance and pilot claims remain pending.
+- No API credentials, real `.env`, private keys, model binaries, sessions, password hashes, token material, local database, unapproved institutional content or unredacted runtime evidence is included.
+- Staging and production are separate. Production never enables demonstration seeding.
+- Redis starts clean and is never migrated.
+- Vendor deployment, legal/privacy approval, real institutional-data approval and institutional pilot acceptance require owner credentials and authority and therefore remain deployment actions rather than source-code claims.
 
 ## Complete file list
 
 - `.dockerignore`
 - `.editorconfig`
 - `.env.example`
+- `.github/dependabot.yml`
 - `.github/ISSUE_TEMPLATE/.gitkeep`
 - `.github/ISSUE_TEMPLATE/bug_report.md`
 - `.github/ISSUE_TEMPLATE/feature_request.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/workflows/.gitkeep`
 - `.github/workflows/ci.yml`
+- `.github/workflows/codeql.yml`
+- `.github/workflows/dependency-review.yml`
 - `.github/workflows/README.md`
 - `.github/workflows/static-validation.yml`
 - `.gitignore`
@@ -57,6 +61,7 @@
 - `apps/mobile/src/.gitkeep`
 - `apps/web/next-env.d.ts`
 - `apps/web/next.config.ts`
+- `apps/web/package-lock.json`
 - `apps/web/package.json`
 - `apps/web/playwright.config.ts`
 - `apps/web/public/.gitkeep`
@@ -68,6 +73,7 @@
 - `apps/web/src/app/accept-invitation/page.tsx`
 - `apps/web/src/app/api/backend/[...path]/route.ts`
 - `apps/web/src/app/api/session/accept-invitation/route.ts`
+- `apps/web/src/app/api/session/access-request/route.ts`
 - `apps/web/src/app/api/session/login/route.ts`
 - `apps/web/src/app/api/session/logout/route.ts`
 - `apps/web/src/app/api/session/password-reset/confirm/route.ts`
@@ -81,6 +87,7 @@
 - `apps/web/src/app/layout.tsx`
 - `apps/web/src/app/offline/page.tsx`
 - `apps/web/src/app/page.tsx`
+- `apps/web/src/app/request-access/page.tsx`
 - `apps/web/src/app/reset-password/page.tsx`
 - `apps/web/src/app/sign-in/page.tsx`
 - `apps/web/src/app/sso/callback/page.tsx`
@@ -95,6 +102,7 @@
 - `apps/web/src/lib/server-api.ts`
 - `apps/web/src/styles/.gitkeep`
 - `apps/web/tsconfig.json`
+- `apps/web/vercel.json`
 - `CHANGELOG.md`
 - `CHATGPT.md`
 - `CLAUDE.md`
@@ -108,6 +116,7 @@
 - `config/README.md`
 - `config/validation/owner-machine-profile.example.json`
 - `config/validation/README.md`
+- `conftest.py`
 - `CONTRIBUTING.md`
 - `data/catalogues/verified_oer_and_metadata_sources_v2.5.json`
 - `data/evaluation/.gitkeep`
@@ -141,6 +150,7 @@
 - `data/schemas/ollama_model_profiles.schema.json`
 - `data/schemas/owner_machine_validation_profile.schema.json`
 - `data/schemas/source_record.schema.json`
+- `DEPLOYMENT_QUICKSTART.md`
 - `docs/ai/AI_ORCHESTRATION.md`
 - `docs/ai/CITATION_INTEGRITY_GUARD_V1.5.md`
 - `docs/ai/HALLUCINATION_AND_FORGERY_CONTROLS.md`
@@ -188,6 +198,7 @@
 - `docs/architecture/adr/ADR-017-durable-jobs-and-production-hardening.md`
 - `docs/architecture/adr/ADR-018-durable-domain-automation.md`
 - `docs/architecture/adr/ADR-019-completion-gap-closure-and-enterprise-boundaries.md`
+- `docs/architecture/adr/ADR-020-deployment-parity-and-managed-platform-topology.md`
 - `docs/architecture/adr/README.md`
 - `docs/architecture/ARCHITECTURE_PRINCIPLES.md`
 - `docs/architecture/INTEGRATION_ARCHITECTURE.md`
@@ -328,6 +339,9 @@
 - `docs/architecture/uml/v2.5/README.md`
 - `docs/architecture/uml/v2.5/real_data_rights_gate.puml`
 - `docs/architecture/uml/v2.5/tenant_backup_restore_sequence.puml`
+- `docs/architecture/uml/v2.6/01_managed_platform_deployment.puml`
+- `docs/architecture/uml/v2.6/02_approved_data_parity_sequence.puml`
+- `docs/architecture/uml/v2.6/README.md`
 - `docs/blueprints/LECTURER_SUPPORT_AGENT_MASTER_BLUEPRINT.md`
 - `docs/commercial/INSTITUTION_SETUP_WIZARD_SPECIFICATION.md`
 - `docs/commercial/SUPPORT_AND_ESCALATION_POLICY.md`
@@ -405,6 +419,7 @@
 - `docs/legal/TERMS_OF_SERVICE_TEMPLATE.md`
 - `docs/operations/BACKUP_AND_DISASTER_RECOVERY.md`
 - `docs/operations/DEPLOYMENT_GUIDE.md`
+- `docs/operations/DEPLOYMENT_PARITY_RUNBOOK.md`
 - `docs/operations/INCIDENT_RESPONSE.md`
 - `docs/operations/LOCAL_DEVELOPMENT.md`
 - `docs/operations/MODEL_DOWNLOAD_STORAGE_AND_UPDATES.md`
@@ -427,11 +442,13 @@
 - `docs/operations/V2.4_BACKGROUND_DOMAIN_EXECUTION.md`
 - `docs/operations/V2.4_OWNER_MACHINE_VALIDATION.md`
 - `docs/operations/V2.5_OWNER_MACHINE_VALIDATION.md`
+- `docs/operations/VERCEL_RENDER_NEON_DEPLOYMENT.md`
 - `docs/pilot/COMMERCIAL_PILOT_PLAN_V2.5.md`
 - `docs/product/COMMERCIAL_READINESS.md`
 - `docs/product/PERSONAS_AND_JOBS_TO_BE_DONE.md`
 - `docs/product/PRODUCT_SCOPE.md`
 - `docs/product/V2.5_COMMERCIAL_RELEASE_READINESS.md`
+- `docs/releases/V2.6_DEPLOYMENT_READY_RELEASE.md`
 - `docs/requirements/ACCEPTANCE_CRITERIA.md`
 - `docs/requirements/BULK_UPLOAD_SCENARIOS.md`
 - `docs/requirements/FUNCTIONAL_REQUIREMENTS.md`
@@ -452,6 +469,7 @@
 - `docs/requirements/V2.3_ACCEPTANCE_CRITERIA.md`
 - `docs/requirements/V2.4_ACCEPTANCE_CRITERIA.md`
 - `docs/requirements/V2.5_ACCEPTANCE_CRITERIA.md`
+- `docs/requirements/V2.6_ACCEPTANCE_CRITERIA.md`
 - `docs/research/METRICS_CATALOGUE.md`
 - `docs/research/PILOT_EVALUATION_AND_FEEDBACK_V2.5.md`
 - `docs/research/RESEARCH_EVALUATION_FRAMEWORK.md`
@@ -459,6 +477,7 @@
 - `docs/security/AUTHENTICATION_AND_SESSION_SECURITY_V1.4.md`
 - `docs/security/AUTHORIZATION_POLICY.md`
 - `docs/security/EXTERNAL_ACCESS.md`
+- `docs/security/GITHUB_AND_DEPLOYMENT_SECURITY.md`
 - `docs/security/POSTGRESQL_RLS_IMPLEMENTATION.md`
 - `docs/security/PRIVACY_AND_ACADEMIC_INTEGRITY.md`
 - `docs/security/SECURITY_ARCHITECTURE.md`
@@ -518,6 +537,8 @@
 - `docs/testing/V2.5_RELEASE_CHECKSUMS.sha256`
 - `docs/testing/V2.5_RELEASE_VALIDATION_REPORT.md`
 - `docs/testing/V2.5_STATIC_VALIDATION_EVIDENCE.md`
+- `docs/testing/V2.6_RELEASE_VALIDATION_REPORT.md`
+- `docs/testing/V2.6_STATIC_VALIDATION_EVIDENCE.md`
 - `docs/user-guides/ACCOUNT_SECURITY_AND_SSO_QUICK_START.md`
 - `docs/user-guides/HEAD_OF_DEPARTMENT_QUICK_START.md`
 - `docs/user-guides/INSTITUTION_ADMINISTRATOR_QUICK_START.md`
@@ -547,6 +568,7 @@
 - `infrastructure/database/redis/README.md`
 - `infrastructure/docker/.gitkeep`
 - `infrastructure/docker/api.Dockerfile`
+- `infrastructure/docker/clamav.Dockerfile`
 - `infrastructure/docker/web.Dockerfile`
 - `infrastructure/docker/worker.Dockerfile`
 - `infrastructure/gateway/.gitkeep`
@@ -569,7 +591,6 @@
 - `infrastructure/observability/dashboards/.gitkeep`
 - `infrastructure/observability/prometheus.yml`
 - `infrastructure/README.md`
-- `infrastructure/secrets/.gitkeep`
 - `infrastructure/terraform/.gitkeep`
 - `LICENSE.md`
 - `packages/artifact-schemas/README.md`
@@ -591,8 +612,14 @@
 - `packages/ui/src/.gitkeep`
 - `PROJECT_CONSTITUTION.md`
 - `PROJECT_FILE_MANIFEST.md`
+- `PUSH_AND_DEPLOY.md`
 - `pyproject.toml`
 - `README.md`
+- `RELEASE_CHECKSUMS_v2.6.0.sha256`
+- `RELEASE_MANIFEST_v2.6.0.json`
+- `RELEASE_NOTES_v2.6.0.md`
+- `render.production.yaml`
+- `render.yaml`
 - `scripts/data/acquire_approved_dataset.py`
 - `scripts/data/generate_synthetic_academic_corpus.py`
 - `scripts/data/README.md`
@@ -606,6 +633,18 @@
 - `scripts/database/Start-DatabaseStack.ps1`
 - `scripts/database/Stop-DatabaseStack.ps1`
 - `scripts/database/Test-TenantIsolation.ps1`
+- `scripts/deployment/apply_storage_version_mapping.py`
+- `scripts/deployment/bootstrap_database_roles.py`
+- `scripts/deployment/create_parity_manifest.py`
+- `scripts/deployment/create_safe_release.py`
+- `scripts/deployment/Export-ApprovedLocalData.ps1`
+- `scripts/deployment/Import-ApprovedData.ps1`
+- `scripts/deployment/migrate_object_versions.py`
+- `scripts/deployment/migrate_qdrant.py`
+- `scripts/deployment/predeploy.py`
+- `scripts/deployment/validate_approved_export_source.py`
+- `scripts/deployment/validate_deployment_configuration.py`
+- `scripts/deployment/verify_parity.py`
 - `scripts/development/.gitkeep`
 - `scripts/development/Install-Ollama-Windows.ps1`
 - `scripts/development/Pull-Ollama-Models.ps1`
@@ -622,6 +661,7 @@
 - `scripts/operations/Test-ProductionConfiguration.ps1`
 - `scripts/README.md`
 - `scripts/release/.gitkeep`
+- `scripts/run_api_windows.py`
 - `scripts/security/Initialize-LocalSecrets.ps1`
 - `scripts/security/New-SafeProjectArchive.ps1`
 - `scripts/validation/.gitkeep`
@@ -661,6 +701,7 @@
 - `scripts/validation/validate_v23_release.py`
 - `scripts/validation/validate_v24_release.py`
 - `scripts/validation/validate_v25_completion.py`
+- `scripts/validation/validate_v26_deployment.py`
 - `scripts/validation/Validation.Common.ps1`
 - `SECURITY.md`
 - `services/__init__.py`
@@ -794,6 +835,7 @@
 - `services/api/app/services/user_administration.py`
 - `services/api/app/services/workspace.py`
 - `services/api/README.md`
+- `services/api/run_api.py`
 - `services/assessment/README.md`
 - `services/assessment/src/.gitkeep`
 - `services/audit-analytics/README.md`
@@ -819,6 +861,7 @@
 - `services/database/migrations/versions/20260726_0009_v23_operational_hardening.py`
 - `services/database/migrations/versions/20260726_0010_v24_domain_automation.py`
 - `services/database/migrations/versions/20260726_0011_v25_gap_closure.py`
+- `services/database/migrations/versions/20260803_0012_v26_deployment_completion.py`
 - `services/database/models/__init__.py`
 - `services/database/models/academics.py`
 - `services/database/models/analytics.py`
@@ -877,6 +920,8 @@
 - `tests/integration/.gitkeep`
 - `tests/integration/__init__.py`
 - `tests/integration/test_document_versioning.py`
+- `tests/integration/test_phases_f_through_l.py`
+- `tests/integration/test_seed_idempotency.py`
 - `tests/integration/test_tenant_isolation.py`
 - `tests/performance/.gitkeep`
 - `tests/README.md`
@@ -889,6 +934,7 @@
 - `tests/unit/test_model_registry.py`
 - `tests/unit/test_object_storage.py`
 - `tests/unit/test_qdrant_scope.py`
+- `tests/unit/test_readiness_diagnostics.py`
 - `tests/unit/test_role_independence.py`
 - `tests/unit/test_source_identifier.py`
 - `tests/unit/test_v14_security_contracts.py`
@@ -903,4 +949,6 @@
 - `tests/unit/test_v23_operational_hardening.py`
 - `tests/unit/test_v24_domain_automation.py`
 - `tests/unit/test_v25_completion_gap_closure.py`
+- `tests/unit/test_v26_deployment_completion.py`
+- `tests/unit/test_windows_event_loop.py`
 - `VALIDATION_STATUS.md`

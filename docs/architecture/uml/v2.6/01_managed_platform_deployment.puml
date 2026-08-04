@@ -1,0 +1,27 @@
+@startuml
+skinparam componentStyle rectangle
+actor User
+cloud Vercel
+cloud Render
+cloud Neon
+cloud "S3-compatible storage" as S3
+cloud "Qdrant Cloud" as Qdrant
+cloud "SMTP / AI providers" as Providers
+
+User --> Vercel : HTTPS
+Vercel --> Render : server-side API proxy / HTTPS
+Render --> Neon : TLS / least-privilege roles
+Render --> S3 : private versioned objects
+Render --> Qdrant : API key / tenant-filtered vectors
+Render --> Providers : protected credentials
+node "Render services" {
+  component "FastAPI API" as API
+  component "Durable worker" as Worker
+  component "Redis temporary state" as Redis
+  component "ClamAV" as ClamAV
+}
+API --> Redis
+Worker --> Redis
+API --> ClamAV
+Worker --> ClamAV
+@enduml

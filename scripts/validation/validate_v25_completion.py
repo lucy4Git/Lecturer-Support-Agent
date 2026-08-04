@@ -69,8 +69,8 @@ from services.api.app.services.job_queue import ALLOWED_JOB_TYPES
 from services.database.models import Base
 from services.worker.handlers import HANDLERS
 
-assert app.version == "2.5.0"
-assert len(Base.metadata.tables) == 124
+assert app.version == "2.6.0"
+assert len(Base.metadata.tables) == 125
 expected_tables = {
     "iam.account_challenges", "iam.mfa_devices", "iam.mfa_recovery_codes",
     "iam.sso_connections", "iam.federated_identities", "governance.outbound_messages",
@@ -118,8 +118,8 @@ Draft202012Validator(schema).validate(source_catalogue)
 assert not any("full_text" in source for source in source_catalogue["sources"])
 assert any(source["source_key"] == "openalex_metadata" for source in source_catalogue["sources"])
 
-assert 'version = "2.5.0"' in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-assert json.loads((ROOT / "apps/web/package.json").read_text(encoding="utf-8"))["version"] == "2.5.0"
+assert 'version = "2.6.0"' in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+assert json.loads((ROOT / "apps/web/package.json").read_text(encoding="utf-8"))["version"] == "2.6.0"
 assert "BACKUP_STORAGE_ENCRYPTION_ATTESTED" in (ROOT / ".env.example").read_text(encoding="utf-8")
 # .env must be git-ignored (may exist on owner machine, must never be tracked)
 import subprocess as _sp

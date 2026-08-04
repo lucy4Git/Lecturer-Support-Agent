@@ -79,3 +79,7 @@ Before changing v2.4, validate migrations `20260726_0009` and `20260726_0010`, r
 ## v2.5 mandatory audit focus
 
 Before modifying v2.5, run the consolidated owner-machine gate and validate migration `20260726_0011`, all 124 tables, account challenge secrecy, password-reset session revocation, TOTP/recovery-code single use, MFA secret encryption, OIDC PKCE/state/nonce/JWKS/issuer/audience/redirect controls, explicit federated account linking, tenant-scoped integration staging, secret-reference-only configuration, legal holds, second approval, exact object/vector deletion, backup tenant boundaries, manifest hashes and truthful restore-drill status. Confirm that real-source acquisition obeys recorded rights, evaluation data remains separated, PWA caching excludes protected responses, and legal templates are not represented as approved legal advice. Live evidence is mandatory before production or commercial-readiness claims.
+
+## v2.6 deployment parity rule
+
+Deployment parity is mandatory and non-negotiable. Staging and production must be created from the same accepted commit/image, Alembic chain, role/permission catalogue, configuration contracts and approved manifests as the validated local system. Migrate approved PostgreSQL data, object versions and Qdrant data only through the supplied auditable checksum-verified tools. Redis starts clean. Never copy `.env`, local sessions, reset/invitation tokens, exposed seed passwords, runtime evidence, model binaries or unapproved institutional data. Production must keep `ENABLE_DEMO_SEED=false`.

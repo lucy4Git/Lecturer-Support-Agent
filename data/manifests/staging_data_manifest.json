@@ -1,0 +1,90 @@
+{
+  "manifest_version": "2.5.1",
+  "environment": "staging",
+  "created": "2026-08-03T00:00:00Z",
+  "git_commit": "PLACEHOLDER_COMMIT_HASH",
+  "application_version": "2.5.1",
+  "container_image_digest": "PENDING",
+  "alembic_revision": "20260726_0011",
+  "role_catalogue_hash": "COMPUTED_ON_VALIDATE",
+  "permission_catalogue_hash": "COMPUTED_ON_VALIDATE",
+  "configuration_contract_hash": "COMPUTED_ON_VALIDATE",
+  "dataset_manifest_hash": "COMPUTED_ON_VALIDATE",
+  "object_manifest_hash": "COMPUTED_ON_VALIDATE",
+  "qdrant_manifest_hash": "COMPUTED_ON_VALIDATE",
+  "datasets": [
+    {
+      "dataset_id": "DS-003",
+      "title": "OpenStax Peer-Reviewed Open Textbooks",
+      "governance_state": "APPROVED_FOR_STAGING",
+      "sha256_checksum": "PENDING_DOWNLOAD",
+      "qdrant_collection": "lsa_retrieval",
+      "notes": "Awaiting controlled staging data onboarding"
+    },
+    {
+      "dataset_id": "DS-004",
+      "title": "OpenAlex Scholarly Metadata — Education Subset",
+      "governance_state": "APPROVED_FOR_STAGING",
+      "sha256_checksum": "N/A",
+      "qdrant_collection": "lsa_retrieval",
+      "notes": "API-sourced"
+    },
+    {
+      "dataset_id": "DS-005",
+      "title": "Crossref Metadata API — Education Works",
+      "governance_state": "APPROVED_FOR_STAGING",
+      "sha256_checksum": "N/A",
+      "qdrant_collection": "lsa_evaluation",
+      "notes": "Citation evaluation only"
+    },
+    {
+      "dataset_id": "DS-008",
+      "title": "UNESCO OER Policy Guidelines",
+      "governance_state": "APPROVED_FOR_STAGING",
+      "sha256_checksum": "PENDING_DOWNLOAD",
+      "qdrant_collection": "lsa_retrieval",
+      "notes": "Policy reference document"
+    },
+    {
+      "dataset_id": "DS-009",
+      "title": "Bloom's Taxonomy — Public Domain",
+      "governance_state": "APPROVED_FOR_STAGING",
+      "sha256_checksum": "PENDING_DOWNLOAD",
+      "qdrant_collection": "lsa_retrieval",
+      "notes": "Public domain"
+    },
+    {
+      "dataset_id": "DS-010",
+      "title": "Synthetic Assessment Blueprint and Rubric Templates",
+      "governance_state": "APPROVED_FOR_STAGING",
+      "sha256_checksum": "COMPUTED_ON_BUILD",
+      "qdrant_collection": "lsa_retrieval",
+      "notes": "Internally authored"
+    },
+    {
+      "dataset_id": "DS-011",
+      "title": "Citation Integrity Evaluation Corpus",
+      "governance_state": "APPROVED_FOR_STAGING",
+      "sha256_checksum": "COMPUTED_ON_BUILD",
+      "qdrant_collection": "lsa_evaluation",
+      "notes": "Evaluation corpus — lsa_evaluation collection only"
+    }
+  ],
+  "synthetic_roles": [
+    "institution_administrator",
+    "lecturer",
+    "module_coordinator",
+    "programme_coordinator",
+    "head_of_department",
+    "internal_moderator",
+    "external_moderator",
+    "external_reviewer"
+  ],
+  "redis_clean_start": true,
+  "institutional_user_import_manifest": "SYNTHETIC_ONLY",
+  "approver_import_manifest": "SYNTHETIC_ONLY",
+  "rejected_data_inventory": ["DS-006", "DS-012"],
+  "parity_verified": false,
+  "parity_verified_at": null,
+  "notes": "Staging manifest — synthetic institution and synthetic users only. No real users."
+}

@@ -60,10 +60,11 @@ class S3ObjectStorage:
                 self.client.head_bucket(Bucket=self.bucket)
             except Exception:
                 self.client.create_bucket(Bucket=self.bucket)
-            self.client.put_bucket_versioning(
-                Bucket=self.bucket,
-                VersioningConfiguration={"Status": "Enabled"},
-            )
+            if self.settings.object_storage_versioning_mode == "managed":
+                self.client.put_bucket_versioning(
+                    Bucket=self.bucket,
+                    VersioningConfiguration={"Status": "Enabled"},
+                )
 
         await asyncio.to_thread(_ensure)
 
@@ -71,6 +72,13 @@ class S3ObjectStorage:
         """Check availability and versioning without mutating storage state."""
         def _probe() -> tuple[bool, str]:
             self.client.head_bucket(Bucket=self.bucket)
+            if self.settings.object_storage_versioning_mode == "provider_enforced":
+                # Providers such as Backblaze B2 keep object history enabled at the
+                # bucket level and may not implement PutBucketVersioning. A list
+                # versions probe confirms that the S3 compatibility layer supports
+                # exact-version operations required by this application.
+                self.client.list_object_versions(Bucket=self.bucket, MaxKeys=1)
+                return True, "ProviderEnforced"
             response = self.client.get_bucket_versioning(Bucket=self.bucket)
             status = response.get("Status", "Disabled")
             return status == "Enabled", status

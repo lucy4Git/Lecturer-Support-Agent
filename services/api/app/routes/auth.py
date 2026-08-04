@@ -1,13 +1,21 @@
 from __future__ import annotations
 
 import hashlib
+from uuid import uuid4
 
-from fastapi import APIRouter, Request, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 
+from ..core.database import set_auth_tenant_context
 from ..core.dependencies import AuthenticationDatabaseSession
+from sqlalchemy import func, select
+
+from services.database.models import Institution, InstitutionalAccessRequest
+
 from ..schemas.auth import (
     InvitationAcceptRequest,
     InvitationAcceptedResponse,
+    InstitutionalAccessRequestCreate,
+    InstitutionalAccessRequestResponse,
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
@@ -73,3 +81,60 @@ async def accept_invitation(
     session: AuthenticationDatabaseSession,
 ) -> InvitationAcceptedResponse:
     return await AuthenticationService(session).accept_invitation(payload)
+
+
+@router.post(
+    "/access-requests",
+    response_model=InstitutionalAccessRequestResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def request_institutional_access(
+    payload: InstitutionalAccessRequestCreate,
+    session: AuthenticationDatabaseSession,
+) -> InstitutionalAccessRequestResponse:
+    """Create a pending request without granting an account or role."""
+
+    institution = await session.scalar(
+        select(Institution).where(
+            func.lower(Institution.slug) == payload.institution_slug.strip().lower(),
+            Institution.is_active.is_(True),
+        )
+    )
+    # Return a neutral message for unknown institutions to prevent enumeration.
+    if institution is None:
+        return InstitutionalAccessRequestResponse(
+            request_id=uuid4(),
+            status="pending",
+            message="If the institution accepts access requests, an administrator will review it.",
+        )
+    await set_auth_tenant_context(session, str(institution.id))
+    email = str(payload.email).strip()
+    existing = await session.scalar(
+        select(InstitutionalAccessRequest).where(
+            InstitutionalAccessRequest.tenant_id == institution.id,
+            InstitutionalAccessRequest.email_normalized == email.lower(),
+            InstitutionalAccessRequest.status.in_(("pending", "needs_information")),
+        )
+    )
+    if existing is None:
+        existing = InstitutionalAccessRequest(
+            tenant_id=institution.id,
+            email=email,
+            email_normalized=email.lower(),
+            given_name=payload.given_name.strip(),
+            family_name=payload.family_name.strip(),
+            position_title=payload.position_title.strip() if payload.position_title else None,
+            requested_role_code=(
+                payload.requested_role_code.strip().lower() if payload.requested_role_code else None
+            ),
+            request_message=payload.request_message.strip() if payload.request_message else None,
+            status="pending",
+            metadata_payload={"source": "public_access_request"},
+        )
+        session.add(existing)
+        await session.flush()
+    return InstitutionalAccessRequestResponse(
+        request_id=existing.id,
+        status="pending",
+        message="Your request has been submitted for institutional review. No role is granted automatically.",
+    )

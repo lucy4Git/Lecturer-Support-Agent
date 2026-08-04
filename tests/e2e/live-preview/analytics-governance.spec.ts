@@ -6,13 +6,13 @@ if (!password) {
 }
 
 async function signIn(page: Page, handle: string, role: string) {
-  await page.goto("/sign-in");
-  await page.getByLabel("Institution code").fill("demo-north");
-  await page.getByLabel("Email").fill(`${handle}@demo-north.example.invalid`);
-  await page.getByLabel("Password").fill(password);
-  await page.getByLabel("Role code (only when already known)").fill(role);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  const apiUrl = process.env.E2E_API_URL ?? "http://127.0.0.1:8000";
+  const resp = await page.request.post(`${apiUrl}/api/v1/auth/login`, {
+    data: { institution_slug: "demo-north", email: `${handle}.demo-north@example.com`, password, role_code: role, device_label: "Playwright E2E" },
+  });
+  if (!resp.ok()) throw new Error(`Login API ${resp.status()} for ${handle}/${role}`);
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: /New conversation/i })).toBeVisible({ timeout: 20000 });
 }
 
 test("institution administrator sees governed commercial controls", async ({ page }) => {

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
+
+from services.database.models import InstitutionalAccessRequest
 
 from ..core.dependencies import CurrentContext, DatabaseSession
 from ..core.settings import get_settings
@@ -18,6 +22,8 @@ from ..schemas.users import (
     UserInvitationCreate,
     UserInvitationResponse,
     UserSummary,
+    AccessRequestDecision,
+    AccessRequestSummary,
 )
 from ..services.authorization import AuthorizationService
 from ..services.user_administration import UserAdministrationService
@@ -184,3 +190,47 @@ async def assign_position(
     )
     item = await UserAdministrationService(session, context).assign_position(payload)
     return MembershipPositionResponse.model_validate(item)
+
+
+@router.get("/access-requests", response_model=list[AccessRequestSummary])
+async def list_access_requests(
+    session: DatabaseSession,
+    context: CurrentContext,
+    request_status: str | None = Query(default=None, alias="status"),
+) -> list[AccessRequestSummary]:
+    await AuthorizationService(session).require_permission(
+        tenant_id=context.tenant_id, user_id=context.user_id, permission_code="users.manage"
+    )
+    query = select(InstitutionalAccessRequest).where(
+        InstitutionalAccessRequest.tenant_id == context.tenant_id
+    )
+    if request_status:
+        query = query.where(InstitutionalAccessRequest.status == request_status)
+    rows = list(await session.scalars(query.order_by(InstitutionalAccessRequest.created_at.desc())))
+    return [AccessRequestSummary.model_validate(row) for row in rows]
+
+
+@router.patch("/access-requests/{request_id}", response_model=AccessRequestSummary)
+async def review_access_request(
+    request_id: UUID,
+    payload: AccessRequestDecision,
+    session: DatabaseSession,
+    context: CurrentContext,
+) -> AccessRequestSummary:
+    await AuthorizationService(session).require_permission(
+        tenant_id=context.tenant_id, user_id=context.user_id, permission_code="users.manage"
+    )
+    item = await session.scalar(
+        select(InstitutionalAccessRequest).where(
+            InstitutionalAccessRequest.tenant_id == context.tenant_id,
+            InstitutionalAccessRequest.id == request_id,
+        ).with_for_update()
+    )
+    if item is None:
+        raise HTTPException(status_code=404, detail="Access request not found.")
+    item.status = payload.status
+    item.decision_reason = payload.decision_reason
+    item.reviewed_by_user_id = context.user_id
+    item.reviewed_at = datetime.now(timezone.utc)
+    await session.flush()
+    return AccessRequestSummary.model_validate(item)

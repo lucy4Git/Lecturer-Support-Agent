@@ -32,7 +32,7 @@ def test_v25_tables_and_routes_are_registered() -> None:
         "analytics.evaluation_campaigns", "analytics.evaluation_responses",
         "governance.dataset_source_records", "operations.dataset_acquisition_runs",
     }
-    assert len(Base.metadata.tables) == 124
+    assert len(Base.metadata.tables) == 125
     assert expected_tables <= set(Base.metadata.tables)
     paths = set(app.openapi()["paths"].keys())
     assert {
@@ -42,7 +42,7 @@ def test_v25_tables_and_routes_are_registered() -> None:
         "/api/v1/privacy/legal-holds", "/api/v1/privacy/deletion-requests",
         "/api/v1/feedback", "/api/v1/evaluation/campaigns", "/api/v1/data-sources",
     } <= paths
-    assert app.version == "2.5.0"
+    assert app.version == "2.6.0"
 
 
 def test_all_v25_job_types_have_real_handlers() -> None:

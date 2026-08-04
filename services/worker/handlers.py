@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api.app.core.request_context import RequestContext
 from services.api.app.core.settings import get_settings
-from services.api.app.ingestion.embeddings import OllamaEmbeddingClient
+from services.api.app.ingestion.embeddings import build_embedding_client
 from services.api.app.integrations.object_storage import S3ObjectStorage
 from services.api.app.integrations.qdrant import QdrantGateway
 from services.api.app.integrations.academic_systems import build_academic_adapter
@@ -396,7 +396,7 @@ async def generate_audit_export_handler(session: AsyncSession, job: BackgroundJo
 
 async def ingest_document_handler(session: AsyncSession, job: BackgroundJob) -> dict[str, Any]:
     version_id = _uuid(job.payload.get("document_version_id"), "document_version_id")
-    settings = get_settings(); storage = S3ObjectStorage(settings); embeddings = OllamaEmbeddingClient(settings); qdrant = QdrantGateway(settings)
+    settings = get_settings(); storage = S3ObjectStorage(settings); embeddings = build_embedding_client(settings); qdrant = QdrantGateway(settings)
     try:
         outcome = await DocumentIngestionService(
             session, storage, _context(job), settings=settings,

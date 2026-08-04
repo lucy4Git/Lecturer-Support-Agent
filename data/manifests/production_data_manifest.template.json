@@ -1,0 +1,57 @@
+{
+  "_comment": "PRODUCTION DATA MANIFEST TEMPLATE — Complete all fields before production deployment. Human approval required for every dataset and user entry.",
+  "manifest_version": "REPLACE_WITH_APP_VERSION",
+  "environment": "production",
+  "created": "REPLACE_WITH_ISO8601_TIMESTAMP",
+  "git_commit": "REPLACE_WITH_FULL_COMMIT_SHA",
+  "application_version": "REPLACE_WITH_APP_VERSION",
+  "container_image_digest": "REPLACE_WITH_SHA256_DIGEST",
+  "alembic_revision": "REPLACE_WITH_ALEMBIC_HEAD",
+  "role_catalogue_hash": "REPLACE_WITH_SHA256",
+  "permission_catalogue_hash": "REPLACE_WITH_SHA256",
+  "configuration_contract_hash": "REPLACE_WITH_SHA256",
+  "dataset_manifest_hash": "REPLACE_WITH_SHA256",
+  "object_manifest_hash": "REPLACE_WITH_SHA256",
+  "qdrant_manifest_hash": "REPLACE_WITH_SHA256",
+  "datasets": [
+    {
+      "_instruction": "List only datasets with governance_state: APPROVED_FOR_PRODUCTION and explicit human approval.",
+      "dataset_id": "REPLACE",
+      "title": "REPLACE",
+      "governance_state": "APPROVED_FOR_PRODUCTION",
+      "sha256_checksum": "REPLACE_WITH_ACTUAL_CHECKSUM",
+      "qdrant_collection": "REPLACE",
+      "chunk_count": 0,
+      "embedding_model": "REPLACE_WITH_ACTUAL_MODEL",
+      "embedding_dimensions": 0,
+      "object_storage_key": "REPLACE",
+      "postgresql_registered": true,
+      "approved_by": "REPLACE_WITH_APPROVER_NAME",
+      "approval_date": "REPLACE_WITH_ISO8601"
+    }
+  ],
+  "institutional_users": {
+    "_instruction": "Populate via authorised institutional user import — NOT synthetic seed. See templates/institutional_users.template.csv.",
+    "source": "REPLACE_WITH_IMPORT_METHOD",
+    "import_manifest_hash": "REPLACE_WITH_SHA256",
+    "count": 0,
+    "approved_by": "REPLACE_WITH_APPROVER_NAME",
+    "approval_date": "REPLACE_WITH_ISO8601"
+  },
+  "approvers": {
+    "_instruction": "List institutional approvers — NOT synthetic approvers.",
+    "import_manifest_hash": "REPLACE_WITH_SHA256",
+    "count": 0
+  },
+  "synthetic_seed_disabled": true,
+  "redis_clean_start": true,
+  "rejected_data_inventory": ["DS-006", "DS-012"],
+  "parity_verified": false,
+  "parity_verified_at": null,
+  "production_approval": {
+    "approved_by": "REPLACE_WITH_AUTHORISED_PERSON",
+    "approval_date": "REPLACE_WITH_ISO8601",
+    "approval_reference": "REPLACE_WITH_REFERENCE_NUMBER"
+  },
+  "notes": "PRODUCTION — NO synthetic users. NO auto-seeded demo accounts. All datasets require explicit human approval."
+}

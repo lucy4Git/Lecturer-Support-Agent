@@ -1,39 +1,24 @@
-# Validation Status — v2.5
+# Validation status — v2.6.0
 
-## Current truth
+## Completed in source package
 
-All cumulative functional foundations from v1.1 through v2.5 are implemented in source and pass the available static/unit checks. Runtime, institutional interoperability, deployment, legal approval and pilot claims remain unverified until evidence is produced.
+- Owner-machine technical validation and eight-role live-preview validation from v2.5.
+- 153 unit tests pass in the v2.6 source package; five Windows-only event-loop tests are correctly skipped outside Windows.
+- Deployment descriptors, migration head, hosted embeddings, controlled onboarding, seed guards and migration/parity tooling are statically validated.
+- No real `.env` file is included or inspected by the v2.6 packaging process.
 
-## v2.5 additions awaiting runtime proof
+## Required after push
 
-- Alembic migration `20260726_0011`, all 124 SQLAlchemy tables, tenant RLS and restricted database-role grants.
-- Password reset, email verification, SMTP delivery, TOTP MFA, recovery-code use and session revocation.
-- OIDC provider discovery, JWKS validation, PKCE/state/nonce, redirect allowlists and federated account linking.
-- Canvas, Moodle and OneRoster connectivity, pagination, retry, staging, mappings and canonical adoption controls.
-- Legal holds, second approval and supported physical deletion across PostgreSQL, object versions and Qdrant.
-- PostgreSQL/object-storage/Qdrant tenant backup, SHA-256 manifests, encryption-at-rest attestation and isolated restore evidence.
-- OpenAlex/Crossref metadata acquisition, PWA install/offline behaviour, accessibility, performance and pilot evaluation.
+- GitHub CI, CodeQL and container builds.
+- Render Blueprint validation and staging deployment.
+- Neon migration/role bootstrap.
+- S3 versioning, Qdrant collection and SMTP delivery checks.
+- Vercel production build and browser workflows.
+- Local-to-staging parity manifest verification.
+- All eight staging roles, authentication/onboarding, uploads, AI, review and export workflows.
+- Production legal, privacy, institutional and infrastructure approval.
 
-## Explicit boundaries
 
-- Secret values remain in `.env` or a production secret manager and are not included in the repository.
-- Integration syncs stage external records; they do not silently overwrite canonical institutional data.
-- Claim verification establishes retrieval/citation coverage but does not claim semantic entailment.
-- Real third-party full text is not bundled without item-level rights and intended-use approval.
-- Legal/commercial documents are templates pending qualified review.
-- A restore drill without an approved isolated restore executable is reported as `manifest_and_catalogue_validated`, not as a completed restoration.
+## Package acceptance
 
-## Release gate
-
-The project may be labelled `validated_on_owner_machine` only after full migration/RLS, services, account security, integration, deletion, backup/restore, AI, PWA/browser, accessibility, security, performance and role-based workflow evidence passes and all critical/high findings are closed.
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\validation\Invoke-ConsolidatedOwnerValidation.ps1 `
-  -Mode full `
-  -InstallDependencies `
-  -StartInfrastructure `
-  -RunLivePreview
-```
-
-The command never launches Docker Desktop. Start Docker Desktop manually.
+The source package is ready for a private GitHub push. It is not represented as already deployed. Managed-service deployment is accepted only after the staging parity runbook and all eight online role workflows pass.

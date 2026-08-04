@@ -276,3 +276,18 @@ The complete authoritative file inventory is maintained in [`PROJECT_FILE_MANIFE
 - [`ADR-019`](architecture/adr/ADR-019-completion-gap-closure-and-enterprise-boundaries.md)
 - [`v2.5 PlantUML diagrams`](architecture/uml/v2.5/README.md)
 - [`Legal templates`](legal/TERMS_OF_SERVICE_TEMPLATE.md)
+
+## v2.6 deployment completion
+
+- [`../PUSH_AND_DEPLOY.md`](../PUSH_AND_DEPLOY.md)
+- [`../RELEASE_NOTES_v2.6.0.md`](../RELEASE_NOTES_v2.6.0.md)
+- [`../DEPLOYMENT_QUICKSTART.md`](../DEPLOYMENT_QUICKSTART.md)
+- [`operations/VERCEL_RENDER_NEON_DEPLOYMENT.md`](operations/VERCEL_RENDER_NEON_DEPLOYMENT.md)
+- [`operations/DEPLOYMENT_PARITY_RUNBOOK.md`](operations/DEPLOYMENT_PARITY_RUNBOOK.md)
+- [`security/GITHUB_AND_DEPLOYMENT_SECURITY.md`](security/GITHUB_AND_DEPLOYMENT_SECURITY.md)
+- [`requirements/V2.6_ACCEPTANCE_CRITERIA.md`](requirements/V2.6_ACCEPTANCE_CRITERIA.md)
+- [`testing/V2.6_STATIC_VALIDATION_EVIDENCE.md`](testing/V2.6_STATIC_VALIDATION_EVIDENCE.md)
+- [`testing/V2.6_RELEASE_VALIDATION_REPORT.md`](testing/V2.6_RELEASE_VALIDATION_REPORT.md)
+- [`architecture/adr/ADR-020-deployment-parity-and-managed-platform-topology.md`](architecture/adr/ADR-020-deployment-parity-and-managed-platform-topology.md)
+- [`architecture/uml/v2.6/README.md`](architecture/uml/v2.6/README.md)
+- [`releases/V2.6_DEPLOYMENT_READY_RELEASE.md`](releases/V2.6_DEPLOYMENT_READY_RELEASE.md)
