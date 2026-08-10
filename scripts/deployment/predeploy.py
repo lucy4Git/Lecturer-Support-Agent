@@ -32,8 +32,12 @@ async def ensure_external_services() -> None:
 def main() -> None:
     # Validate all hosted contracts without printing any secret values.
     run([sys.executable, "scripts/deployment/validate_deployment_configuration.py"])
+    # Create NOLOGIN placeholder roles before Alembic so row_level_security.sql
+    # can reference lsa_app, lsa_auth and lsa_worker without UndefinedObject errors.
+    run([sys.executable, "scripts/deployment/ensure_database_roles.py"])
     # The same migration chain runs in local, staging, and production.
     run([sys.executable, "-m", "alembic", "upgrade", "head"])
+    # Convert placeholder roles to LOGIN roles using the environment passwords.
     run([sys.executable, "scripts/deployment/bootstrap_database_roles.py"])
     asyncio.run(ensure_external_services())
 
