@@ -1,8 +1,15 @@
 """Regression tests for the pre-migration role-catalogue bootstrap.
 
-These tests verify the fix for the psycopg.errors.UndefinedObject failure
-that occurred because lsa_worker did not exist when row_level_security.sql
-was applied inside the first Alembic migration.
+Covers two separate deployment fixes:
+
+Fix 1 (130bdeb): psycopg.errors.UndefinedObject — lsa_worker did not exist
+    when row_level_security.sql was applied inside the first Alembic migration.
+    Resolved by ensure_database_roles.py creating all three roles before Alembic.
+
+Fix 2 (current): psycopg.errors.InsufficientPrivilege — bootstrap_database_roles.py
+    attempted ALTER ROLE ... NOSUPERUSER NOBYPASSRLS which requires SUPERUSER on
+    Neon managed PostgreSQL.  Resolved by ALTER ROLE ... LOGIN PASSWORD only, with
+    a separate pg_roles verification step.
 
 All tests are unit-level and require no live database.
 """
@@ -268,3 +275,199 @@ def test_predeploy_contains_no_hardcoded_secrets() -> None:
     source = Path("scripts/deployment/predeploy.py").read_text(encoding="utf-8")
     for term in ["password=", "secret=", "://", "SECRET_", "API_KEY="]:
         assert term not in source, f"Suspicious literal '{term}' found in predeploy.py"
+
+
+# ---------------------------------------------------------------------------
+# 6. bootstrap_database_roles — Fix 2: InsufficientPrivilege remediation
+# ---------------------------------------------------------------------------
+
+def _load_bootstrap() -> types.ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "bootstrap_database_roles",
+        Path("scripts/deployment/bootstrap_database_roles.py"),
+    )
+    mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    return mod
+
+
+def test_bootstrap_does_not_include_nosuperuser_in_alter_role() -> None:
+    """bootstrap_database_roles.py must not issue ALTER ROLE ... NOSUPERUSER."""
+    source = Path("scripts/deployment/bootstrap_database_roles.py").read_text(encoding="utf-8")
+    # The word NOSUPERUSER may appear in comments/docstrings but must not be
+    # inside an ALTER ROLE SQL string literal that will be executed.
+    code_lines = [
+        line for line in source.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+        and '"""' not in line and "'''" not in line
+    ]
+    # Find lines that contain both ALTER ROLE context and NOSUPERUSER — this
+    # would indicate it is being used as an SQL keyword, not documentation.
+    for line in code_lines:
+        assert not ("ALTER" in line and "NOSUPERUSER" in line), (
+            f"NOSUPERUSER must not appear alongside ALTER in executable code: {line!r}"
+        )
+
+
+def test_bootstrap_does_not_include_nobypassrls_in_alter_role() -> None:
+    """bootstrap_database_roles.py must not include NOBYPASSRLS in its ALTER ROLE SQL."""
+    source = Path("scripts/deployment/bootstrap_database_roles.py").read_text(encoding="utf-8")
+    # Extract only string literals passed to sql.SQL (the actual SQL templates).
+    # They appear as  sql.SQL("...") or sql.SQL('...').
+    import re
+    sql_strings = re.findall(r'sql\.SQL\(["\'](.+?)["\']\)', source)
+    for s in sql_strings:
+        assert "NOBYPASSRLS" not in s, (
+            f"NOBYPASSRLS must not appear in ALTER ROLE SQL template: {s!r}"
+        )
+
+
+def test_bootstrap_alter_role_sets_login_and_password() -> None:
+    """bootstrap_database_roles.py must issue ALTER ROLE ... LOGIN PASSWORD."""
+    source = Path("scripts/deployment/bootstrap_database_roles.py").read_text(encoding="utf-8")
+    assert "LOGIN" in source
+    assert "PASSWORD" in source
+
+
+def test_bootstrap_verifies_pg_roles_after_alter() -> None:
+    """bootstrap_database_roles.py must query pg_roles to verify final attributes."""
+    source = Path("scripts/deployment/bootstrap_database_roles.py").read_text(encoding="utf-8")
+    assert "pg_roles" in source
+    for col in ("rolcanlogin", "rolsuper", "rolcreatedb", "rolcreaterole",
+                "rolinherit", "rolbypassrls", "rolreplication"):
+        assert col in source, f"pg_roles column {col!r} not verified in bootstrap"
+
+
+def test_bootstrap_fails_closed_on_privilege_violation(monkeypatch: "pytest.MonkeyPatch") -> None:
+    """bootstrap must exit non-zero if any role has a more-privileged attribute."""
+    monkeypatch.setenv("MIGRATION_DATABASE_URL", "postgresql://owner:pw@host/db")
+    monkeypatch.setenv("POSTGRES_APP_PASSWORD",    "app-pw")
+    monkeypatch.setenv("POSTGRES_AUTH_PASSWORD",   "auth-pw")
+    monkeypatch.setenv("POSTGRES_WORKER_PASSWORD", "worker-pw")
+
+    # Simulate pg_roles returning rolsuper=True for lsa_app (privilege violation).
+    bad_row_lsa_app = (True, True, False, False, False, False, False)  # rolcanlogin=T, rolsuper=T
+    good_row        = (True, False, False, False, False, False, False)
+
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.side_effect = [bad_row_lsa_app, good_row, good_row]
+
+    fake_conn = MagicMock()
+    fake_conn.__enter__ = lambda s: s
+    fake_conn.__exit__ = MagicMock(return_value=False)
+    fake_conn.execute.return_value = fake_cursor
+
+    with patch("psycopg.connect", return_value=fake_conn):
+        mod = _load_bootstrap()
+        with pytest.raises(SystemExit) as exc_info:
+            mod.main()
+        assert exc_info.value.code != 0
+
+
+def test_bootstrap_succeeds_when_all_roles_are_least_privilege(monkeypatch: "pytest.MonkeyPatch") -> None:
+    """bootstrap must print success and not exit when all attributes are correct."""
+    monkeypatch.setenv("MIGRATION_DATABASE_URL", "postgresql://owner:pw@host/db")
+    monkeypatch.setenv("POSTGRES_APP_PASSWORD",    "app-pw")
+    monkeypatch.setenv("POSTGRES_AUTH_PASSWORD",   "auth-pw")
+    monkeypatch.setenv("POSTGRES_WORKER_PASSWORD", "worker-pw")
+
+    # All three roles return the expected least-privilege attributes.
+    good_row = (True, False, False, False, False, False, False)
+
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = good_row
+
+    fake_conn = MagicMock()
+    fake_conn.__enter__ = lambda s: s
+    fake_conn.__exit__ = MagicMock(return_value=False)
+    fake_conn.execute.return_value = fake_cursor
+
+    with patch("psycopg.connect", return_value=fake_conn):
+        mod = _load_bootstrap()
+        mod.main()  # must not raise
+
+
+def test_bootstrap_fails_closed_when_role_missing_from_pg_roles(monkeypatch: "pytest.MonkeyPatch") -> None:
+    """bootstrap must exit non-zero if a role is absent from pg_roles."""
+    monkeypatch.setenv("MIGRATION_DATABASE_URL", "postgresql://owner:pw@host/db")
+    monkeypatch.setenv("POSTGRES_APP_PASSWORD",    "app-pw")
+    monkeypatch.setenv("POSTGRES_AUTH_PASSWORD",   "auth-pw")
+    monkeypatch.setenv("POSTGRES_WORKER_PASSWORD", "worker-pw")
+
+    good_row = (True, False, False, False, False, False, False)
+
+    fake_cursor = MagicMock()
+    # lsa_app missing, lsa_auth and lsa_worker OK
+    fake_cursor.fetchone.side_effect = [None, good_row, good_row]
+
+    fake_conn = MagicMock()
+    fake_conn.__enter__ = lambda s: s
+    fake_conn.__exit__ = MagicMock(return_value=False)
+    fake_conn.execute.return_value = fake_cursor
+
+    with patch("psycopg.connect", return_value=fake_conn):
+        mod = _load_bootstrap()
+        with pytest.raises(SystemExit) as exc_info:
+            mod.main()
+        assert exc_info.value.code != 0
+
+
+def test_bootstrap_does_not_print_password(monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    """Passwords must never appear in bootstrap stdout or stderr."""
+    secret = "SUPER_SECRET_PW_12345"
+    monkeypatch.setenv("MIGRATION_DATABASE_URL", "postgresql://owner:pw@host/db")
+    monkeypatch.setenv("POSTGRES_APP_PASSWORD",    secret)
+    monkeypatch.setenv("POSTGRES_AUTH_PASSWORD",   secret)
+    monkeypatch.setenv("POSTGRES_WORKER_PASSWORD", secret)
+
+    good_row = (True, False, False, False, False, False, False)
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = good_row
+
+    fake_conn = MagicMock()
+    fake_conn.__enter__ = lambda s: s
+    fake_conn.__exit__ = MagicMock(return_value=False)
+    fake_conn.execute.return_value = fake_cursor
+
+    with patch("psycopg.connect", return_value=fake_conn):
+        mod = _load_bootstrap()
+        mod.main()
+
+    captured = capsys.readouterr()
+    assert secret not in captured.out
+    assert secret not in captured.err
+
+
+def test_bootstrap_does_not_print_migration_url(monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    """MIGRATION_DATABASE_URL value must never appear in bootstrap output."""
+    url_sentinel = "postgresql://owner:URL_SECRET@host/db"
+    monkeypatch.setenv("MIGRATION_DATABASE_URL", url_sentinel)
+    monkeypatch.setenv("POSTGRES_APP_PASSWORD",    "app-pw")
+    monkeypatch.setenv("POSTGRES_AUTH_PASSWORD",   "auth-pw")
+    monkeypatch.setenv("POSTGRES_WORKER_PASSWORD", "worker-pw")
+
+    good_row = (True, False, False, False, False, False, False)
+
+    # fake_conn is used as both the connection context manager and the cursor
+    # returned by execute(), since psycopg connections return a cursor from execute.
+    fake_conn = MagicMock()
+    fake_conn.__enter__ = lambda s: s
+    fake_conn.__exit__ = MagicMock(return_value=False)
+    # conn.execute(...) returns a cursor; cursor.fetchone() returns the row.
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = good_row
+    fake_conn.execute.return_value = fake_cursor
+
+    with patch("psycopg.connect", return_value=fake_conn):
+        mod = _load_bootstrap()
+        try:
+            mod.main()
+        except Exception:
+            pass  # output check is what matters
+
+    captured = capsys.readouterr()
+    assert "URL_SECRET" not in captured.out
+    assert "URL_SECRET" not in captured.err
+
+
+import pytest  # noqa: E402 — placed after helpers to satisfy module loading order
