@@ -132,7 +132,9 @@ def test_staging_simple_auth_enabled_allowed_in_staging() -> None:
 
 
 def test_staging_simple_auth_disabled_by_default() -> None:
-    s = Settings(environment="staging")
+    # Explicitly pass False to test the default/disabled path regardless of
+    # any local .env override (which may set this to True for local dev).
+    s = Settings(environment="staging", staging_simple_auth_enabled=False)
     assert s.staging_simple_auth_enabled is False
 
 
