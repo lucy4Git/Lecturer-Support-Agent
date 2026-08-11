@@ -3,9 +3,13 @@
 Creates a User, PasswordCredential, Membership, AccessScope, and RoleAssignment
 in a single transaction. The caller is immediately issued a session token.
 
-This endpoint must not be enabled in production. Production onboarding goes
-through the invitation workflow (InstitutionAdministrator sends invitation,
-user accepts with a signed token).
+Gated by STAGING_SIMPLE_AUTH_ENABLED=true. This must never be enabled in
+production; the production security validator enforces it.
+
+Name fields (given_name, family_name) are intentionally not collected during
+self-registration. The display_name is set to the email local-part as a
+staging placeholder — it is not presented as a verified personal name.
+Profile information can be collected later through account settings.
 """
 from __future__ import annotations
 
@@ -18,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.database.models import (
     AccessScope,
+    AuthenticationSession,
     Institution,
     Membership,
     PasswordCredential,
@@ -30,7 +35,7 @@ from services.database.models import (
 from ..core.database import set_auth_tenant_context
 from ..core.security import PasswordManager, TokenService
 from ..core.settings import Settings, get_settings
-from ..schemas.auth import DirectRegistrationRequest, DirectRegistrationResponse
+from ..schemas.auth import DirectRegistrationRequest, DirectRegistrationResponse, RegistrationRoleOption
 
 
 class RegistrationService:
@@ -40,6 +45,22 @@ class RegistrationService:
         self.passwords = PasswordManager(self.settings)
         self.tokens = TokenService(self.settings)
 
+    def _allowed_role_codes(self) -> set[str]:
+        raw = self.settings.direct_registration_allowed_roles
+        return {r.strip().lower() for r in raw.split(",") if r.strip()}
+
+    async def allowed_roles(self) -> list[RegistrationRoleOption]:
+        """Return roles permitted for direct registration, ordered by name."""
+        allowed = self._allowed_role_codes()
+        rows = (
+            await self.session.scalars(
+                select(Role)
+                .where(Role.code.in_(allowed))
+                .order_by(Role.name)
+            )
+        ).all()
+        return [RegistrationRoleOption(role_code=r.code, role_name=r.name) for r in rows]
+
     async def register(
         self,
         payload: DirectRegistrationRequest,
@@ -47,6 +68,12 @@ class RegistrationService:
         user_agent_hash: str | None,
         source_ip_hash: str | None,
     ) -> DirectRegistrationResponse:
+        if not self.settings.staging_simple_auth_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Not found.",
+            )
+
         now = datetime.now(timezone.utc)
 
         institution = await self.session.scalar(
@@ -63,6 +90,25 @@ class RegistrationService:
 
         await set_auth_tenant_context(self.session, str(institution.id))
 
+        # Validate role against the authoritative catalogue and the allow-list.
+        allowed_codes = self._allowed_role_codes()
+        if payload.role_code not in allowed_codes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"The role '{payload.role_code}' cannot be self-assigned. "
+                    "Privileged roles require an administrator invitation."
+                ),
+            )
+        role = await self.session.scalar(
+            select(Role).where(Role.code == payload.role_code)
+        )
+        if role is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Role '{payload.role_code}' is not recognised in the system catalogue.",
+            )
+
         email = str(payload.email).strip()
         email_normalized = email.lower()
 
@@ -75,23 +121,18 @@ class RegistrationService:
                 detail="An account with this email address already exists.",
             )
 
-        role = await self.session.scalar(
-            select(Role).where(Role.code == payload.role_code)
-        )
-        if role is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Role '{payload.role_code}' is not recognised.",
-            )
+        # Derive a non-personal display identifier from the email local-part.
+        # This is a staging placeholder, not a verified personal name.
+        display_identifier = email_normalized.split("@")[0]
 
         user_id = uuid4()
         user = User(
             id=user_id,
             email=email,
             email_normalized=email_normalized,
-            given_name=payload.given_name.strip(),
-            family_name=payload.family_name.strip(),
-            display_name=f"{payload.given_name.strip()} {payload.family_name.strip()}".strip(),
+            given_name=None,
+            family_name=None,
+            display_name=display_identifier,
             identity_provider="local",
             is_active=True,
         )
@@ -138,7 +179,7 @@ class RegistrationService:
             access_scope_id=scope_id,
             assigned_by_user_id=user_id,
             valid_from=now,
-            reason="Self-registered via direct registration.",
+            reason="Self-registered via staging direct registration.",
         )
         self.session.add(assignment)
 
@@ -150,7 +191,7 @@ class RegistrationService:
                 severity="info",
                 event_type="identity.direct_registration",
                 actor_user_id=user_id,
-                description="User self-registered via direct registration endpoint.",
+                description="User self-registered via staging direct registration endpoint.",
                 details={
                     "role_code": payload.role_code,
                     "source_ip_hash": source_ip_hash,
@@ -165,7 +206,6 @@ class RegistrationService:
         )
         refresh_expires = now + timedelta(days=self.settings.refresh_token_days)
 
-        from services.database.models import AuthenticationSession
         auth_session = AuthenticationSession(
             id=session_id,
             tenant_id=institution.id,

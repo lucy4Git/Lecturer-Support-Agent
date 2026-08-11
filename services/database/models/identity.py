@@ -27,9 +27,9 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     email_normalized: Mapped[str] = mapped_column(String(320), nullable=False)
-    given_name: Mapped[str] = mapped_column(String(120), nullable=False)
-    family_name: Mapped[str] = mapped_column(String(120), nullable=False)
-    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    given_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    family_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     identity_provider: Mapped[str] = mapped_column(String(80), default="local", nullable=False)
     external_subject: Mapped[str | None] = mapped_column(String(255))
     is_platform_operator: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

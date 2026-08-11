@@ -10,16 +10,10 @@ type Institution = {
   institution_type: string;
 };
 
-const ROLES = [
-  { code: "lecturer", label: "Lecturer" },
-  { code: "module_coordinator", label: "Module Coordinator" },
-  { code: "programme_coordinator", label: "Programme Coordinator" },
-  { code: "head_of_department", label: "Head of Department" },
-  { code: "internal_moderator", label: "Internal Moderator" },
-  { code: "external_moderator", label: "External Moderator" },
-  { code: "external_reviewer", label: "External Reviewer" },
-  { code: "institution_administrator", label: "Institution Administrator" },
-];
+type RoleOption = {
+  role_code: string;
+  role_name: string;
+};
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -27,12 +21,24 @@ export default function SignUpPage() {
   const [isError, setIsError] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
+
   const [institutionQuery, setInstitutionQuery] = useState("");
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch permitted roles from the authoritative backend catalogue on mount.
+  useEffect(() => {
+    fetch("/api/registration-roles")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: RoleOption[]) => setRoles(data))
+      .catch(() => setRoles([]))
+      .finally(() => setRolesLoading(false));
+  }, []);
 
   const searchInstitutions = useCallback(async (q: string) => {
     if (!q.trim()) { setInstitutions([]); return; }
@@ -76,8 +82,6 @@ export default function SignUpPage() {
       body: JSON.stringify({
         institution_id: selectedInstitution.id,
         email: values.get("email"),
-        given_name: values.get("given_name"),
-        family_name: values.get("family_name"),
         password: values.get("password"),
         role_code: values.get("role_code"),
       }),
@@ -102,7 +106,7 @@ export default function SignUpPage() {
         <div className="brand-mark">LS</div>
         <span className="eyebrow">Lecturer Support Agent</span>
         <h1>Create an account</h1>
-        <p>Fill in your details to get started. Your account is linked to your institution.</p>
+        <p>Select your institution, enter your email address and password, and choose your role.</p>
         <form onSubmit={submit}>
 
           <div ref={searchRef} style={{ position: "relative" }}>
@@ -145,27 +149,23 @@ export default function SignUpPage() {
           </div>
 
           <label>
-            <span>First name</span>
-            <input name="given_name" autoComplete="given-name" required maxLength={120} />
-          </label>
-          <label>
-            <span>Last name</span>
-            <input name="family_name" autoComplete="family-name" required maxLength={120} />
-          </label>
-          <label>
             <span>Institution email</span>
             <input name="email" type="email" autoComplete="email" required />
           </label>
+
           <label>
             <span>Password</span>
             <input name="password" type="password" autoComplete="new-password" required />
           </label>
+
           <label>
             <span>Role</span>
-            <select name="role_code" required defaultValue="">
-              <option value="" disabled>Select your role</option>
-              {ROLES.map((r) => (
-                <option key={r.code} value={r.code}>{r.label}</option>
+            <select name="role_code" required defaultValue="" disabled={rolesLoading}>
+              <option value="" disabled>
+                {rolesLoading ? "Loading roles…" : "Select your role"}
+              </option>
+              {roles.map((r) => (
+                <option key={r.role_code} value={r.role_code}>{r.role_name}</option>
               ))}
             </select>
           </label>
@@ -174,7 +174,7 @@ export default function SignUpPage() {
             <div className={isError ? "error-notice" : "notice"}>{message}</div>
           )}
 
-          <button className="submit-button" disabled={busy}>
+          <button className="submit-button" disabled={busy || rolesLoading}>
             {busy ? "Creating account…" : "Create account"}
           </button>
           <Link href="/sign-in" className="link-button">Already have an account? Sign in</Link>

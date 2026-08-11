@@ -24,6 +24,7 @@ from ..schemas.auth import (
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
+    RegistrationRoleOption,
     TokenResponse,
 )
 from ..services.authentication import AuthenticationService
@@ -38,6 +39,19 @@ def _request_hashes(request: Request) -> tuple[str | None, str | None]:
     user_agent_hash = hashlib.sha256(user_agent.encode()).hexdigest() if user_agent else None
     source_ip_hash = hashlib.sha256(client_host.encode()).hexdigest() if client_host else None
     return user_agent_hash, source_ip_hash
+
+
+@router.get("/registration-roles", response_model=list[RegistrationRoleOption])
+async def registration_roles(
+    session: AuthenticationDatabaseSession,
+) -> list[RegistrationRoleOption]:
+    """Return role options permitted for direct self-registration.
+
+    Only roles in the DIRECT_REGISTRATION_ALLOWED_ROLES setting are returned.
+    institution_administrator and head_of_department are excluded by default
+    to prevent privilege escalation through self-service signup.
+    """
+    return await RegistrationService(session).allowed_roles()
 
 
 @router.get("/institutions", response_model=list[InstitutionSummary])
@@ -202,7 +216,7 @@ async def direct_password_reset(
     Disabled in production via STAGING_DIRECT_RESET_ENABLED=false (default).
     """
     settings = get_settings()
-    if not settings.staging_direct_reset_enabled:
+    if not settings.staging_simple_auth_enabled:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Not found.",

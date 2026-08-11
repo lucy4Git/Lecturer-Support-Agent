@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, SecretStr, model_validator
+from pydantic import BaseModel, EmailStr, Field, SecretStr, model_validator  # model_validator kept for DirectPasswordResetRequest
 
 
 class LoginRequest(BaseModel):
@@ -92,21 +92,13 @@ class InstitutionSummary(BaseModel):
 class DirectRegistrationRequest(BaseModel):
     institution_id: UUID
     email: EmailStr
-    given_name: str = Field(min_length=1, max_length=120)
-    family_name: str = Field(min_length=1, max_length=120)
     password: SecretStr
     role_code: str = Field(min_length=2, max_length=80)
 
-    @model_validator(mode="after")
-    def validate_role_code(self) -> "DirectRegistrationRequest":
-        allowed = {
-            "institution_administrator", "head_of_department", "lecturer",
-            "module_coordinator", "programme_coordinator",
-            "internal_moderator", "external_moderator", "external_reviewer",
-        }
-        if self.role_code not in allowed:
-            raise ValueError(f"role_code must be one of: {', '.join(sorted(allowed))}")
-        return self
+
+class RegistrationRoleOption(BaseModel):
+    role_code: str
+    role_name: str
 
 
 class DirectRegistrationResponse(BaseModel):

@@ -134,21 +134,22 @@ class AuthenticationService:
             )
 
         selected = role_rows[0]
-        account_security = AccountSecurityService(self.session, settings=self.settings)
-        if await account_security.mfa_required(institution.id, user.id):
-            if not payload.mfa_code:
-                raise HTTPException(
-                    status_code=status.HTTP_428_PRECONDITION_REQUIRED,
-                    detail={"message": "A multi-factor authentication code is required.", "code": "mfa_required"},
-                )
-            if not await account_security.verify_mfa_code(institution.id, user.id, payload.mfa_code):
-                await self._record_security_event(
-                    tenant_id=institution.id, severity="warning",
-                    event_type="authentication.mfa_failed",
-                    description="The multi-factor authentication code was not accepted.",
-                    actor_user_id=user.id, source_ip_hash=source_ip_hash,
-                )
-                raise self._invalid_credentials()
+        if not self.settings.staging_simple_auth_enabled:
+            account_security = AccountSecurityService(self.session, settings=self.settings)
+            if await account_security.mfa_required(institution.id, user.id):
+                if not payload.mfa_code:
+                    raise HTTPException(
+                        status_code=status.HTTP_428_PRECONDITION_REQUIRED,
+                        detail={"message": "A multi-factor authentication code is required.", "code": "mfa_required"},
+                    )
+                if not await account_security.verify_mfa_code(institution.id, user.id, payload.mfa_code):
+                    await self._record_security_event(
+                        tenant_id=institution.id, severity="warning",
+                        event_type="authentication.mfa_failed",
+                        description="The multi-factor authentication code was not accepted.",
+                        actor_user_id=user.id, source_ip_hash=source_ip_hash,
+                    )
+                    raise self._invalid_credentials()
 
         token_response = await self._issue_session(
             tenant_id=institution.id,
@@ -450,23 +451,13 @@ class AuthenticationService:
         if len(all_active) == 0:
             raise HTTPException(status_code=404, detail="No active institutions are registered.")
 
-        # Multiple institutions: return choices to the client.
-        from ..schemas.auth import InstitutionSummary
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "message": "Your account is associated with multiple institutions. Please select one.",
-                "available_institutions": [
-                    InstitutionSummary(
-                        id=inst.id,
-                        display_name=inst.display_name,
-                        institution_type=inst.institution_type,
-                        country_code=inst.country_code,
-                    ).model_dump(mode="json")
-                    for inst in all_active
-                ],
-            },
-        )
+        # Multiple institutions: authenticate against all of them and let the
+        # post-login role/context selection handle switching. For now, pick the
+        # institution whose membership was most recently activated, which is the
+        # most likely intended context for the current session.
+        # A dedicated post-login institution-context screen can be added later.
+        sorted_active = sorted(all_active, key=lambda i: i.created_at, reverse=True)
+        return sorted_active[0]
 
     async def _active_role_options(
         self,

@@ -10,20 +10,11 @@ type AvailableRole = {
   role_assignment_id: string;
 };
 
-type AvailableInstitution = {
-  id: string;
-  display_name: string;
-  institution_type: string;
-};
-
 export default function SignInPage() {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<AvailableRole[]>([]);
-  const [availableInstitutions, setAvailableInstitutions] = useState<AvailableInstitution[]>([]);
-  const [mfaRequired, setMfaRequired] = useState(false);
-  const [selectedInstitutionId, setSelectedInstitutionId] = useState<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,10 +27,8 @@ export default function SignInPage() {
       password: values.get("password"),
       device_label: "Web browser",
     };
-    if (values.get("role_code")) body.role_code = values.get("role_code");
-    if (values.get("mfa_code")) body.mfa_code = values.get("mfa_code");
-    if (selectedInstitutionId) body.institution_id = selectedInstitutionId;
-    if (values.get("institution_id")) body.institution_id = values.get("institution_id");
+    const selectedRole = values.get("role_code");
+    if (selectedRole) body.role_code = selectedRole;
 
     const response = await fetch("/api/session/login", {
       method: "POST",
@@ -55,17 +44,11 @@ export default function SignInPage() {
     }
 
     const detail = data.detail;
-    if (response.status === 428 && detail?.code === "mfa_required") {
-      setMfaRequired(true);
-      setMessage("Enter the code from your authenticator app, then sign in again.");
-    } else if (response.status === 409 && Array.isArray(detail?.available_roles)) {
+    if (response.status === 409 && Array.isArray(detail?.available_roles)) {
       setAvailableRoles(detail.available_roles as AvailableRole[]);
-      setMessage("You have multiple roles. Choose which role to use for this session.");
-    } else if (response.status === 409 && Array.isArray(detail?.available_institutions)) {
-      setAvailableInstitutions(detail.available_institutions as AvailableInstitution[]);
-      setMessage("Your account belongs to multiple institutions. Please select one below.");
+      setMessage("You have more than one active role. Choose the role for this session.");
     } else {
-      setMessage(typeof detail === "string" ? detail : detail?.message ?? "Sign-in failed.");
+      setMessage(typeof detail === "string" ? detail : detail?.message ?? "Sign-in failed. Check your email and password.");
     }
     setBusy(false);
   }
@@ -87,16 +70,9 @@ export default function SignInPage() {
             <input name="password" type="password" autoComplete="current-password" required />
           </label>
 
-          {mfaRequired && (
-            <label>
-              <span>Authenticator or recovery code</span>
-              <input name="mfa_code" autoComplete="one-time-code" inputMode="numeric" required />
-            </label>
-          )}
-
           {availableRoles.length > 0 && (
             <label>
-              <span>Role for this session</span>
+              <span>Continue as</span>
               <select name="role_code" required defaultValue="">
                 <option value="" disabled>Select a role</option>
                 {availableRoles.map((role) => (
@@ -108,27 +84,8 @@ export default function SignInPage() {
             </label>
           )}
 
-          {availableInstitutions.length > 0 && (
-            <label>
-              <span>Select your institution</span>
-              <select
-                name="institution_id"
-                required
-                defaultValue=""
-                onChange={(e) => setSelectedInstitutionId(e.target.value)}
-              >
-                <option value="" disabled>Select an institution</option>
-                {availableInstitutions.map((inst) => (
-                  <option key={inst.id} value={inst.id}>
-                    {inst.display_name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
           {message && (
-            <div className={availableRoles.length || availableInstitutions.length ? "notice" : "error-notice"}>
+            <div className={availableRoles.length ? "notice" : "error-notice"}>
               {message}
             </div>
           )}

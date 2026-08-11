@@ -247,7 +247,7 @@ def test_migration_chain_is_single_linear_branch() -> None:
                     down_revisions.append(None)
                 elif rhs.startswith('"'):
                     down_revisions.append(rhs.strip('"'))
-    assert len(revisions) == 12, f"Expected 12 migrations, found {len(revisions)}"
+    assert len(revisions) == 13, f"Expected 13 migrations, found {len(revisions)}"
     none_count = sum(1 for d in down_revisions if d is None)
     assert none_count == 1, "Exactly one migration must have down_revision=None (the root)"
 
