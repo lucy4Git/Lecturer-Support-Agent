@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
+
 import httpx
 
 from ...core.settings import Settings
@@ -22,6 +25,47 @@ class AnthropicProvider(AIProvider):
     @property
     def default_model(self) -> str:
         return self.settings.anthropic_default_model.strip()
+
+    async def generate_stream(self, request: ProviderRequest) -> AsyncIterator[str]:  # type: ignore[override]
+        if not self.configured:
+            raise ProviderError(self.name, "Anthropic is not configured.", code="not_configured")
+        body = {
+            "model": request.model or self.default_model,
+            "max_tokens": request.max_output_tokens,
+            "temperature": request.temperature,
+            "system": request.system_prompt,
+            "messages": [
+                {"role": m.role.value, "content": m.content}
+                for m in request.messages
+                if m.role.value in {"user", "assistant"}
+            ],
+            "stream": True,
+        }
+        url = f"{self.settings.anthropic_base_url.rstrip('/')}/v1/messages"
+        headers = {
+            "x-api-key": self.settings.anthropic_api_key.get_secret_value(),
+            "anthropic-version": self.settings.anthropic_api_version,
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=self.settings.ai_request_timeout_seconds) as client:
+            async with client.stream("POST", url, headers=headers, json=body) as response:
+                if response.status_code >= 400:
+                    text = await response.aread()
+                    raise ProviderError(self.name, f"Anthropic stream error {response.status_code}", code="stream_error")
+                async for line in response.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    raw = line[6:].strip()
+                    if raw in ("", "[DONE]"):
+                        continue
+                    try:
+                        event = json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
+                    if event.get("type") == "content_block_delta":
+                        text_chunk = event.get("delta", {}).get("text", "")
+                        if text_chunk:
+                            yield text_chunk
 
     async def generate(self, request: ProviderRequest) -> ProviderResponse:
         if not self.configured:

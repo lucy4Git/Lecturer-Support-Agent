@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 from ..core.settings import Settings
@@ -112,6 +113,33 @@ class ModelRouter:
                     )
                 )
         raise ProviderError("router", "No configured AI provider completed the request.", code="all_providers_failed")
+
+    async def stream(
+        self,
+        request: ProviderRequest,
+        *,
+        privacy: PrivacyClass,
+        allowed_providers: set[str] | None = None,
+        denied_providers: set[str] | None = None,
+    ) -> AsyncIterator[str]:
+        """Yield text tokens from the first available provider, falling back if needed."""
+        candidates = self.candidate_names(
+            privacy,
+            allowed_providers=allowed_providers,
+            denied_providers=denied_providers,
+        )
+        for provider_name in candidates:
+            provider = self.providers.get(provider_name)
+            if provider is None or not provider.configured:
+                continue
+            try:
+                req = request.model_copy(update={"model": request.model or provider.default_model})
+                async for token in provider.generate_stream(req):
+                    yield token
+                return
+            except ProviderError:
+                continue
+        raise ProviderError("router", "No configured AI provider completed the stream request.", code="all_providers_failed")
 
     def status(self) -> list[dict[str, str | bool]]:
         return [

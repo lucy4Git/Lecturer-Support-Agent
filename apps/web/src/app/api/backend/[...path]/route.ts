@@ -16,7 +16,29 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     "X-Request-ID": request.headers.get("x-request-id") ?? crypto.randomUUID(),
   };
   if (contentType) headers["Content-Type"] = contentType;
-  const response = await fetch(target, { method: request.method, headers, body, cache: "no-store" });
+
+  const response = await fetch(target, {
+    method: request.method,
+    headers,
+    body,
+    cache: "no-store",
+    // @ts-expect-error duplex required for streaming body in Node.js fetch
+    duplex: "half",
+  });
+
+  // Forward SSE streaming responses directly without buffering.
+  if (response.headers.get("content-type")?.includes("text/event-stream")) {
+    return new Response(response.body, {
+      status: response.status,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+        Connection: "keep-alive",
+      },
+    });
+  }
+
   const data = await parseBackendResponse(response);
   return NextResponse.json(data, { status: response.status });
 }

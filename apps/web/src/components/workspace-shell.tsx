@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, responseMessage } from "@/lib/api-client";
 import { WorkspaceResourcePanel, type WorkspaceView } from "@/components/workspace-resource-panels";
@@ -212,6 +212,9 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const [composerText, setComposerText] = useState("");
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [sending, setSending] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
+  const [streamingStatus, setStreamingStatus] = useState("");
+  const abortRef = useRef<AbortController | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("conversation");
@@ -346,72 +349,140 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     return conversation.id;
   }
 
+  function stopGeneration() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setSending(false);
+    setStreamingText("");
+    setStreamingStatus("");
+  }
+
   async function sendMessage() {
     const content = composerText.trim();
     if (!content || sending) return;
     setSending(true);
+    setStreamingText("");
+    setStreamingStatus("");
     setNotice(null);
     const conversationId = await ensureConversation();
-    if (!conversationId) {
-      setSending(false);
-      return;
-    }
+    if (!conversationId) { setSending(false); return; }
     const optimisticId = `local-${Date.now()}`;
     setMessages((current) => [...current, { id: optimisticId, role: "user", content }]);
     setComposerText("");
     const attachmentsForRequest = pendingAttachments;
-    const response = await apiFetch(`conversations/${conversationId}/messages`, {
-      method: "POST",
-      body: JSON.stringify({
-        content,
-        attachment_version_ids: pendingAttachments.map((item) => item.versionId),
-        module_offering_id: selectedModuleOfferingId || null,
-      }),
-    });
-    if (!response.ok) {
-      setMessages((current) => current.filter((item) => item.id !== optimisticId));
-      setComposerText(content);
-      setPendingAttachments(attachmentsForRequest);
-      setNotice(await responseMessage(response));
-      setSending(false);
-      return;
-    }
-    const data = (await response.json()) as UnifiedAIResponse;
     setPendingAttachments([]);
-    setMessages((current) => [
-      ...current.map((item) =>
-        item.id === optimisticId ? { ...item, id: data.user_message.id } : item,
-      ),
-      {
-        id: data.assistant_message.id,
-        role: "assistant",
-        content: data.output.markdown,
-        outputType: data.output.output_type,
-        outputTitle: data.output.title,
-        sources: data.sources,
-        provider: data.provider,
-        model: data.model,
-        warnings: data.integrity_warnings,
-        requiresHumanReview: data.output.requires_human_review,
-        approvalDisclaimer: data.output.approval_disclaimer,
-        generatedOutputId: data.output.metadata?.generated_output_id,
-        outputVersionId: data.output.metadata?.output_version_id,
-        versionNumber: data.output.metadata?.version_number,
-        workflowStatus: data.output.metadata?.workflow_status,
-        riskLevel: data.output.metadata?.risk_level,
-        safetyStatus: data.output.metadata?.safety_status,
-        moduleContext: data.output.metadata?.module_context,
-      },
-    ]);
-    setConversations((current) => {
-      const updated = current.map((conversation) =>
-        conversation.id === data.conversation.id ? data.conversation : conversation,
-      );
-      return [...updated].sort(
-        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-      );
-    });
-    setSending(false);
+
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    try {
+      const response = await fetch(`/api/backend/conversations/${conversationId}/messages/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content,
+          attachment_version_ids: attachmentsForRequest.map((item) => item.versionId),
+          module_offering_id: selectedModuleOfferingId || null,
+        }),
+        signal: ctrl.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        setMessages((current) => current.filter((item) => item.id !== optimisticId));
+        setComposerText(content);
+        setPendingAttachments(attachmentsForRequest);
+        setNotice("The request could not be completed. Please try again.");
+        setSending(false);
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accText = "";
+      let doneData: Record<string, unknown> | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const event = JSON.parse(line.slice(6)) as Record<string, unknown>;
+            if (event.type === "thinking") {
+              setStreamingStatus(String(event.status ?? "Working…"));
+            } else if (event.type === "token") {
+              accText += String(event.text ?? "");
+              setStreamingText(accText);
+            } else if (event.type === "done") {
+              doneData = event;
+            } else if (event.type === "error") {
+              setNotice(String(event.detail ?? "An error occurred."));
+              setMessages((current) => current.filter((item) => item.id !== optimisticId));
+              setComposerText(content);
+              setSending(false);
+              setStreamingText("");
+              setStreamingStatus("");
+              return;
+            }
+          } catch {}
+        }
+      }
+
+      setStreamingText("");
+      setStreamingStatus("");
+
+      if (doneData) {
+        const d = doneData;
+        const assistantMsg: ChatItem = {
+          id: String(d.assistant_message_id ?? `assist-${Date.now()}`),
+          role: "assistant",
+          content: accText,
+          outputType: String(d.output_type ?? "generic_answer"),
+          outputTitle: String(d.title ?? "Teaching output"),
+          sources: (d.sources as ChatItem["sources"]) ?? [],
+          warnings: (d.integrity_warnings as string[]) ?? [],
+          requiresHumanReview: Boolean(d.requires_human_review),
+          approvalDisclaimer: d.approval_disclaimer as string | null,
+          generatedOutputId: String(d.generated_output_id ?? ""),
+          outputVersionId: String(d.output_version_id ?? ""),
+          versionNumber: Number(d.version_number ?? 1),
+          workflowStatus: String(d.workflow_status ?? "draft"),
+          riskLevel: String(d.risk_level ?? "none"),
+          safetyStatus: String(d.safety_status ?? "passed"),
+        };
+        setMessages((current) => [
+          ...current.map((item) => item.id === optimisticId ? { ...item, id: String(d.user_message_id ?? optimisticId) } : item),
+          assistantMsg,
+        ]);
+        const convTitle = String(d.conversation_title ?? "");
+        const convId = String(d.conversation_id ?? conversationId);
+        setConversations((current) => {
+          const nowStr = new Date().toISOString();
+          const updated = current.map((c) => c.id === convId ? { ...c, title: convTitle, updated_at: nowStr } : c);
+          if (!updated.some((c) => c.id === convId)) {
+            updated.unshift({ id: convId, title: convTitle, updated_at: nowStr, is_archived: false });
+          }
+          return [...updated].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+        });
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        setNotice("Connection interrupted. Please try again.");
+        setMessages((current) => current.filter((item) => item.id !== optimisticId));
+        setComposerText(content);
+        setPendingAttachments(attachmentsForRequest);
+      }
+    } finally {
+      abortRef.current = null;
+      setSending(false);
+      setStreamingText("");
+      setStreamingStatus("");
+    }
   }
 
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -506,20 +577,22 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
             <h1>{viewTitles[activeView]}</h1>
           </div>
           <div className="topbar-actions">
-            {activeView === "conversation" && <label className="module-context-select">
-              <span>Teaching context</span>
-              <select value={selectedModuleOfferingId} onChange={(event) => setSelectedModuleOfferingId(event.target.value)}>
-                <option value="">Generic teaching assistance</option>
-                {moduleContexts.map((context) => (
-                  <option value={context.module_offering_id} key={context.module_offering_id}>
-                    {context.module_code} · {context.offering_code}
-                  </option>
-                ))}
-              </select>
-            </label>}
+            {activeView === "conversation" && moduleContexts.length > 0 && (
+              <label className="module-context-select">
+                <span>Teaching context</span>
+                <select value={selectedModuleOfferingId} onChange={(event) => setSelectedModuleOfferingId(event.target.value)}>
+                  <option value="">Auto-detect from conversation</option>
+                  {moduleContexts.map((context) => (
+                    <option value={context.module_offering_id} key={context.module_offering_id}>
+                      {context.module_code} · {context.offering_code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <button className="theme-button" type="button" onClick={toggleTheme} aria-label={`Use ${theme === "light" ? "dark" : "light"} appearance`}>{theme === "light" ? "◐" : "☀"}</button>
             <button className="context-button" type="button" onClick={() => setDrawer(actions[0]?.key ?? null)}>
-              Role actions
+              Actions
             </button>
           </div>
         </header>
@@ -528,14 +601,14 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
         <div className="message-scroll" ref={scrollRef} aria-live="polite">
           {loadingConversation ? (
             <div className="conversation-loading"><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></div>
-          ) : messages.length === 0 ? (
+          ) : messages.length === 0 && !sending ? (
             <div className="conversation-empty">
               <div className="orb" aria-hidden="true">✦</div>
               <h2>What would you like to create, review, or organise?</h2>
               <p>
                 Ask for a lesson plan, practical activity, rubric, quiz, case study, marking guide,
-                moderation review, or a day-to-day teaching task. The system chooses the appropriate
-                inline output and uses verified sources when they are genuinely available.
+                moderation review, or a day-to-day teaching task. The system determines the
+                appropriate output and uses verified sources when genuinely available.
               </p>
               <div className="capability-chips" aria-label="Supported examples">
                 <span>Lesson planning</span><span>Assessments</span><span>Rubrics</span><span>Moderation</span>
@@ -544,7 +617,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
           ) : (
             <div className="message-list">
               {messages.map((message) => <MessageCard key={message.id} message={message} activeRole={activeRole} onOpenReview={(outputId) => { setSelectedReviewOutputId(outputId); setDrawer("reviewCycle"); }} />)}
-              {sending && <AssistantThinking />}
+              {sending && <AssistantStreaming text={streamingText} status={streamingStatus} />}
             </div>
           )}
           {notice && <div className="notice conversation-notice" role="status">{notice}</div>}
@@ -576,11 +649,14 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
                 className="icon-button"
                 title="Attach or bulk-upload authorised files"
                 onClick={() => setDrawer("bulkUpload")}
+                disabled={sending}
               >＋</button>
               <span className="composer-hint">Enter to send · Shift+Enter for a new line</span>
-              <button type="button" className="send-button" disabled={sending || !composerText.trim()} onClick={() => void sendMessage()}>
-                {sending ? "Working…" : "Send"}
-              </button>
+              {sending ? (
+                <button type="button" className="stop-button" onClick={stopGeneration} aria-label="Stop generation">◼ Stop</button>
+              ) : (
+                <button type="button" className="send-button" disabled={!composerText.trim()} onClick={() => void sendMessage()}>Send</button>
+              )}
             </div>
           </div>
           <p className="ai-disclaimer">AI-generated teaching materials require professional judgement. Verified source cards indicate retrieval, not automatic institutional approval.</p>
@@ -768,7 +844,6 @@ function MessageCard({ message, activeRole, onOpenReview }: { message: ChatItem;
           <span className="version-pill">Version {versionNumber}</span>
           <span className={`workflow-pill ${workflowStatus}`}>{humanize(workflowStatus)}</span>
           {message.riskLevel && message.riskLevel !== "none" && <span className="risk-pill">{humanize(message.riskLevel)} risk</span>}
-          {message.provider && <span>{message.provider} · {message.model}</span>}
         </div>
         {editing ? (
           <div className="inline-output-editor">
@@ -778,6 +853,7 @@ function MessageCard({ message, activeRole, onOpenReview }: { message: ChatItem;
         ) : <MarkdownView content={content} />}
         {message.generatedOutputId && !editing && (
           <div className="output-action-bar">
+            <button type="button" onClick={() => { void navigator.clipboard.writeText(content); setActionNotice("Copied to clipboard."); }}>Copy</button>
             <button type="button" onClick={() => setEditing(true)}>Edit</button>
             <button type="button" onClick={() => void loadVersions()}>Version history</button>
             <button type="button" disabled={busy} onClick={() => void saveToWorkspace()}>Save</button>
@@ -858,11 +934,23 @@ function renderInline(text: string) {
   });
 }
 
-function AssistantThinking() {
+function AssistantStreaming({ text, status }: { text: string; status: string }) {
   return (
-    <article className="message-row assistant-message">
+    <article className="message-row assistant-message" aria-live="polite" aria-label="Generating response">
       <div className="assistant-avatar" aria-hidden="true">✦</div>
-      <div className="assistant-thinking"><span /><span /><span /><p>Preparing the most suitable teaching output…</p></div>
+      <div className="assistant-content">
+        {text ? (
+          <>
+            <MarkdownView content={text} />
+            <span className="streaming-cursor" aria-hidden="true" />
+          </>
+        ) : (
+          <div className="assistant-thinking">
+            <span /><span /><span />
+            <p>{status || "Preparing the most suitable teaching output…"}</p>
+          </div>
+        )}
+      </div>
     </article>
   );
 }

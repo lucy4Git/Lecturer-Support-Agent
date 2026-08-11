@@ -500,3 +500,9 @@ input:focus, select:focus { border-color: #84a1ff; box-shadow: 0 0 0 3px rgba(49
 .auth-divider { display: flex; align-items: center; gap: .75rem; margin: 1.25rem 0; color: #6b7280; font-size: .82rem; }
 .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: rgba(17,24,39,.12); }
 .secondary-button { width: 100%; border: 1px solid rgba(17,24,39,.18); background: transparent; border-radius: .75rem; padding: .75rem 1rem; font-weight: 650; cursor: pointer; }
+
+/* Streaming and stop-generation controls */
+.streaming-cursor { display: inline-block; width: 2px; height: 1em; background: var(--accent); border-radius: 1px; margin-left: 2px; vertical-align: text-bottom; animation: cursorBlink 0.8s ease-in-out infinite; }
+@keyframes cursorBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.stop-button { border: 1px solid #fecdca; background: #fef3f2; color: #b42318; border-radius: 12px; padding: 9px 15px; font-weight: 700; }
+.stop-button:hover { background: #fee4e2; }

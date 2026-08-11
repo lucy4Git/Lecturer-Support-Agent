@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 
 from ..contracts import ProviderRequest, ProviderResponse
 
@@ -25,3 +26,8 @@ class AIProvider(ABC):
 
     @abstractmethod
     async def generate(self, request: ProviderRequest) -> ProviderResponse: ...
+
+    async def generate_stream(self, request: ProviderRequest) -> AsyncIterator[str]:
+        """Yield text tokens as they arrive. Default: yield full response as one chunk."""
+        response = await self.generate(request)
+        yield response.text

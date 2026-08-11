@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import re
+from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -528,6 +530,414 @@ class ConversationEngine:
             routed,
             integrity_warnings,
         )
+
+    async def stream_message(
+        self,
+        *,
+        conversation_id: UUID,
+        payload: MessageCreate,
+    ) -> AsyncIterator[str]:
+        """Async generator that yields SSE-formatted lines for streaming responses.
+
+        Protocol:
+          data: {"type": "thinking", "status": "…"}\n\n
+          data: {"type": "token", "text": "…"}\n\n
+          data: {"type": "done", …full metadata…}\n\n
+          data: {"type": "error", "detail": "…"}\n\n
+        """
+
+        def _sse(payload: dict) -> str:
+            return f"data: {json.dumps(payload)}\n\n"
+
+        try:
+            await self._require_ai_permission()
+            yield _sse({"type": "thinking", "status": "Analysing your request…"})
+
+            conversation = await self._owned_conversation(conversation_id)
+            classification = self.classifier.classify(
+                payload.content,
+                has_attachments=bool(payload.attachment_version_ids),
+            )
+            usage_governance = AIUsageGovernanceService(self.session, self.context)
+            usage_decision = await usage_governance.preflight(classification)
+            if usage_decision.source_required and not classification.source_verification_required:
+                classification = classification.model_copy(update={"source_verification_required": True})
+            self.safety.enforce_generation_role(classification.task_type, self.context.role_code)
+
+            module_bundle: ModuleContextBundle | None = None
+            selected_offering_id = payload.module_offering_id
+            if selected_offering_id is None and conversation.context.get("module_offering_id"):
+                try:
+                    selected_offering_id = UUID(str(conversation.context["module_offering_id"]))
+                except (TypeError, ValueError):
+                    selected_offering_id = None
+            if selected_offering_id is not None:
+                module_bundle = await self.module_context.require(selected_offering_id)
+                conversation.context = {
+                    **conversation.context,
+                    "module_offering_id": str(selected_offering_id),
+                    "module_id": str(module_bundle.module_id),
+                    "module_code": module_bundle.module_code,
+                    "module_name": module_bundle.module_name,
+                }
+
+            next_sequence = int(
+                await self.session.scalar(
+                    select(func.coalesce(func.max(Message.sequence_number), 0)).where(
+                        Message.tenant_id == self.context.tenant_id,
+                        Message.conversation_id == conversation.id,
+                    )
+                )
+                or 0
+            ) + 1
+            user_message = Message(
+                id=uuid4(),
+                tenant_id=self.context.tenant_id,
+                conversation_id=conversation.id,
+                author_user_id=self.context.user_id,
+                role="user",
+                sequence_number=next_sequence,
+                content_text=payload.content,
+                content_blocks=[],
+            )
+            self.session.add(user_message)
+            await self.session.flush()
+            for version_id in payload.attachment_version_ids:
+                self.session.add(
+                    MessageAttachment(
+                        id=uuid4(),
+                        tenant_id=self.context.tenant_id,
+                        message_id=user_message.id,
+                        document_version_id=version_id,
+                        attachment_purpose="context",
+                    )
+                )
+
+            ai_request = AIRequest(
+                id=uuid4(),
+                tenant_id=self.context.tenant_id,
+                conversation_id=conversation.id,
+                message_id=user_message.id,
+                requested_by_user_id=self.context.user_id,
+                intent=classification.task_type.value,
+                output_type=classification.task_type.value,
+                privacy_classification=classification.privacy_classification.value,
+                institutional_context_required=classification.institutional_context_required,
+                source_verification_required=classification.source_verification_required,
+                routing_constraints={
+                    "classifier_version": self.classifier.VERSION,
+                    "confidence": classification.confidence,
+                    "rationale_codes": classification.rationale_codes,
+                    "detected_entities": classification.detected_entities,
+                    "human_review_required": classification.human_review_required,
+                    "module_offering_id": str(selected_offering_id) if selected_offering_id else None,
+                },
+            )
+            self.session.add(ai_request)
+            await self.session.flush()
+            if module_bundle is not None:
+                await self.module_context.persist_snapshot(
+                    ai_request_id=ai_request.id,
+                    conversation_id=conversation.id,
+                    bundle=module_bundle,
+                )
+
+            yield _sse({"type": "thinking", "status": "Retrieving relevant knowledge…"})
+
+            retrieval_warnings: list[str] = []
+            institutional_sources: list[SourceCandidate] = []
+            if self.document_retrieval is not None:
+                bundle = await self.document_retrieval.retrieve(
+                    query=payload.content,
+                    conversation=conversation,
+                    attachment_version_ids=payload.attachment_version_ids,
+                    classification=classification,
+                    ai_request_id=ai_request.id,
+                )
+                institutional_sources = bundle.sources
+                retrieval_warnings = bundle.warnings
+            external_sources = await self._discover_sources(payload.content, classification)
+            sources = self._merge_sources(institutional_sources, external_sources)
+            history = await self._history(conversation.id)
+            system_prompt = self.prompt_builder.build_system_prompt(
+                classification=classification,
+                user_role=self.context.role_code,
+                sources=sources,
+                institutional_context=payload.institutional_context,
+                module_context=(module_bundle.prompt_text() if module_bundle else None),
+            )
+
+            yield _sse({"type": "thinking", "status": "Generating response…"})
+
+            # Stream AI tokens
+            full_text = ""
+            try:
+                async for token in self.router.stream(
+                    ProviderRequest(
+                        messages=history,
+                        system_prompt=system_prompt,
+                        model="",
+                        max_output_tokens=self.settings.ai_max_output_tokens,
+                        temperature=self.settings.ai_temperature,
+                        metadata={
+                            "tenant_id": str(self.context.tenant_id),
+                            "conversation_id": str(conversation.id),
+                            "ai_request_id": str(ai_request.id),
+                            "task_type": classification.task_type.value,
+                        },
+                    ),
+                    privacy=classification.privacy_classification,
+                    allowed_providers=(set(usage_decision.allowed_providers) if usage_decision.allowed_providers else None),
+                    denied_providers=(set(usage_decision.denied_providers) if usage_decision.denied_providers else None),
+                ):
+                    full_text += token
+                    yield _sse({"type": "token", "text": token})
+            except Exception as exc:
+                yield _sse({"type": "error", "detail": "The AI provider could not complete the response. Please try again."})
+                return
+
+            # Post-generation: persist everything with the completed text
+            # Wrap in a routed response equivalent for reuse of existing persistence logic
+            from ..ai.router import RoutedResponse
+            from ..ai.contracts import ProviderResponse, ProviderAttempt
+            fake_routed = RoutedResponse(
+                response=ProviderResponse(
+                    provider="streamed",
+                    model="streamed",
+                    text=full_text,
+                    finish_reason="stop",
+                    latency_ms=0,
+                ),
+                attempts=[ProviderAttempt(provider="streamed", model="streamed", status="completed", reason="stream_mode")],
+                routing_reason="stream_mode",
+            )
+
+            combined_sources = self._merge_sources(sources, [])
+            integrity = self.integrity_guard.validate(full_text, combined_sources)
+            integrity_warnings = [*retrieval_warnings, *integrity.warnings]
+
+            model_execution_id = await self._record_model_attempts(ai_request.id, fake_routed)
+            await usage_governance.record_usage(
+                provider="streamed",
+                model_id="streamed",
+                task_type=classification.task_type.value,
+                status_code="completed",
+                input_tokens=None,
+                output_tokens=None,
+                latency_ms=0,
+                currency_code=usage_decision.currency_code,
+            )
+
+            title = self._title_from_output(integrity.text, payload.content)
+            generated_output = GeneratedOutput(
+                id=uuid4(),
+                tenant_id=self.context.tenant_id,
+                conversation_id=conversation.id,
+                source_message_id=user_message.id,
+                ai_request_id=ai_request.id,
+                output_type=classification.task_type.value,
+                title=title,
+                is_formally_approved=False,
+                approval_disclaimer=(
+                    "AI-generated draft requiring authorised human review before formal use."
+                    if classification.human_review_required
+                    else "AI-generated teaching support output; lecturer review is recommended."
+                ),
+            )
+            self.session.add(generated_output)
+            await self.session.flush()
+
+            module_context_data = module_bundle.as_dict() if module_bundle else None
+            structured_content = self.output_workflow.structure(
+                task_type=classification.task_type,
+                markdown=integrity.text,
+                classification=classification.model_dump(mode="json"),
+                module_context=module_context_data,
+            )
+
+            safety_evaluation = self.safety.evaluate(
+                task_type=classification.task_type,
+                content=integrity.text,
+                detected_total_marks=(
+                    int(classification.detected_entities["total_marks"])
+                    if classification.detected_entities.get("total_marks") is not None
+                    else None
+                ),
+                module_context_available=module_bundle is not None,
+            )
+            integrity_warnings.extend(
+                warning for warning in safety_evaluation.warnings if warning not in integrity_warnings
+            )
+
+            output_version = OutputVersion(
+                id=uuid4(),
+                tenant_id=self.context.tenant_id,
+                generated_output_id=generated_output.id,
+                version_number=1,
+                previous_version_id=None,
+                created_by_user_id=self.context.user_id,
+                model_execution_id=model_execution_id,
+                content_text=integrity.text,
+                structured_content=structured_content,
+                change_reason="Initial AI-generated streamed output",
+            )
+            self.session.add(output_version)
+            await self.session.flush()
+            generated_output.current_version_id = output_version.id
+
+            lifecycle = OutputLifecycle(
+                id=uuid4(),
+                tenant_id=self.context.tenant_id,
+                generated_output_id=generated_output.id,
+                owner_user_id=self.context.user_id,
+                module_id=(module_bundle.module_id if module_bundle else conversation.module_id),
+                module_offering_id=(module_bundle.module_offering_id if module_bundle else None),
+                workflow_status="draft",
+                risk_level=safety_evaluation.risk_level.value,
+                assessment_kind=(
+                    classification.task_type.value
+                    if safety_evaluation.risk_level.value != "none"
+                    else None
+                ),
+                review_required=(
+                    classification.human_review_required
+                    or safety_evaluation.risk_level.value != "none"
+                ),
+                answer_key_present=safety_evaluation.answers_detected,
+                student_release_allowed=safety_evaluation.student_copy_safe,
+                policy_snapshot={
+                    "assessment_safety_version": self.safety.VERSION,
+                    "workflow_version": self.output_workflow.VERSION,
+                    "privacy_classification": classification.privacy_classification.value,
+                },
+            )
+            safety_review = AssessmentSafetyReview(
+                id=uuid4(),
+                tenant_id=self.context.tenant_id,
+                generated_output_id=generated_output.id,
+                output_version_id=output_version.id,
+                status=safety_evaluation.status.value,
+                risk_level=safety_evaluation.risk_level.value,
+                checks=safety_evaluation.checks,
+                warnings=safety_evaluation.warnings,
+                blocked_reasons=safety_evaluation.blocked_reasons,
+                answers_detected=safety_evaluation.answers_detected,
+                personal_data_detected=safety_evaluation.personal_data_detected,
+                student_copy_safe=safety_evaluation.student_copy_safe,
+            )
+            workflow_action = OutputWorkflowAction(
+                id=uuid4(),
+                tenant_id=self.context.tenant_id,
+                generated_output_id=generated_output.id,
+                output_version_id=output_version.id,
+                action="created",
+                previous_status=None,
+                new_status="draft",
+                performed_by_user_id=self.context.user_id,
+                active_role_code=self.context.role_code,
+                reason="Initial AI-generated streamed output created in the unified conversation.",
+                action_metadata={"safety_status": safety_evaluation.status.value},
+            )
+            self.session.add_all([lifecycle, safety_review, workflow_action])
+            await self.session.flush()
+
+            assistant_message = Message(
+                id=uuid4(),
+                tenant_id=self.context.tenant_id,
+                conversation_id=conversation.id,
+                author_user_id=None,
+                role="assistant",
+                sequence_number=next_sequence + 1,
+                content_text=integrity.text,
+                content_blocks=[
+                    {
+                        "type": "inline_output",
+                        "output_type": classification.task_type.value,
+                        "title": title,
+                        "editable": True,
+                        "generated_output_id": str(generated_output.id),
+                        "output_version_id": str(output_version.id),
+                        "version_number": 1,
+                        "workflow_status": lifecycle.workflow_status,
+                        "risk_level": lifecycle.risk_level,
+                        "safety_status": safety_review.status,
+                        "requires_human_review": lifecycle.review_required,
+                        "approval_disclaimer": generated_output.approval_disclaimer,
+                    }
+                ],
+                parent_message_id=user_message.id,
+            )
+            self.session.add(assistant_message)
+            await self.session.flush()
+
+            source_cards = await self._persist_sources_and_citations(
+                ai_request_id=ai_request.id,
+                output_version_id=output_version.id,
+                sources=combined_sources,
+                cited_source_keys=set(integrity.cited_source_keys),
+            )
+
+            if conversation.title == "New teaching conversation":
+                conversation.title = self._title_from_request(payload.content)
+
+            await self.audit.record(
+                action="ai.response_streamed",
+                resource_type="generated_output",
+                resource_id=generated_output.id,
+                metadata={
+                    "task_type": classification.task_type.value,
+                    "provider": "streamed",
+                    "source_count": len(source_cards),
+                    "workflow_status": lifecycle.workflow_status,
+                    "safety_status": safety_review.status,
+                },
+            )
+            await self.session.flush()
+            await self.session.refresh(conversation)
+
+            yield _sse({
+                "type": "done",
+                "conversation_id": str(conversation.id),
+                "conversation_title": conversation.title,
+                "user_message_id": str(user_message.id),
+                "assistant_message_id": str(assistant_message.id),
+                "output_type": classification.task_type.value,
+                "title": title,
+                "generated_output_id": str(generated_output.id),
+                "output_version_id": str(output_version.id),
+                "version_number": 1,
+                "workflow_status": lifecycle.workflow_status,
+                "risk_level": lifecycle.risk_level,
+                "safety_status": safety_review.status,
+                "requires_human_review": lifecycle.review_required,
+                "approval_disclaimer": generated_output.approval_disclaimer,
+                "integrity_warnings": integrity_warnings,
+                "sources": [
+                    {
+                        "number": card.number,
+                        "source_key": card.source_key,
+                        "title": card.title,
+                        "authors": card.authors,
+                        "publisher_or_organisation": card.publisher_or_organisation,
+                        "publication_date": card.publication_date,
+                        "url": card.url,
+                        "doi": card.doi,
+                        "verified_retrieval": card.verified_retrieval,
+                        "cited_in_response": card.cited_in_response,
+                        "source_kind": card.source_kind,
+                        "institutional": card.institutional,
+                        "document_version_id": card.document_version_id,
+                        "locator": card.locator,
+                        "access_label": card.access_label,
+                    }
+                    for card in source_cards
+                ],
+            })
+
+        except HTTPException as exc:
+            yield _sse({"type": "error", "detail": exc.detail if isinstance(exc.detail, str) else "Permission denied."})
+        except Exception:
+            yield _sse({"type": "error", "detail": "An unexpected error occurred. Please try again."})
 
     async def _require_ai_permission(self) -> None:
         await AuthorizationService(self.session, self.context).require_permission(

@@ -182,6 +182,7 @@ class RegistrationService:
             reason="Self-registered via staging direct registration.",
         )
         self.session.add(assignment)
+        await self.session.flush()
 
         self.session.add(
             SecurityEvent(

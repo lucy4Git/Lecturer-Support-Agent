@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
+
 from ..contracts import ProviderRequest, ProviderResponse
 from .base import AIProvider
 
@@ -8,6 +11,14 @@ class DevelopmentMockProvider(AIProvider):
     name = "development_mock"
     default_model = "deterministic-teaching-mock-1"
     configured = True
+
+    async def generate_stream(self, request: ProviderRequest) -> AsyncIterator[str]:  # type: ignore[override]
+        """Stream the mock response word by word with a short delay."""
+        response = await self.generate(request)
+        words = response.text.split(" ")
+        for i, word in enumerate(words):
+            yield word + (" " if i < len(words) - 1 else "")
+            await asyncio.sleep(0.04)
 
     async def generate(self, request: ProviderRequest) -> ProviderResponse:
         user_request = request.messages[-1].content if request.messages else "Teaching request"

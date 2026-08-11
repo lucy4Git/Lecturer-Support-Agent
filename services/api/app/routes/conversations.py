@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from typing import Annotated
 
 from ..ai.router import ModelRouter
@@ -78,6 +79,30 @@ async def archive_conversation(
 ) -> ConversationRead:
     row = await ConversationEngine(session, context, get_settings()).archive_conversation(conversation_id)
     return ConversationRead.model_validate(row)
+
+
+@router.post("/{conversation_id}/messages/stream")
+async def stream_message(
+    conversation_id: UUID,
+    payload: MessageCreate,
+    session: DatabaseSession,
+    context: CurrentContext,
+    embedding: Annotated[EmbeddingClient, Depends(get_embedding_client)],
+    qdrant: Annotated[QdrantGateway, Depends(get_qdrant_gateway)],
+) -> StreamingResponse:
+    engine = ConversationEngine(
+        session,
+        context,
+        get_settings(),
+        document_retrieval=DocumentRetrievalService(
+            session, context, embedding_client=embedding, qdrant=qdrant, settings=get_settings()
+        ),
+    )
+    return StreamingResponse(
+        engine.stream_message(conversation_id=conversation_id, payload=payload),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.post("/{conversation_id}/messages", response_model=UnifiedAIResponse)

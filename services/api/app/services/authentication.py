@@ -451,13 +451,38 @@ class AuthenticationService:
         if len(all_active) == 0:
             raise HTTPException(status_code=404, detail="No active institutions are registered.")
 
-        # Multiple institutions: authenticate against all of them and let the
-        # post-login role/context selection handle switching. For now, pick the
-        # institution whose membership was most recently activated, which is the
-        # most likely intended context for the current session.
-        # A dedicated post-login institution-context screen can be added later.
-        sorted_active = sorted(all_active, key=lambda i: i.created_at, reverse=True)
-        return sorted_active[0]
+        # Multiple institutions: resolve by email domain first, then by the
+        # institution where the user holds the most recently activated membership.
+        # This avoids exposing institution selection on the login form.
+        if domain_matches:
+            # More than one domain match (rare configuration): use the first.
+            return domain_matches[0]
+
+        email_normalized = str(payload.email).strip().lower()
+        membership_rows = (
+            await self.session.scalars(
+                select(Membership)
+                .join(User, User.id == Membership.user_id)
+                .where(
+                    User.email_normalized == email_normalized,
+                    Membership.status == "active",
+                )
+                .order_by(Membership.created_at.desc())
+            )
+        ).all()
+        if membership_rows:
+            institution_id = membership_rows[0].tenant_id
+            institution = await self.session.scalar(
+                select(Institution).where(
+                    Institution.id == institution_id,
+                    Institution.is_active.is_(True),
+                )
+            )
+            if institution is not None:
+                return institution
+
+        # Last resort: use the only available institution (staging single-tenant).
+        return all_active[0]
 
     async def _active_role_options(
         self,
