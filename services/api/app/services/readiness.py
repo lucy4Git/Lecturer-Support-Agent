@@ -31,7 +31,7 @@ class ReadinessService:
     def _is_development(self) -> bool:
         return self.settings.environment.lower() in ("development", "test", "local")
 
-    def _safe_detail(self, exc: Exception, correlation_id: str) -> str:
+    def _safe_detail(self, exc: Exception, correlation_id: str, *, probe: str = "unknown") -> str:
         """Return a safe probe-failure detail suitable for unauthenticated clients.
 
         Development: full exception type and sanitised message (no connection
@@ -54,7 +54,7 @@ class ReadinessService:
         logger.error(
             "Readiness probe failure",
             extra={
-                "probe": "unknown",
+                "probe": probe,
                 "exc_type": type(exc).__name__,
                 "exc_detail": str(exc),
                 "correlation_id": correlation_id,
@@ -77,8 +77,15 @@ class ReadinessService:
         return ProbeResult("redis", True, "reachable")
 
     async def _qdrant(self) -> ProbeResult:
+        url = (
+            f"{self.settings.qdrant_url.rstrip('/')}"
+            f"/collections/{self.settings.qdrant_collection}"
+        )
+        headers: dict[str, str] = {}
+        if self.settings.qdrant_api_key:
+            headers["api-key"] = self.settings.qdrant_api_key.get_secret_value()
         async with httpx.AsyncClient(timeout=self.settings.readiness_probe_timeout_seconds) as client:
-            response = await client.get(f"{self.settings.qdrant_url.rstrip('/')}/collections")
+            response = await client.get(url, headers=headers)
             response.raise_for_status()
         return ProbeResult("qdrant", True, "reachable")
 
@@ -114,5 +121,5 @@ class ReadinessService:
                     "Readiness probe failed",
                     extra={"probe": name, "exc_type": type(exc).__name__, "correlation_id": correlation_id},
                 )
-                results.append(ProbeResult(name, False, self._safe_detail(exc, correlation_id)))
+                results.append(ProbeResult(name, False, self._safe_detail(exc, correlation_id, probe=name)))
         return results
