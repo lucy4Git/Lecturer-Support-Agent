@@ -3,25 +3,31 @@ from __future__ import annotations
 import hashlib
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
+from sqlalchemy import func, select
 
 from ..core.database import set_auth_tenant_context
 from ..core.dependencies import AuthenticationDatabaseSession
-from sqlalchemy import func, select
+from ..core.settings import get_settings
 
-from services.database.models import Institution, InstitutionalAccessRequest
+from services.database.models import Institution, InstitutionalAccessRequest, PasswordCredential, User
 
 from ..schemas.auth import (
-    InvitationAcceptRequest,
-    InvitationAcceptedResponse,
+    DirectPasswordResetRequest,
+    DirectRegistrationRequest,
+    DirectRegistrationResponse,
     InstitutionalAccessRequestCreate,
     InstitutionalAccessRequestResponse,
+    InstitutionSummary,
+    InvitationAcceptRequest,
+    InvitationAcceptedResponse,
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
     TokenResponse,
 )
 from ..services.authentication import AuthenticationService
+from ..services.registration import RegistrationService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -32,6 +38,30 @@ def _request_hashes(request: Request) -> tuple[str | None, str | None]:
     user_agent_hash = hashlib.sha256(user_agent.encode()).hexdigest() if user_agent else None
     source_ip_hash = hashlib.sha256(client_host.encode()).hexdigest() if client_host else None
     return user_agent_hash, source_ip_hash
+
+
+@router.get("/institutions", response_model=list[InstitutionSummary])
+async def search_institutions(
+    session: AuthenticationDatabaseSession,
+    q: str = Query(default="", max_length=200),
+) -> list[InstitutionSummary]:
+    """Public institution directory — searchable by display name."""
+    statement = select(Institution).where(Institution.is_active.is_(True))
+    if q.strip():
+        statement = statement.where(
+            Institution.display_name.ilike(f"%{q.strip()}%")
+        )
+    statement = statement.order_by(Institution.display_name).limit(20)
+    institutions = (await session.scalars(statement)).all()
+    return [
+        InstitutionSummary(
+            id=inst.id,
+            display_name=inst.display_name,
+            institution_type=inst.institution_type,
+            country_code=inst.country_code,
+        )
+        for inst in institutions
+    ]
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -100,7 +130,6 @@ async def request_institutional_access(
             Institution.is_active.is_(True),
         )
     )
-    # Return a neutral message for unknown institutions to prevent enumeration.
     if institution is None:
         return InstitutionalAccessRequestResponse(
             request_id=uuid4(),
@@ -138,3 +167,72 @@ async def request_institutional_access(
         status="pending",
         message="Your request has been submitted for institutional review. No role is granted automatically.",
     )
+
+
+@router.post(
+    "/register",
+    response_model=DirectRegistrationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def register(
+    payload: DirectRegistrationRequest,
+    request: Request,
+    session: AuthenticationDatabaseSession,
+) -> DirectRegistrationResponse:
+    """Self-service account creation.
+
+    Creates user, credential, membership, and role assignment in a single
+    transaction, then issues a session token for immediate login.
+    """
+    user_agent_hash, source_ip_hash = _request_hashes(request)
+    return await RegistrationService(session).register(
+        payload,
+        user_agent_hash=user_agent_hash,
+        source_ip_hash=source_ip_hash,
+    )
+
+
+@router.post("/direct-reset", status_code=status.HTTP_204_NO_CONTENT)
+async def direct_password_reset(
+    payload: DirectPasswordResetRequest,
+    session: AuthenticationDatabaseSession,
+) -> Response:
+    """Staging-only direct password reset — no email link or token required.
+
+    Disabled in production via STAGING_DIRECT_RESET_ENABLED=false (default).
+    """
+    settings = get_settings()
+    if not settings.staging_direct_reset_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found.",
+        )
+
+    from ..core.security import PasswordManager
+    passwords = PasswordManager(settings)
+
+    email_normalized = str(payload.email).strip().lower()
+    user = await session.scalar(
+        select(User).where(User.email_normalized == email_normalized)
+    )
+    if user is None:
+        # Neutral response: do not confirm whether the email is registered.
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    credential = await session.scalar(
+        select(PasswordCredential).where(
+            PasswordCredential.user_id == user.id
+        ).with_for_update()
+    )
+    if credential is None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    credential.password_hash = passwords.hash(payload.new_password.get_secret_value())
+    credential.password_changed_at = now
+    credential.failed_attempts = 0
+    credential.locked_until = None
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

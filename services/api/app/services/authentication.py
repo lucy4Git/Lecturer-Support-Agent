@@ -404,15 +404,69 @@ class AuthenticationService:
         )
 
     async def _resolve_institution(self, payload: LoginRequest) -> Institution:
-        statement = select(Institution).where(Institution.is_active.is_(True))
         if payload.institution_id:
-            statement = statement.where(Institution.id == payload.institution_id)
-        else:
-            statement = statement.where(Institution.slug == payload.institution_slug)
-        institution = await self.session.scalar(statement)
-        if institution is None:
-            raise HTTPException(status_code=404, detail="Institution was not found or is inactive.")
-        return institution
+            institution = await self.session.scalar(
+                select(Institution).where(
+                    Institution.id == payload.institution_id,
+                    Institution.is_active.is_(True),
+                )
+            )
+            if institution is None:
+                raise HTTPException(status_code=404, detail="Institution was not found or is inactive.")
+            return institution
+
+        if payload.institution_slug:
+            institution = await self.session.scalar(
+                select(Institution).where(
+                    Institution.slug == payload.institution_slug,
+                    Institution.is_active.is_(True),
+                )
+            )
+            if institution is None:
+                raise HTTPException(status_code=404, detail="Institution was not found or is inactive.")
+            return institution
+
+        # Email-only login: resolve institution from email domain.
+        email_domain = str(payload.email).lower().split("@")[-1]
+        domain_matches = (
+            await self.session.scalars(
+                select(Institution).where(
+                    Institution.is_active.is_(True),
+                    Institution.configuration["email_domains"].as_string().contains(email_domain),
+                )
+            )
+        ).all()
+        if len(domain_matches) == 1:
+            return domain_matches[0]
+
+        # Fallback: if exactly one active institution exists, use it.
+        all_active = (
+            await self.session.scalars(
+                select(Institution).where(Institution.is_active.is_(True))
+            )
+        ).all()
+        if len(all_active) == 1:
+            return all_active[0]
+        if len(all_active) == 0:
+            raise HTTPException(status_code=404, detail="No active institutions are registered.")
+
+        # Multiple institutions: return choices to the client.
+        from ..schemas.auth import InstitutionSummary
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Your account is associated with multiple institutions. Please select one.",
+                "available_institutions": [
+                    InstitutionSummary(
+                        id=inst.id,
+                        display_name=inst.display_name,
+                        institution_type=inst.institution_type,
+                        country_code=inst.country_code,
+                    ).model_dump(mode="json")
+                    for inst in all_active
+                ],
+            },
+        )
 
     async def _active_role_options(
         self,

@@ -210,6 +210,10 @@ class Settings(BaseSettings):
     enable_demo_seed: bool = False
     deployment_version: str = "2.6.0"
 
+    # Staging-only: allow direct password reset without email token.
+    # Must be False in production (enforced by the production security validator).
+    staging_direct_reset_enabled: bool = False
+
     maximum_upload_bytes: int = Field(default=1_073_741_824, ge=1)
     allowed_upload_media_types: list[str] = Field(
         default_factory=lambda: [
@@ -230,6 +234,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":
         if self.environment.lower() == "production":
+            if self.staging_direct_reset_enabled:
+                raise ValueError("STAGING_DIRECT_RESET_ENABLED must be false in production.")
             if self.development_header_auth or self.expose_development_invitation_tokens:
                 raise ValueError("Development authentication features must be disabled in production.")
             if self.enable_demo_seed:
