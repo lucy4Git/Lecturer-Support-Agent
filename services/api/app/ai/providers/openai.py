@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
+
 import httpx
 
 from ...core.settings import Settings
@@ -22,6 +25,49 @@ class OpenAIProvider(AIProvider):
     @property
     def default_model(self) -> str:
         return self.settings.openai_default_model.strip()
+
+    async def generate_stream(self, request: ProviderRequest) -> AsyncIterator[str]:  # type: ignore[override]
+        if not self.configured:
+            raise ProviderError(self.name, "OpenAI is not configured.", code="not_configured")
+        input_messages = [
+            {"role": message.role.value, "content": message.content}
+            for message in request.messages
+            if message.role.value != "system"
+        ]
+        body = {
+            "model": request.model or self.default_model,
+            "instructions": request.system_prompt,
+            "input": input_messages,
+            "max_output_tokens": request.max_output_tokens,
+            "temperature": request.temperature,
+            "store": False,
+            "stream": True,
+        }
+        url = f"{self.settings.openai_base_url.rstrip('/')}/responses"
+        headers = {
+            "Authorization": f"Bearer {self.settings.openai_api_key.get_secret_value()}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=self.settings.ai_request_timeout_seconds) as client:
+            async with client.stream("POST", url, headers=headers, json=body) as response:
+                if response.status_code >= 400:
+                    await response.aread()
+                    raise ProviderError(self.name, f"OpenAI stream error {response.status_code}", code="stream_error")
+                async for line in response.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    raw = line[6:].strip()
+                    if raw in ("", "[DONE]"):
+                        continue
+                    try:
+                        event = json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
+                    # Responses API streaming event: response.output_text.delta
+                    if event.get("type") == "response.output_text.delta":
+                        chunk = event.get("delta", "")
+                        if chunk:
+                            yield chunk
 
     async def generate(self, request: ProviderRequest) -> ProviderResponse:
         if not self.configured:
