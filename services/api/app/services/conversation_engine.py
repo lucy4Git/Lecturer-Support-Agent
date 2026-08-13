@@ -40,6 +40,7 @@ from ..ai.prompt_builder import PromptBuilder
 from ..ai.router import ModelRouter, RoutedResponse
 from ..ai.source_discovery import CompositeSourceDiscovery, CrossrefSourceDiscovery, OpenAlexSourceDiscovery
 from ..ai.task_classifier import TeachingTaskClassifier
+from ..ai.capability_registry import CapabilityRegistry
 from ..core.request_context import RequestContext
 from ..core.settings import Settings
 from ..schemas.conversations import ConversationCreate, MessageCreate
@@ -133,6 +134,14 @@ class ConversationEngine:
             )
         )
         return conversation, messages
+
+    async def update_conversation(self, conversation_id: UUID, payload: "ConversationUpdate") -> Conversation:
+        from ..schemas.conversations import ConversationUpdate  # noqa: PLC0415
+        conversation = await self._owned_conversation(conversation_id)
+        if payload.title is not None:
+            conversation.title = payload.title.strip() or conversation.title
+        await self.session.flush()
+        return conversation
 
     async def archive_conversation(self, conversation_id: UUID) -> Conversation:
         conversation = await self._owned_conversation(conversation_id)
@@ -265,11 +274,18 @@ class ConversationEngine:
         external_sources = await self._discover_sources(payload.content, classification)
         sources = self._merge_sources(institutional_sources, external_sources)
         history = await self._history(conversation.id)
+        capability_result = await CapabilityRegistry(self.session, self.context).resolve(payload.content)
+        augmented_context = payload.institutional_context or ""
+        if capability_result.matched and capability_result.institutional_context:
+            augmented_context = (
+                (augmented_context + "\n\n" if augmented_context else "")
+                + capability_result.institutional_context
+            )
         system_prompt = self.prompt_builder.build_system_prompt(
             classification=classification,
             user_role=self.context.role_code,
             sources=sources,
-            institutional_context=payload.institutional_context,
+            institutional_context=augmented_context or None,
             module_context=(module_bundle.prompt_text() if module_bundle else None),
         )
         routed = await self.router.generate(
@@ -659,11 +675,18 @@ class ConversationEngine:
             external_sources = await self._discover_sources(payload.content, classification)
             sources = self._merge_sources(institutional_sources, external_sources)
             history = await self._history(conversation.id)
+            capability_result = await CapabilityRegistry(self.session, self.context).resolve(payload.content)
+            augmented_context = payload.institutional_context or ""
+            if capability_result.matched and capability_result.institutional_context:
+                augmented_context = (
+                    (augmented_context + "\n\n" if augmented_context else "")
+                    + capability_result.institutional_context
+                )
             system_prompt = self.prompt_builder.build_system_prompt(
                 classification=classification,
                 user_role=self.context.role_code,
                 sources=sources,
-                institutional_context=payload.institutional_context,
+                institutional_context=augmented_context or None,
                 module_context=(module_bundle.prompt_text() if module_bundle else None),
             )
 
@@ -727,6 +750,29 @@ class ConversationEngine:
                 latency_ms=0,
                 currency_code=usage_decision.currency_code,
             )
+
+            # Extract pending_action block from AI response and store server-side
+            pending_action_token: str | None = None
+            pending_action_label: str = ""
+            pending_action_details: list[dict] = []
+            clean_text, pending_block = self._extract_pending_action(integrity.text)
+            if pending_block:
+                from .pending_actions import PendingActionStore
+                store = PendingActionStore.get()
+                resolved = await self._resolve_pending_action_block(pending_block)
+                if resolved:
+                    pending_action_token = await store.create(
+                        user_id=self.context.user_id,
+                        tenant_id=self.context.tenant_id,
+                        action_type=resolved["action_type"],
+                        payload=resolved["payload"],
+                        label=resolved["label"],
+                        details=resolved["details"],
+                    )
+                    pending_action_label = resolved["label"]
+                    pending_action_details = resolved["details"]
+                    # Replace integrity text with clean version (block removed)
+                    integrity = integrity._replace(text=clean_text) if hasattr(integrity, "_replace") else type(integrity)(text=clean_text, warnings=integrity.warnings, cited_source_keys=integrity.cited_source_keys)
 
             title = self._title_from_output(integrity.text, payload.content)
             generated_output = GeneratedOutput(
@@ -912,6 +958,9 @@ class ConversationEngine:
                 "requires_human_review": lifecycle.review_required,
                 "approval_disclaimer": generated_output.approval_disclaimer,
                 "integrity_warnings": integrity_warnings,
+                "pending_action_token": pending_action_token,
+                "pending_action_label": pending_action_label,
+                "pending_action_details": pending_action_details,
                 "sources": [
                     {
                         "number": card.number,
@@ -938,6 +987,99 @@ class ConversationEngine:
             yield _sse({"type": "error", "detail": exc.detail if isinstance(exc.detail, str) else "Permission denied."})
         except Exception:
             yield _sse({"type": "error", "detail": "An unexpected error occurred. Please try again."})
+
+    # ------------------------------------------------------------------
+    # Pending action helpers
+    # ------------------------------------------------------------------
+
+    _PENDING_BLOCK_RE = re.compile(
+        r"```pending_action\s*\n(.*?)```",
+        re.DOTALL,
+    )
+
+    def _extract_pending_action(self, text: str) -> tuple[str, dict | None]:
+        """Return (cleaned_text, parsed_block_dict | None)."""
+        m = self._PENDING_BLOCK_RE.search(text)
+        if not m:
+            return text, None
+        block_text = m.group(1)
+        parsed: dict[str, str] = {}
+        for line in block_text.strip().splitlines():
+            if ":" in line:
+                k, _, v = line.partition(":")
+                parsed[k.strip()] = v.strip()
+        clean = self._PENDING_BLOCK_RE.sub("", text).strip()
+        return clean, parsed if parsed else None
+
+    async def _resolve_pending_action_block(self, block: dict) -> dict | None:
+        """Validate and enrich the AI-produced block into a server-side payload."""
+        action = block.get("action", "")
+
+        if action == "assign_lecturer":
+            try:
+                lid = UUID(block["lecturer_id"])
+                mid = UUID(block["module_offering_id"])
+            except (KeyError, ValueError):
+                return None
+            # Verify both belong to this tenant
+            from sqlalchemy import select
+            from services.database.models.academics import ModuleOffering
+            from services.database.models.identity import User, Membership
+            user = await self.session.scalar(
+                select(User)
+                .join(Membership, (Membership.user_id == User.id) & (Membership.tenant_id == self.context.tenant_id))
+                .where(User.id == lid)
+            )
+            offering = await self.session.scalar(
+                select(ModuleOffering).where(
+                    ModuleOffering.id == mid,
+                    ModuleOffering.tenant_id == self.context.tenant_id,
+                )
+            )
+            if not user or not offering:
+                return None
+            return {
+                "action_type": "assign_lecturer",
+                "label": "Confirm Lecturer Assignment",
+                "details": [
+                    {"key": "Lecturer", "value": block.get("lecturer_name", str(lid))},
+                    {"key": "Module", "value": block.get("module_label", str(mid))},
+                    {"key": "Role", "value": "Lecturer"},
+                ],
+                "payload": {
+                    "lecturer_user_id": str(lid),
+                    "module_offering_id": str(mid),
+                    "lecturer_name": block.get("lecturer_name", ""),
+                    "module_label": block.get("module_label", ""),
+                },
+            }
+
+        if action == "create_org_unit":
+            try:
+                type_id = UUID(block["unit_type_id"])
+                code = block["code"]
+                name = block["name"]
+                parent_raw = block.get("parent_id", "NONE")
+                parent_id = None if parent_raw in ("NONE", "", "null") else str(UUID(parent_raw))
+            except (KeyError, ValueError):
+                return None
+            return {
+                "action_type": "create_org_unit",
+                "label": "Confirm Create Organisational Unit",
+                "details": [
+                    {"key": "Name", "value": name},
+                    {"key": "Code", "value": code},
+                    {"key": "Parent", "value": parent_id or "(root)"},
+                ],
+                "payload": {
+                    "unit_type_id": str(type_id),
+                    "parent_id": parent_id or "NONE",
+                    "code": code,
+                    "name": name,
+                },
+            }
+
+        return None
 
     async def _require_ai_permission(self) -> None:
         await AuthorizationService(self.session, self.context).require_permission(

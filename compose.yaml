@@ -82,8 +82,23 @@ services:
       timeout: 5s
       retries: 20
 
+  clamav:
+    image: ${CLAMAV_IMAGE:-clamav/clamav:1.4.3}
+    restart: unless-stopped
+    ports:
+      - "${CLAMAV_PORT:-3310}:3310"
+    volumes:
+      - lsa_clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "echo PING | nc -w2 127.0.0.1 3310 | grep -q PONG"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+
 volumes:
   lsa_postgres_data:
   lsa_redis_data:
   lsa_minio_data:
   lsa_qdrant_data:
+  lsa_clamav_data:

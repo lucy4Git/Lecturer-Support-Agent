@@ -1,0 +1,3 @@
+# Downloaded corpus PDFs are large binaries — excluded from git.
+# Run: python services/database/seeds/official_corpus/download_corpus.py
+*.pdf
