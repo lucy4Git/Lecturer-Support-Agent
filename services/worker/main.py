@@ -40,7 +40,13 @@ async def run_worker(*, queue_name: str, poll_seconds: float, once: bool) -> Non
                         logger.info("job.completed", extra={"event": "job.completed", "job_id": str(claimed.job.id), "job_type": claimed.job.job_type})
                     except Exception as exc:
                         logger.exception("job.failed", extra={"event": "job.failed", "job_id": str(claimed.job.id), "job_type": claimed.job.job_type})
-                        await queue.fail(claimed, error_code=type(exc).__name__, safe_error_detail=str(exc))
+                        try:
+                            await queue.fail(claimed, error_code=type(exc).__name__, safe_error_detail=str(exc))
+                        except Exception:
+                            # Transaction already in rollback state (e.g. from a DB-level error in the handler).
+                            # Log and let the session.begin() exit handle the rollback; the job will be
+                            # reclaimed on the next poll cycle (claim is rolled back with the transaction).
+                            logger.exception("queue.fail raised after handler failure; job claim rolled back and will be retried")
         if once:
             return
         await asyncio.sleep(poll_seconds)
