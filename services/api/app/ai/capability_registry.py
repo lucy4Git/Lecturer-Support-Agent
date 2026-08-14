@@ -91,13 +91,21 @@ class CapabilityRegistry:
         self._context = context
 
     async def resolve(self, prompt: str) -> CapabilityResult:
+        """Dispatch to the appropriate READ or WRITE handler.
+
+        Every DB-touching handler runs inside a savepoint so that a SQL error
+        in the handler rolls back only the savepoint — not the outer transaction
+        managed by the conversation engine.  This prevents InFailedSqlTransaction
+        errors on the subsequent model_executions INSERT.
+        """
+        import logging as _log
         role = self._context.role_code
         prompt_stripped = prompt.strip()
 
-        # Confirmation / cancellation intercepts
+        # Confirmation / cancellation intercepts — these use their own transactions
         m = _CONFIRM_RE.match(prompt_stripped)
         if m:
-            return await self._execute_pending(m.group(1))
+            return await self._with_savepoint(self._execute_pending, m.group(1))
 
         m = _CANCEL_RE.match(prompt_stripped)
         if m:
@@ -106,30 +114,48 @@ class CapabilityRegistry:
         # READ capabilities
         if _WORKLOAD_RE.search(prompt):
             if role in ("head_of_department", "module_coordinator", "programme_coordinator"):
-                return await self._read_workload()
+                return await self._with_savepoint(self._read_workload)
 
         if _MY_MODULES_RE.search(prompt):
             if role in ("module_coordinator", "programme_coordinator", "lecturer"):
-                return await self._read_my_modules()
+                return await self._with_savepoint(self._read_my_modules)
 
         if _STRUCTURE_QUERY_RE.search(prompt):
             if role in ("institution_administrator", "head_of_department"):
-                return await self._read_structure()
+                return await self._with_savepoint(self._read_structure)
 
         if _MY_REVIEWS_RE.search(prompt):
             if role in ("internal_moderator", "external_moderator", "external_reviewer"):
-                return await self._read_my_reviews()
+                return await self._with_savepoint(self._read_my_reviews)
 
         # WRITE capabilities
         if _ASSIGN_LECTURER_RE.search(prompt):
             if role == "head_of_department":
-                return await self._write_assign_lecturer(prompt)
+                return await self._with_savepoint(self._write_assign_lecturer, prompt)
 
         if _CREATE_UNIT_RE.search(prompt):
             if role == "institution_administrator":
-                return await self._write_create_unit(prompt)
+                return await self._with_savepoint(self._write_create_unit, prompt)
 
         return CapabilityResult(matched=False)
+
+    async def _with_savepoint(self, fn, *args) -> CapabilityResult:
+        """Run *fn* inside a nested transaction (SAVEPOINT).
+
+        If the handler raises, the savepoint is rolled back so the outer
+        transaction stays valid.  Returns CapabilityResult(matched=False) on
+        failure so the AI still gets to respond generically.
+        """
+        import logging as _log
+        sp = await self._session.begin_nested()
+        try:
+            result = await fn(*args)
+            await sp.commit()
+            return result
+        except Exception as exc:
+            _log.getLogger("lsa.capability").exception("CapabilityRegistry handler %s failed: %s", fn.__name__, exc)
+            await sp.rollback()
+            return CapabilityResult(matched=False)
 
     # ------------------------------------------------------------------
     # Pending action execution
@@ -265,10 +291,7 @@ class CapabilityRegistry:
             return CapabilityResult(matched=True, institutional_context="\n".join(lines))
 
         except Exception as exc:
-            return CapabilityResult(
-                matched=True,
-                institutional_context=f"WORKLOAD DATA ERROR: {exc}. Inform user to retry.",
-            )
+            raise  # _with_savepoint handles rollback and logging
 
     # ------------------------------------------------------------------
     # READ: structure
@@ -307,11 +330,8 @@ class CapabilityRegistry:
             )
             return CapabilityResult(matched=True, institutional_context="\n".join(lines))
 
-        except Exception as exc:
-            return CapabilityResult(
-                matched=True,
-                institutional_context=f"STRUCTURE DATA ERROR: {exc}. Inform user to retry.",
-            )
+        except Exception:
+            raise  # _with_savepoint handles rollback and logging
 
     # ------------------------------------------------------------------
     # READ: coordinator/lecturer modules
@@ -378,11 +398,8 @@ class CapabilityRegistry:
             )
             return CapabilityResult(matched=True, institutional_context="\n".join(lines))
 
-        except Exception as exc:
-            return CapabilityResult(
-                matched=True,
-                institutional_context=f"MODULES DATA ERROR: {exc}. Inform user to retry.",
-            )
+        except Exception:
+            raise  # _with_savepoint handles rollback and logging
 
     # ------------------------------------------------------------------
     # READ: moderation/review tasks
@@ -432,11 +449,8 @@ class CapabilityRegistry:
             )
             return CapabilityResult(matched=True, institutional_context="\n".join(lines))
 
-        except Exception as exc:
-            return CapabilityResult(
-                matched=True,
-                institutional_context=f"REVIEW DATA ERROR: {exc}. Inform user to retry.",
-            )
+        except Exception:
+            raise  # _with_savepoint handles rollback and logging
 
     # ------------------------------------------------------------------
     # WRITE: assign lecturer (pending confirmation)
@@ -505,11 +519,8 @@ class CapabilityRegistry:
                 ),
             )
 
-        except Exception as exc:
-            return CapabilityResult(
-                matched=True,
-                institutional_context=f"ASSIGNMENT DATA ERROR: {exc}. Inform user to retry.",
-            )
+        except Exception:
+            raise  # _with_savepoint handles rollback and logging
 
     # ------------------------------------------------------------------
     # WRITE: create org unit (pending confirmation)
@@ -564,11 +575,8 @@ class CapabilityRegistry:
                 ),
             )
 
-        except Exception as exc:
-            return CapabilityResult(
-                matched=True,
-                institutional_context=f"STRUCTURE DATA ERROR: {exc}. Inform user to retry.",
-            )
+        except Exception:
+            raise  # _with_savepoint handles rollback and logging
 
     # ------------------------------------------------------------------
     # Execute confirmed WRITE actions

@@ -985,7 +985,9 @@ class ConversationEngine:
 
         except HTTPException as exc:
             yield _sse({"type": "error", "detail": exc.detail if isinstance(exc.detail, str) else "Permission denied."})
-        except Exception:
+        except Exception as _exc:
+            import logging as _logging
+            _logging.getLogger("lsa.engine").exception("Unhandled error in stream_response: %s", _exc)
             yield _sse({"type": "error", "detail": "An unexpected error occurred. Please try again."})
 
     # ------------------------------------------------------------------
@@ -1117,7 +1119,7 @@ class ConversationEngine:
         return [
             ChatMessage(role=ChatRole(row.role), content=row.content_text)
             for row in rows
-            if row.role in {"user", "assistant"}
+            if row.role in {"user", "assistant"} and row.content_text
         ]
 
     async def _discover_sources(

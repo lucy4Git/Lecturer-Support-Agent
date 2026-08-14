@@ -17,6 +17,10 @@ class ConversationCreate(BaseModel):
     context: dict = Field(default_factory=dict)
 
 
+class ConversationUpdate(BaseModel):
+    title: str | None = Field(default=None, max_length=300)
+
+
 class ConversationRead(AuditFields):
     owner_user_id: UUID
     title: str

@@ -17,7 +17,7 @@
 html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at 75% 10%, #e9efff 0, transparent 32%), var(--bg); color: var(--ink); }
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
-.workspace-grid { min-height: 100vh; display: grid; grid-template-columns: 260px minmax(0, 1fr) 0; overflow: hidden; }
+.workspace-grid { min-height: 100vh; display: grid; grid-template-columns: 260px minmax(0, 1fr); overflow: hidden; }
 .sidebar { background: #11182b; color: #f8fafc; padding: 24px 18px; display: flex; flex-direction: column; gap: 22px; min-height: 100vh; }
 .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: linear-gradient(135deg, #315efb, #8b5cf6); color: white; font-weight: 800; letter-spacing: -0.03em; box-shadow: 0 10px 28px rgba(49, 94, 251, 0.32); }
 .primary-nav-button, .context-button, .submit-button, .send-button { border: 0; border-radius: 12px; background: var(--accent); color: white; padding: 12px 16px; font-weight: 700; transition: transform .15s ease, background .15s ease; }
@@ -506,3 +506,36 @@ input:focus, select:focus { border-color: #84a1ff; box-shadow: 0 0 0 3px rgba(49
 @keyframes cursorBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .stop-button { border: 1px solid #fecdca; background: #fef3f2; color: #b42318; border-radius: 12px; padding: 9px 15px; font-weight: 700; }
 .stop-button:hover { background: #fee4e2; }
+
+/* Suggestion grid on home screen */
+.suggestion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-top: 28px; }
+.suggestion-chip { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-strong); color: var(--ink); padding: 14px 16px; text-align: left; font-size: 13px; line-height: 1.45; transition: border-color .14s ease, box-shadow .14s ease; }
+.suggestion-chip:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 8px 22px rgba(49,94,251,.08); }
+
+/* Conversation rename + per-conv actions */
+.conv-nav-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 2px; }
+.conv-nav-row:not(:hover) .conv-actions { display: none; }
+.conv-actions { display: flex; gap: 2px; }
+.conv-actions button { width: 26px; height: 26px; border: 0; border-radius: 7px; background: transparent; color: #7f8ca8; font-size: 13px; }
+.conv-actions button:hover { background: rgba(255,255,255,.1); color: white; }
+.conv-rename-form input { width: 100%; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; background: rgba(255,255,255,.08); color: white; padding: 6px 9px; font-size: 13px; }
+
+/* Message action buttons (copy, edit, retry) */
+.msg-action-btn { width: 30px; height: 30px; border: 1px solid var(--line); background: var(--surface-strong); color: var(--muted); border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .15s ease; }
+.message-row:hover .msg-action-btn { opacity: 1; }
+.msg-action-bar { display: flex; gap: 5px; margin-top: 10px; }
+.user-message-wrap { display: flex; align-items: flex-end; gap: 6px; }
+.user-edit-form { max-width: 680px; width: 100%; display: grid; gap: 8px; }
+.user-edit-form textarea { width: 100%; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: var(--surface-strong); color: var(--ink); font: inherit; resize: none; }
+
+/* In-chat confirmation card */
+.confirmation-card { margin-top: 16px; padding: 18px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius: 16px; background: var(--soft-accent); display: grid; gap: 12px; }
+.confirmation-card strong { font-size: 15px; }
+.confirmation-details { display: grid; gap: 7px; }
+.confirmation-details > div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; border-top: 1px solid var(--line); padding-top: 7px; }
+.confirmation-details > div span { color: var(--muted); }
+.confirmation-details > div b { color: var(--ink); font-weight: 650; }
+
+:root[data-theme="dark"] .suggestion-chip { background: var(--surface-strong); border-color: var(--line); }
+:root[data-theme="dark"] .user-edit-form textarea { background: var(--surface-strong); border-color: var(--line); }
+:root[data-theme="dark"] .confirmation-card { background: color-mix(in srgb, var(--surface-strong) 80%, var(--soft-accent)); }

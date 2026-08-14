@@ -13,6 +13,7 @@ from ..core.settings import get_settings
 from services.database.models import Institution, InstitutionalAccessRequest, PasswordCredential, User
 
 from ..schemas.auth import (
+    ContextSelectionRequired,
     DirectPasswordResetRequest,
     DirectRegistrationRequest,
     DirectRegistrationResponse,
@@ -78,7 +79,7 @@ async def search_institutions(
     ]
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse | ContextSelectionRequired)
 async def login(
     payload: LoginRequest,
     request: Request,

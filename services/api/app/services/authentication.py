@@ -27,6 +27,8 @@ from ..core.settings import Settings, get_settings
 from .account_security import AccountSecurityService
 
 from ..schemas.auth import (
+    ContextSelectionRequired,
+    InstitutionContext,
     InvitationAcceptRequest,
     InvitationAcceptedResponse,
     LoginRequest,
@@ -51,35 +53,15 @@ class AuthenticationService:
         source_ip_hash: str | None,
     ) -> TokenResponse:
         now = datetime.now(timezone.utc)
-        institution = await self._resolve_institution(payload)
-        await set_auth_tenant_context(self.session, str(institution.id))
         email_normalized = payload.email.strip().lower()
 
+        # Phase 1: global identity check — User and PasswordCredential have no tenant_id,
+        # so these queries succeed without setting app.tenant_id.
         user = await self.session.scalar(
             select(User).where(User.email_normalized == email_normalized)
         )
         if user is None or not user.is_active:
-            await self._record_security_event(
-                tenant_id=institution.id,
-                severity="warning",
-                event_type="authentication.login_failed",
-                description="Login failed for an unknown or inactive account.",
-                details={"email_hash": self.tokens.hash_opaque_token(email_normalized)},
-                source_ip_hash=source_ip_hash,
-            )
             raise self._invalid_credentials()
-
-        membership = await self.session.scalar(
-            select(Membership).where(
-                Membership.tenant_id == institution.id,
-                Membership.user_id == user.id,
-            )
-        )
-        if membership is None or membership.status != "active":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="The institution membership is not active.",
-            )
 
         credential = await self.session.scalar(
             select(PasswordCredential).where(PasswordCredential.user_id == user.id).with_for_update()
@@ -94,24 +76,36 @@ class AuthenticationService:
                 status_code=status.HTTP_423_LOCKED,
                 detail="The account is temporarily locked after repeated failed sign-in attempts.",
             )
-
         if not self.passwords.verify(payload.password.get_secret_value(), credential.password_hash):
             credential.failed_attempts += 1
             credential.last_failed_at = now
             if credential.failed_attempts >= self.settings.maximum_failed_login_attempts:
                 credential.locked_until = now + timedelta(minutes=self.settings.account_lock_minutes)
-            await self._record_security_event(
-                tenant_id=institution.id,
-                severity="warning",
-                event_type="authentication.login_failed",
-                description="Login failed because the password was not accepted.",
-                actor_user_id=user.id,
-                source_ip_hash=source_ip_hash,
-            )
             raise self._invalid_credentials()
 
+        # Password is correct — reset failure counter.
         credential.failed_attempts = 0
         credential.locked_until = None
+
+        # Phase 2: institution resolution — find all active institutions where the user
+        # holds an active membership. RLS requires tenant context per institution.
+        institution = await self._resolve_institution_for_user(payload, user.id, now)
+
+        # Phase 3: complete authentication within the resolved tenant.
+        await set_auth_tenant_context(self.session, str(institution.id))
+
+        membership = await self.session.scalar(
+            select(Membership).where(
+                Membership.tenant_id == institution.id,
+                Membership.user_id == user.id,
+            )
+        )
+        if membership is None or membership.status != "active":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="The institution membership is not active.",
+            )
+
         role_rows = await self._active_role_options(
             tenant_id=institution.id,
             user_id=user.id,
@@ -402,6 +396,99 @@ class AuthenticationService:
             membership_id=membership.id,
             assigned_role_codes=role_codes,
             message="Invitation accepted. Sign in with the institution and an assigned role.",
+        )
+
+    async def _resolve_institution_for_user(
+        self,
+        payload: LoginRequest,
+        user_id: UUID,
+        now: datetime,
+    ) -> Institution:
+        """Resolve which institution to authenticate against after identity is confirmed.
+
+        When institution_id or institution_slug is supplied, use it directly.
+        Otherwise enumerate all active institutions and find which ones have an
+        active membership for this user. If exactly one: use it. If multiple:
+        return HTTP 409 with a context selector so the UI can prompt the user.
+        """
+        if payload.institution_id:
+            institution = await self.session.scalar(
+                select(Institution).where(
+                    Institution.id == payload.institution_id,
+                    Institution.is_active.is_(True),
+                )
+            )
+            if institution is None:
+                raise HTTPException(status_code=404, detail="Institution was not found or is inactive.")
+            return institution
+
+        if payload.institution_slug:
+            institution = await self.session.scalar(
+                select(Institution).where(
+                    Institution.slug == payload.institution_slug,
+                    Institution.is_active.is_(True),
+                )
+            )
+            if institution is None:
+                raise HTTPException(status_code=404, detail="Institution was not found or is inactive.")
+            return institution
+
+        all_active = (
+            await self.session.scalars(
+                select(Institution).where(Institution.is_active.is_(True)).order_by(Institution.display_name)
+            )
+        ).all()
+        if not all_active:
+            raise HTTPException(status_code=404, detail="No active institutions are registered.")
+        if len(all_active) == 1:
+            return all_active[0]
+
+        # Multiple institutions: find which ones the user has an active membership in.
+        # RLS requires setting tenant context for each institution's membership lookup.
+        matched: list[tuple[Institution, list[RoleOption]]] = []
+        for inst in all_active:
+            await set_auth_tenant_context(self.session, str(inst.id))
+            membership = await self.session.scalar(
+                select(Membership).where(
+                    Membership.tenant_id == inst.id,
+                    Membership.user_id == user_id,
+                    Membership.status == "active",
+                )
+            )
+            if membership is None:
+                continue
+            role_rows = await self._active_role_options(tenant_id=inst.id, user_id=user_id, now=now)
+            if role_rows:
+                matched.append((inst, role_rows))
+
+        if not matched:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No active institution membership found for this account.",
+            )
+        if len(matched) == 1:
+            return matched[0][0]
+
+        # Multiple institutions with active memberships: require human selection.
+        contexts: list[InstitutionContext] = []
+        for inst, roles in matched:
+            for role in roles:
+                contexts.append(
+                    InstitutionContext(
+                        institution_id=inst.id,
+                        institution_display_name=inst.display_name,
+                        institution_type=inst.institution_type,
+                        role_code=role.role_code,
+                        role_name=role.role_name,
+                        role_assignment_id=role.role_assignment_id,
+                    )
+                )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=ContextSelectionRequired(
+                detail="Your account has access to multiple institutions. Select the context to use.",
+                available_contexts=contexts,
+            ).model_dump(mode="json"),
         )
 
     async def _resolve_institution(self, payload: LoginRequest) -> Institution:

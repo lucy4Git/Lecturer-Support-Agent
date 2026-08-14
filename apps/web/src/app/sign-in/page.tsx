@@ -10,11 +10,21 @@ type AvailableRole = {
   role_assignment_id: string;
 };
 
+type InstitutionContext = {
+  institution_id: string;
+  institution_display_name: string;
+  institution_type: string;
+  role_code: string;
+  role_name: string;
+  role_assignment_id: string;
+};
+
 export default function SignInPage() {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<AvailableRole[]>([]);
+  const [availableContexts, setAvailableContexts] = useState<InstitutionContext[]>([]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,8 +37,18 @@ export default function SignInPage() {
       password: values.get("password"),
       device_label: "Web browser",
     };
+
+    // Single-institution role selection (same institution, multiple roles)
     const selectedRole = values.get("role_code");
     if (selectedRole) body.role_code = selectedRole;
+
+    // Multi-institution context selection
+    const selectedContext = values.get("context_key");
+    if (selectedContext && availableContexts.length > 0) {
+      const [institutionId, roleCode] = (selectedContext as string).split("|");
+      body.institution_id = institutionId;
+      body.role_code = roleCode;
+    }
 
     const response = await fetch("/api/session/login", {
       method: "POST",
@@ -44,8 +64,15 @@ export default function SignInPage() {
     }
 
     const detail = data.detail;
-    if (response.status === 409 && Array.isArray(detail?.available_roles)) {
+    if (response.status === 409 && detail?.context_selection_required) {
+      // Multi-institution: user has active memberships at more than one institution
+      setAvailableContexts(detail.available_contexts as InstitutionContext[]);
+      setAvailableRoles([]);
+      setMessage("Your account is active at multiple institutions. Select the institution and role to use.");
+    } else if (response.status === 409 && Array.isArray(detail?.available_roles)) {
+      // Single institution, multiple roles
       setAvailableRoles(detail.available_roles as AvailableRole[]);
+      setAvailableContexts([]);
       setMessage("You have more than one active role. Choose the role for this session.");
     } else {
       setMessage(typeof detail === "string" ? detail : detail?.message ?? "Sign-in failed. Check your email and password.");
@@ -70,7 +97,24 @@ export default function SignInPage() {
             <input name="password" type="password" autoComplete="current-password" required />
           </label>
 
-          {availableRoles.length > 0 && (
+          {availableContexts.length > 0 && (
+            <label>
+              <span>Institution and role</span>
+              <select name="context_key" required defaultValue="">
+                <option value="" disabled>Select institution and role</option>
+                {availableContexts.map((ctx) => (
+                  <option
+                    key={ctx.role_assignment_id}
+                    value={`${ctx.institution_id}|${ctx.role_code}`}
+                  >
+                    {ctx.institution_display_name} — {ctx.role_name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {availableRoles.length > 0 && availableContexts.length === 0 && (
             <label>
               <span>Continue as</span>
               <select name="role_code" required defaultValue="">
@@ -85,7 +129,7 @@ export default function SignInPage() {
           )}
 
           {message && (
-            <div className={availableRoles.length ? "notice" : "error-notice"}>
+            <div className={availableRoles.length || availableContexts.length ? "notice" : "error-notice"}>
               {message}
             </div>
           )}

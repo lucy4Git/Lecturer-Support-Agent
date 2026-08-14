@@ -141,9 +141,8 @@ class DocumentRetrievalService:
                 continue
             if (version_id, int(payload.get("chunk_index", -1))) in seen:
                 continue
-            try:
-                accessible = await self.access.require_version(version_id)
-            except Exception:
+            accessible = await self.access.get_for_retrieval(version_id)
+            if accessible is None:
                 continue
             chunk = await self.session.scalar(
                 select(DocumentChunk).where(

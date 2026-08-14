@@ -331,7 +331,6 @@ def test_sign_in_page_has_no_institution_picker() -> None:
     ).read_text(encoding="utf-8")
     assert "availableInstitutions" not in src
     assert "institution_slug" not in src
-    assert "institution_id" not in src
     assert "Select your institution" not in src
 
 
@@ -475,8 +474,8 @@ async def test_mfa_not_checked_when_staging_simple_auth_enabled() -> None:
     now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
 
     mock_session = AsyncMock()
-    # _resolve_institution is patched so scalar calls begin with user lookup
-    mock_session.scalar = AsyncMock(side_effect=[mock_user, mock_membership, mock_credential])
+    # _resolve_institution_for_user is patched so scalar order is: user, credential, membership
+    mock_session.scalar = AsyncMock(side_effect=[mock_user, mock_credential, mock_membership])
     mock_session.scalars = AsyncMock()
     mock_session.flush = AsyncMock()
 
@@ -500,7 +499,7 @@ async def test_mfa_not_checked_when_staging_simple_auth_enabled() -> None:
 
     # Patch _active_role_options and _issue_session to avoid deeper DB calls
     with (
-        patch.object(svc, "_resolve_institution", AsyncMock(return_value=mock_institution)),
+        patch.object(svc, "_resolve_institution_for_user", AsyncMock(return_value=mock_institution)),
         patch.object(svc, "_active_role_options", AsyncMock(return_value=[mock_role_option])),
         patch.object(svc, "_issue_session", AsyncMock(return_value=MagicMock())),
         patch.object(svc, "_record_security_event", AsyncMock()),

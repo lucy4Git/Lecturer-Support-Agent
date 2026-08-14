@@ -37,6 +37,13 @@ class TeachingTaskClassifier:
     _institution_triggers = (
         "our institution", "institutional", "faculty policy", "department policy", "module guide",
         "study guide", "uploaded", "attached", "our template", "our curriculum",
+        # SA HE authoritative knowledge topics — always search the corpus
+        "nqf", "heqsf", "saqa", "dhet", " che ", "council on higher education",
+        "notional learning", "nqf credit", "nqf level", "accreditation",
+        "higher education act", "recognition of prior learning", "rpl",
+        "academic workload", "lecturer workload", "moderation policy",
+        "assessment policy", "academic integrity", "plagiarism policy",
+        "programme approval", "qualification framework", "credit framework",
     )
     _restricted_triggers = (
         "confidential exam", "unreleased exam", "restricted assessment", "student marks",

@@ -58,6 +58,21 @@ class LoginSelectionRequired(BaseModel):
     available_roles: list[RoleOption]
 
 
+class InstitutionContext(BaseModel):
+    institution_id: UUID
+    institution_display_name: str
+    institution_type: str
+    role_code: str
+    role_name: str
+    role_assignment_id: UUID
+
+
+class ContextSelectionRequired(BaseModel):
+    context_selection_required: bool = True
+    detail: str
+    available_contexts: list[InstitutionContext]
+
+
 class InvitationAcceptedResponse(BaseModel):
     tenant_id: UUID
     user_id: UUID

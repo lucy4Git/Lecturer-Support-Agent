@@ -17,6 +17,7 @@ from ..schemas.conversations import (
     ConversationCreate,
     ConversationDetail,
     ConversationRead,
+    ConversationUpdate,
     MessageCreate,
     MessageRead,
     ProviderStatusRead,
@@ -69,6 +70,17 @@ async def get_conversation(
         conversation=ConversationRead.model_validate(conversation),
         messages=[MessageRead.model_validate(message) for message in messages],
     )
+
+
+@router.patch("/{conversation_id}", response_model=ConversationRead)
+async def update_conversation(
+    conversation_id: UUID,
+    payload: ConversationUpdate,
+    session: DatabaseSession,
+    context: CurrentContext,
+) -> ConversationRead:
+    row = await ConversationEngine(session, context, get_settings()).update_conversation(conversation_id, payload)
+    return ConversationRead.model_validate(row)
 
 
 @router.delete("/{conversation_id}", response_model=ConversationRead)

@@ -28,6 +28,35 @@ class DocumentAccessService:
         self.context = context
         self.authorization = AuthorizationService(session, context)
 
+    async def get_for_retrieval(self, version_id: UUID) -> AccessibleVersion | None:
+        """Lightweight access check for RAG retrieval.
+
+        Qdrant already enforces tenant isolation and visibility scope before returning
+        a hit, so we only need to confirm the row still exists and is not deleted.
+        No RBAC role-check is applied here; visibility rules from Qdrant govern access.
+        """
+        row = (
+            await self.session.execute(
+                select(Document, DocumentVersion, StorageObject)
+                .join(DocumentVersion, DocumentVersion.document_id == Document.id)
+                .join(StorageObject, StorageObject.id == DocumentVersion.storage_object_id)
+                .where(
+                    Document.tenant_id == self.context.tenant_id,
+                    DocumentVersion.tenant_id == self.context.tenant_id,
+                    StorageObject.tenant_id == self.context.tenant_id,
+                    DocumentVersion.id == version_id,
+                    Document.is_deleted.is_(False),
+                )
+            )
+        ).first()
+        if row is None:
+            return None
+        document, version, storage_object = row
+        if document.visibility in {"private", "assigned_users"} and document.owner_user_id != self.context.user_id:
+            return None
+        scope_type, scope_id = self._scope(document)
+        return AccessibleVersion(document, version, storage_object, scope_type, scope_id)
+
     async def require_version(self, version_id: UUID) -> AccessibleVersion:
         row = (
             await self.session.execute(

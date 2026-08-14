@@ -53,6 +53,9 @@ def main() -> None:
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
     configure_logging(level=os.getenv("LOG_LEVEL", "INFO"), json_logs=True)
+    import sys, selectors
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(run_worker(queue_name=args.queue, poll_seconds=args.poll_seconds, once=args.once))
 
 

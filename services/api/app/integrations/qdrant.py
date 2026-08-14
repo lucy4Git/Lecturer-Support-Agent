@@ -31,22 +31,31 @@ def build_tenant_filter(scope: RetrievalScope) -> dict[str, Any]:
     scoped_should.append({"key": "owner_user_id", "match": {"value": str(scope.user_id)}})
     scoped_should.append({"key": "visibility", "match": {"value": "institution"}})
 
+    # Qdrant requires `should` at the same level as `must`, not nested inside `must`.
+    # When both `must` and `should` are present, all `must` conditions AND at least one
+    # `should` condition must match.
     tenant_branch: dict[str, Any] = {
         "must": [
             {"key": "tenant_id", "match": {"value": str(scope.tenant_id)}},
-            {"should": scoped_should, "minimum_should_match": 1},
             {"key": "is_deleted", "match": {"value": False}},
             {"key": "is_current", "match": {"value": True}},
-        ]
+        ],
+        "should": scoped_should,
     }
     if not scope.include_public:
         return tenant_branch
+    # For include_public: tenant-scoped docs OR globally public docs.
+    # Qdrant nested conditions in `should` are plain filter objects (no wrapper).
     return {
         "should": [
             tenant_branch,
-            {"must": [{"key": "visibility", "match": {"value": "public"}}, {"key": "is_deleted", "match": {"value": False}}]},
+            {
+                "must": [
+                    {"key": "visibility", "match": {"value": "public"}},
+                    {"key": "is_deleted", "match": {"value": False}},
+                ]
+            },
         ],
-        "minimum_should_match": 1,
     }
 
 
