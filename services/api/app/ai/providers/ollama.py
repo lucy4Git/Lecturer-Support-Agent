@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import AsyncIterator
 
@@ -47,24 +48,29 @@ class OllamaProvider(AIProvider):
         if not self.configured:
             raise ProviderError(self.name, "Ollama is not configured.", code="not_configured")
         url = f"{self.settings.ollama_base_url.rstrip('/')}/api/chat"
-        async with httpx.AsyncClient(timeout=self.settings.ai_request_timeout_seconds) as client:
-            async with client.stream("POST", url, headers={"Content-Type": "application/json"}, json=self._body(request, stream=True)) as response:
-                if response.status_code >= 400:
-                    await response.aread()
-                    raise ProviderError(self.name, f"Ollama stream error {response.status_code}", code="stream_error")
-                async for line in response.aiter_lines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        event = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    chunk = event.get("message", {}).get("content", "")
-                    if chunk:
-                        yield chunk
-                    if event.get("done"):
-                        break
+        timeout = self.settings.ai_request_timeout_seconds
+        try:
+            async with asyncio.timeout(timeout):
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    async with client.stream("POST", url, headers={"Content-Type": "application/json"}, json=self._body(request, stream=True)) as response:
+                        if response.status_code >= 400:
+                            await response.aread()
+                            raise ProviderError(self.name, f"Ollama stream error {response.status_code}", code="stream_error")
+                        async for line in response.aiter_lines():
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                event = json.loads(line)
+                            except json.JSONDecodeError:
+                                continue
+                            chunk = event.get("message", {}).get("content", "")
+                            if chunk:
+                                yield chunk
+                            if event.get("done"):
+                                break
+        except (TimeoutError, asyncio.TimeoutError, httpx.TimeoutException) as exc:
+            raise ProviderError(self.name, "Ollama generation timed out.", code="timeout") from exc
 
     async def generate(self, request: ProviderRequest) -> ProviderResponse:
         if not self.configured:

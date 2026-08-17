@@ -88,11 +88,12 @@ class DocumentAccessService:
         return AccessibleVersion(document, version, storage_object, scope_type, scope_id)
 
     @staticmethod
-    def _scope(document: Document) -> tuple[str, UUID | None]:
+    def _scope(document: Document) -> tuple[str | None, UUID | None]:
         if document.module_id:
             return "module", document.module_id
         if document.programme_id:
             return "programme", document.programme_id
         if document.org_unit_id:
             return "organisational_unit", document.org_unit_id
-        return "institution", None
+        # Unscoped private attachments: None means any held scope suffices.
+        return None, None

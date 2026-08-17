@@ -89,13 +89,15 @@ class DocumentVersioningService:
         target_org_unit_id = org_unit_id if org_unit_id is not None else (document.org_unit_id if document else None)
         target_programme_id = programme_id if programme_id is not None else (document.programme_id if document else None)
         target_module_id = module_id if module_id is not None else (document.module_id if document else None)
-        scope_type = (
+        scope_id = target_module_id or target_programme_id or target_org_unit_id
+        # When no target scope is specified (unscoped private attachments), pass scope_type=None
+        # so the check succeeds for any role that holds content.upload at any scope.
+        scope_type: str | None = (
             "module" if target_module_id else
             "programme" if target_programme_id else
             "organisational_unit" if target_org_unit_id else
-            "institution"
+            None
         )
-        scope_id = target_module_id or target_programme_id or target_org_unit_id
         await AuthorizationService(self.session, self.context).require_permission(
             tenant_id=self.context.tenant_id,
             user_id=self.context.user_id,

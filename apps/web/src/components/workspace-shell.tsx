@@ -496,7 +496,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     }));
     for (const file of Array.from(files)) form.append("files", file);
     form.append("metadata_json", JSON.stringify({
-      scope_type: "institution",
+      scope_type: null,
       scope_id: null,
       change_reason: "Conversation attachment",
       visibility: "private",

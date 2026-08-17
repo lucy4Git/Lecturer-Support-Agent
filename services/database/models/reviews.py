@@ -108,14 +108,14 @@ class ReviewFinding(Base, UUIDPrimaryKeyMixin, TenantOwnedMixin, TimestampMixin)
         {"schema": "review"},
     )
 
-    review_cycle_id: Mapped[UUID] = mapped_column(
-        ForeignKey("review.review_cycles.id"), nullable=False
+    review_cycle_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("review.review_cycles.id")
     )
     review_task_id: Mapped[UUID] = mapped_column(
         ForeignKey("review.assigned_review_tasks.id"), nullable=False
     )
-    source_output_version_id: Mapped[UUID] = mapped_column(
-        ForeignKey("conversation.output_versions.id"), nullable=False
+    source_output_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("conversation.output_versions.id")
     )
     created_by_user_id: Mapped[UUID] = mapped_column(ForeignKey("iam.users.id"), nullable=False)
     criterion_code: Mapped[str | None] = mapped_column(String(120))
@@ -161,8 +161,8 @@ class ReviewSubmission(Base, UUIDPrimaryKeyMixin, TenantOwnedMixin, TimestampMix
         {"schema": "review"},
     )
 
-    review_cycle_id: Mapped[UUID] = mapped_column(
-        ForeignKey("review.review_cycles.id"), nullable=False
+    review_cycle_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("review.review_cycles.id")
     )
     review_task_id: Mapped[UUID] = mapped_column(
         ForeignKey("review.assigned_review_tasks.id"), nullable=False

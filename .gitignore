@@ -79,3 +79,7 @@ test-results/
 
 # Windows device file artifact (NUL is a reserved device name on Windows)
 NUL
+
+# Local dev/session artefacts
+.claude/
+Lecturer-Support-Agent/

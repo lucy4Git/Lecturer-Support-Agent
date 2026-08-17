@@ -19,7 +19,7 @@ class BulkUploadFileMetadata(BaseModel):
 
 
 class BulkUploadRequestMetadata(BaseModel):
-    scope_type: str = Field(min_length=1, max_length=60)
+    scope_type: str | None = Field(default=None, min_length=1, max_length=60)
     scope_id: UUID | None = None
     change_reason: str = Field(min_length=1, max_length=2000)
     org_unit_id: UUID | None = None

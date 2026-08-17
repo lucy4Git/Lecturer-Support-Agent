@@ -682,6 +682,41 @@ class ConversationEngine:
                     (augmented_context + "\n\n" if augmented_context else "")
                     + capability_result.institutional_context
                 )
+
+            # Short-circuit for system-level access denials — do not call the AI.
+            # Ollama cannot override a real DB permission check result.
+            if capability_result.matched and "ACCESS DENIED" in (capability_result.institutional_context or ""):
+                denial_lines = [
+                    ln for ln in capability_result.institutional_context.splitlines()
+                    if ln and not ln.startswith("REAL PERMISSION CHECK") and not ln.startswith("INSTRUCTION:")
+                ]
+                denial_text = "\n".join(denial_lines).strip() or capability_result.institutional_context
+                yield _sse({"type": "thinking", "status": "Checking permissions…"})
+                yield _sse({"type": "token", "text": denial_text})
+                yield _sse({
+                    "type": "done",
+                    "conversation_id": str(conversation.id),
+                    "conversation_title": conversation.title or "",
+                    "user_message_id": str(user_message.id),
+                    "assistant_message_id": "",
+                    "output_type": "permission_denied",
+                    "title": payload.content[:60],
+                    "generated_output_id": "",
+                    "output_version_id": "",
+                    "version_number": 0,
+                    "workflow_status": "denied",
+                    "risk_level": "none",
+                    "safety_status": "passed",
+                    "requires_human_review": False,
+                    "approval_disclaimer": "",
+                    "integrity_warnings": [],
+                    "pending_action_token": None,
+                    "pending_action_label": "",
+                    "pending_action_details": [],
+                    "sources": [],
+                })
+                return
+
             system_prompt = self.prompt_builder.build_system_prompt(
                 classification=classification,
                 user_role=self.context.role_code,
@@ -692,32 +727,40 @@ class ConversationEngine:
 
             yield _sse({"type": "thinking", "status": "Generating response…"})
 
-            # Stream AI tokens
-            full_text = ""
-            try:
-                async for token in self.router.stream(
-                    ProviderRequest(
-                        messages=history,
-                        system_prompt=system_prompt,
-                        model="",
-                        max_output_tokens=self.settings.ai_max_output_tokens,
-                        temperature=self.settings.ai_temperature,
-                        metadata={
-                            "tenant_id": str(self.context.tenant_id),
-                            "conversation_id": str(conversation.id),
-                            "ai_request_id": str(ai_request.id),
-                            "task_type": classification.task_type.value,
-                        },
-                    ),
-                    privacy=classification.privacy_classification,
-                    allowed_providers=(set(usage_decision.allowed_providers) if usage_decision.allowed_providers else None),
-                    denied_providers=(set(usage_decision.denied_providers) if usage_decision.denied_providers else None),
-                ):
-                    full_text += token
-                    yield _sse({"type": "token", "text": token})
-            except Exception as exc:
-                yield _sse({"type": "error", "detail": "The AI provider could not complete the response. Please try again."})
-                return
+            # Deterministic direct output from capability (bypasses AI)
+            # Used for assessment generation and review lifecycle operations.
+            if capability_result.direct_output:
+                full_text = capability_result.direct_output
+                chunk_size = 120
+                for i in range(0, len(full_text), chunk_size):
+                    yield _sse({"type": "token", "text": full_text[i:i + chunk_size]})
+            else:
+                # Stream AI tokens
+                full_text = ""
+                try:
+                    async for token in self.router.stream(
+                        ProviderRequest(
+                            messages=history,
+                            system_prompt=system_prompt,
+                            model="",
+                            max_output_tokens=self.settings.ai_max_output_tokens,
+                            temperature=self.settings.ai_temperature,
+                            metadata={
+                                "tenant_id": str(self.context.tenant_id),
+                                "conversation_id": str(conversation.id),
+                                "ai_request_id": str(ai_request.id),
+                                "task_type": classification.task_type.value,
+                            },
+                        ),
+                        privacy=classification.privacy_classification,
+                        allowed_providers=(set(usage_decision.allowed_providers) if usage_decision.allowed_providers else None),
+                        denied_providers=(set(usage_decision.denied_providers) if usage_decision.denied_providers else None),
+                    ):
+                        full_text += token
+                        yield _sse({"type": "token", "text": token})
+                except Exception as exc:
+                    yield _sse({"type": "error", "detail": "The AI provider could not complete the response. Please try again."})
+                    return
 
             # Post-generation: persist everything with the completed text
             # Wrap in a routed response equivalent for reuse of existing persistence logic
@@ -773,6 +816,11 @@ class ConversationEngine:
                     pending_action_details = resolved["details"]
                     # Replace integrity text with clean version (block removed)
                     integrity = integrity._replace(text=clean_text) if hasattr(integrity, "_replace") else type(integrity)(text=clean_text, warnings=integrity.warnings, cited_source_keys=integrity.cited_source_keys)
+            # Use server-side token pre-created by CapabilityRegistry (write path)
+            if not pending_action_token and capability_result.pending_action_token:
+                pending_action_token = capability_result.pending_action_token
+                pending_action_label = capability_result.pending_action_label
+                pending_action_details = capability_result.pending_action_details
 
             title = self._title_from_output(integrity.text, payload.content)
             generated_output = GeneratedOutput(

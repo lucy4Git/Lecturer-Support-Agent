@@ -13,11 +13,10 @@ from services.database.models import UploadBatch, UploadItem
 
 from ..core.dependencies import CurrentContext, DatabaseSession
 from ..core.settings import get_settings
-from ..dependencies import get_embedding_client, get_malware_scanner, get_object_storage, get_qdrant_gateway
-from ..ingestion import ArchiveInspectionError, EmbeddingClient, SafeZipExpander
+from ..dependencies import get_malware_scanner, get_object_storage
+from ..ingestion import ArchiveInspectionError, SafeZipExpander
 from ..integrations.malware_scanner import MalwareScanner
 from ..integrations.object_storage import ObjectStorage
-from ..integrations.qdrant import QdrantGateway
 from ..schemas.bulk_uploads import (
     BulkUploadItemResult,
     BulkUploadRequestMetadata,
@@ -27,7 +26,7 @@ from ..schemas.bulk_uploads import (
 from ..schemas.documents import DocumentVersionResponse
 from ..services.authorization import AuthorizationService
 from ..services.bulk_upload import BulkUploadEntry, BulkUploadService
-from ..services.document_ingestion import DocumentIngestionService
+from ..services.job_queue import JobQueueService
 
 router = APIRouter(prefix="/bulk-uploads", tags=["contextual bulk uploads"])
 
@@ -39,8 +38,6 @@ async def create_bulk_upload(
     files: Annotated[list[UploadFile], File()],
     metadata_json: Annotated[str, Form()],
     storage: Annotated[ObjectStorage, Depends(get_object_storage)],
-    embedding: Annotated[EmbeddingClient, Depends(get_embedding_client)],
-    qdrant: Annotated[QdrantGateway, Depends(get_qdrant_gateway)],
     malware_scanner: Annotated[MalwareScanner, Depends(get_malware_scanner)],
 ) -> BulkUploadResponse:
     try:
@@ -49,12 +46,13 @@ async def create_bulk_upload(
         raise HTTPException(status_code=422, detail=f"Invalid metadata_json: {exc}") from exc
     if len(files) != len(metadata.files):
         raise HTTPException(status_code=422, detail="files and metadata.files must have equal length")
+    # scope_type=None means "any scope the caller holds suffices" (private conversation attachments)
     await AuthorizationService(session, context).require_permission(
         tenant_id=context.tenant_id,
         user_id=context.user_id,
         permission_code="content.bulk_upload",
         scope_type=metadata.scope_type,
-        scope_id=metadata.scope_id,
+        scope_id=metadata.scope_id if metadata.scope_type else None,
     )
     settings = get_settings()
     expander = SafeZipExpander(
@@ -129,26 +127,34 @@ async def create_bulk_upload(
         programme_id=metadata.programme_id,
         module_id=metadata.module_id,
     )
+    # Enqueue background ingestion jobs — do NOT process synchronously in the request.
+    # The existing content.ingest_document worker handler (services/worker/handlers.py)
+    # claims each job, parses, chunks, embeds, and indexes to Qdrant.
     processing: list[dict] = []
     if metadata.auto_process:
-        ingestion = DocumentIngestionService(
-            session, storage, context, embedding_client=embedding, qdrant=qdrant
-        )
+        queue = JobQueueService(session)
         for result in results:
             if result.exact_duplicate:
                 processing.append({"document_version_id": str(result.version.id), "status": "exact_duplicate"})
                 continue
-            try:
-                outcome = await ingestion.process_version(result.version.id)
-                processing.append(outcome.model_dump(mode="json"))
-            except Exception as exc:
-                processing.append(
-                    {
-                        "document_version_id": str(result.version.id),
-                        "status": "processing_failed",
-                        "safe_error_type": type(exc).__name__,
-                    }
-                )
+            job = await queue.enqueue(
+                tenant_id=context.tenant_id,
+                job_type="content.ingest_document",
+                payload={
+                    "document_version_id": str(result.version.id),
+                    # Worker reconstructs the caller's context so DocumentAccessService
+                    # uses the same role and scope that authorised the upload.
+                    "requested_by_role_code": context.role_code,
+                },
+                requested_by_user_id=context.user_id,
+                correlation_id=str(batch.id),
+                idempotency_key=f"ingest:{result.version.id}",
+            )
+            processing.append({
+                "document_version_id": str(result.version.id),
+                "status": "queued",
+                "job_id": str(job.id),
+            })
     items = list(
         await session.scalars(
             select(UploadItem)
