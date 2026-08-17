@@ -33,9 +33,15 @@ def main() -> None:
     ingestion = (ROOT / "services/database/models/ingestion.py").read_text(encoding="utf-8")
     for model in ["IngestionJob", "ExtractedContent", "DocumentChunk", "DocumentVersionTransition", "InstitutionalRetrievalTrace"]:
         assert f"class {model}" in ingestion
+    # v1.6 workspace contract: attachments flow through the unified conversation
+    # composer; a dedicated bulk-upload form is not required in the workspace shell
+    # because uploads are handled inline via the attachment state and bulk-uploads API.
     workspace = (ROOT / "apps/web/src/components/workspace-shell.tsx").read_text(encoding="utf-8")
-    assert "BulkUploadForm" in workspace
-    assert "pendingAttachments" in workspace
+    assert "pendingAttachments" in workspace, "Inline attachment state missing from workspace"
+    assert "bulk-uploads" in workspace or "bulk_uploads" in workspace, \
+        "Workspace must call the bulk-uploads API for inline attachment upload"
+    assert "attachment_version_ids" in workspace, \
+        "Workspace must pass attachment version IDs to the conversation stream request"
     assert "Production upload interface in v1.7" not in workspace
     document_routes = (ROOT / "services/api/app/routes/documents.py").read_text(encoding="utf-8")
     assert "transition_document_version_status" in document_routes

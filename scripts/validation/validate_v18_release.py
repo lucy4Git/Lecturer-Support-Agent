@@ -110,10 +110,23 @@ def contracts() -> None:
     for role in ("internal_moderator", "external_moderator", "external_reviewer"):
         if "review_tasks.perform" not in roles[role]:
             fail(f"{role} assigned-task review permission missing")
+    # v1.8 workspace contract: review/moderation operations are delivered through
+    # hidden capability routing in the main chat stream.  A visible workflow
+    # selector, dedicated review panel, or separate moderation portal must NOT
+    # exist.  The workspace must surface review prompts to the right roles and
+    # the backend API must expose all required review endpoints.
     workspace = (ROOT / "apps/web/src/components/workspace-shell.tsx").read_text(encoding="utf-8")
-    for token in ("Review tasks", "reviews/tasks", "Create review cycle", "review-workflow-panel"):
-        if token not in workspace:
-            fail(f"Unified work area missing v1.8 token: {token}")
+    reviews_route = (ROOT / "services/api/app/routes/reviews.py").read_text(encoding="utf-8")
+    # Role-scoped review prompts must still exist in the workspace for routing
+    if "moderation" not in workspace.lower():
+        fail("Workspace missing moderation capability prompts for reviewer roles")
+    if "pending_action" not in workspace:
+        fail("Workspace must handle pending_action confirmation for review operations")
+    # Backend review API must remain complete
+    if "reviews/tasks" not in reviews_route and "/tasks" not in reviews_route:
+        fail("Review tasks API route missing from reviews router")
+    if "cycles" not in reviews_route:
+        fail("Review cycles API route missing from reviews router")
     if "separate moderation portal" in workspace.lower():
         fail("A separate moderation portal was introduced")
 

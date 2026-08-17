@@ -134,6 +134,7 @@ const PROMPT_SUGGESTIONS: Record<string, string[]> = {
   ],
 };
 
+// AI-generated content is rendered as inline output within the unified conversation stream.
 export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);

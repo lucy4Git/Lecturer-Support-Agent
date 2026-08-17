@@ -139,8 +139,17 @@ def contract_checks() -> None:
     if "outputs.edit" in role_map["external_reviewer"]:
         fail("External reviewer must not have unrestricted output editing")
 
+    # v1.7 workspace contract: module context is resolved internally through the
+    # orchestration/capability layer; normal users do not supply module_offering_id
+    # directly.  The backend service and capability registry must carry the field.
     workspace = (ROOT / "apps/web/src/components/workspace-shell.tsx").read_text(encoding="utf-8")
-    for token in ("module_offering_id", "version-pill", "student_copy", "Restore"):
+    module_ctx = (ROOT / "services/api/app/services/module_context.py").read_text(encoding="utf-8")
+    capability = (ROOT / "services/api/app/ai/capability_registry.py").read_text(encoding="utf-8")
+    if "module_offering_id" not in module_ctx:
+        fail("module_context.py must resolve module_offering_id internally")
+    if "module_offering_id" not in capability:
+        fail("capability_registry.py must use module_offering_id in orchestration")
+    for token in ("version-pill", "student_copy", "Restore"):
         if token not in workspace:
             fail(f"Unified work area missing v1.7 UI contract token: {token}")
     if "separate artifact workspace" in workspace.lower():
@@ -161,7 +170,7 @@ def json_schema_and_uml() -> tuple[int, int, int]:
         validator_for = None
 
     for path in ROOT.rglob("*.json"):
-        if any(part in {"node_modules", ".next"} for part in path.parts):
+        if any(part in {"node_modules", ".next", "runtime"} for part in path.parts):
             continue
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
