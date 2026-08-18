@@ -250,7 +250,9 @@ async def direct_password_reset(
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     credential.password_hash = passwords.hash(payload.new_password.get_secret_value())
+    credential.password_version += 1
     credential.password_changed_at = now
+    credential.must_change_password = False
     credential.failed_attempts = 0
     credential.locked_until = None
 

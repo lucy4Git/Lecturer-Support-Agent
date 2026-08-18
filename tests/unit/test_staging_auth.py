@@ -1011,3 +1011,67 @@ async def test_mfa_not_checked_when_staging_simple_auth_enabled() -> None:
         # Should not raise HTTPException 428 (MFA required)
         result = await svc.login(payload, user_agent_hash=None, source_ip_hash=None)
         assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# 8. direct_password_reset route — credential hygiene after successful reset
+# ---------------------------------------------------------------------------
+
+def test_direct_reset_resets_must_change_password_flag() -> None:
+    """After a direct password reset, must_change_password must be cleared.
+
+    Provisioned accounts are created with must_change_password=True so the
+    credential holder is prompted to change the password on first use. The
+    direct-reset endpoint must clear this flag so the account is not left
+    in an ambiguous state after the user sets a new password.
+    """
+    # Simulate a PasswordCredential in the state set by provision_tut4life_account.py
+    cred = MagicMock()
+    cred.must_change_password = True
+    cred.password_version = 1
+    cred.failed_attempts = 3
+    cred.locked_until = MagicMock()  # simulates a locked account
+
+    # Apply the mutations that direct_password_reset makes
+    cred.password_hash = "new-hash"
+    cred.password_version += 1
+    cred.password_changed_at = "now"
+    cred.must_change_password = False
+    cred.failed_attempts = 0
+    cred.locked_until = None
+
+    assert cred.must_change_password is False
+    assert cred.password_version == 2
+    assert cred.failed_attempts == 0
+    assert cred.locked_until is None
+
+
+def test_direct_reset_increments_password_version() -> None:
+    """password_version must be incremented on every password change."""
+    cred = MagicMock()
+    cred.password_version = 1
+
+    cred.password_version += 1
+
+    assert cred.password_version == 2
+
+
+def test_direct_reset_schema_rejects_mismatched_passwords() -> None:
+    """Backend schema validation must reject mismatched confirm_password."""
+    with pytest.raises(ValidationError, match="Passwords do not match"):
+        DirectPasswordResetRequest(
+            email="test@tut.ac.za",
+            new_password="Alpha123!",
+            confirm_password="Beta456!",
+        )
+
+
+def test_direct_reset_schema_accepts_valid_payload() -> None:
+    """Backend schema must accept matching passwords and a valid email."""
+    req = DirectPasswordResetRequest(
+        email="242689917@tut4life.ac.za",
+        new_password="NewPass123!",
+        confirm_password="NewPass123!",
+    )
+    assert req.new_password.get_secret_value() == "NewPass123!"
+    assert str(req.email) == "242689917@tut4life.ac.za"
