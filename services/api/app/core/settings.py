@@ -155,8 +155,12 @@ class Settings(BaseSettings):
     malware_scan_enabled: bool = False
     malware_scan_fail_closed: bool = False
     malware_scan_timeout_seconds: int = Field(default=30, ge=1, le=300)
+    # Allowed values: clamav | cloudmersive
+    malware_scanner_provider: str = "clamav"
     clamav_host: str = "localhost"
     clamav_port: int = Field(default=3310, ge=1, le=65535)
+    cloudmersive_base_url: str = "https://api.cloudmersive.com"
+    cloudmersive_api_key: SecretStr | None = None
     background_worker_poll_seconds: float = Field(default=2.0, ge=0.1, le=60.0)
     background_job_lease_seconds: int = Field(default=120, ge=30, le=3600)
 

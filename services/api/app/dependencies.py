@@ -4,7 +4,12 @@ from functools import lru_cache
 
 from .core.settings import get_settings
 from .ingestion.embeddings import EmbeddingClient, build_embedding_client
-from .integrations.malware_scanner import ClamAVMalwareScanner, DisabledMalwareScanner, MalwareScanner
+from .integrations.malware_scanner import (
+    ClamAVMalwareScanner,
+    CloudmersiveMalwareScanner,
+    DisabledMalwareScanner,
+    MalwareScanner,
+)
 from .integrations.object_storage import ObjectStorage, S3ObjectStorage
 from .integrations.qdrant import QdrantGateway
 
@@ -29,4 +34,11 @@ def get_malware_scanner() -> MalwareScanner:
     settings = get_settings()
     if not settings.malware_scan_enabled:
         return DisabledMalwareScanner()
-    return ClamAVMalwareScanner(settings)
+    provider = settings.malware_scanner_provider.lower().strip()
+    if provider == "cloudmersive":
+        return CloudmersiveMalwareScanner(settings)
+    if provider == "clamav":
+        return ClamAVMalwareScanner(settings)
+    raise ValueError(
+        f"Unknown MALWARE_SCANNER_PROVIDER '{provider}'. Allowed values: clamav, cloudmersive."
+    )
