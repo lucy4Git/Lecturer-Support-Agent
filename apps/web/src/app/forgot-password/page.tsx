@@ -39,7 +39,9 @@ export default function ForgotPasswordPage() {
     } else {
       const data = await response.json().catch(() => ({}));
       setIsError(true);
-      const detail = data.detail;
+      const detail = data?.detail;
+      // 503 = Vercel proxy waiting for Railway cold-start; surface the server's
+      // specific message so the user knows to retry rather than re-enter data.
       setMessage(typeof detail === "string" ? detail : "The password could not be changed.");
     }
     setBusy(false);
