@@ -4,7 +4,7 @@ import hashlib
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from ..core.database import set_auth_tenant_context
 from ..core.dependencies import AuthenticationDatabaseSession
@@ -63,8 +63,12 @@ async def search_institutions(
     """Public institution directory — searchable by display name."""
     statement = select(Institution).where(Institution.is_active.is_(True))
     if q.strip():
+        term = f"%{q.strip()}%"
         statement = statement.where(
-            Institution.display_name.ilike(f"%{q.strip()}%")
+            or_(
+                Institution.display_name.ilike(term),
+                Institution.slug.ilike(term),
+            )
         )
     statement = statement.order_by(Institution.display_name).limit(20)
     institutions = (await session.scalars(statement)).all()
