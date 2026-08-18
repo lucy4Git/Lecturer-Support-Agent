@@ -91,18 +91,23 @@ class RegistrationService:
         await set_auth_tenant_context(self.session, str(institution.id))
 
         # Validate the submitted email domain against the institution's configured
-        # academic/staff registration domains (fail-closed).
+        # registration-domain policy (fail-closed).
         #
-        # Configuration supports two tiers:
-        #   staff_email_domains  — approved for academic self-registration (Lecturer etc.)
-        #   student_email_domains — recognised student domains, NOT eligible for
-        #                           academic role self-registration
-        #
-        # Falls back to the legacy flat email_domains key for institutions that
-        # have not yet migrated to the split model.
+        # Resolution order (most specific wins):
+        #   1. registration_role_domains[role_code] — per-role domain list.
+        #      Allows institutions to grant different domains per role (e.g. both
+        #      tut.ac.za and tut4life.ac.za for Lecturer, but only tut.ac.za for
+        #      Module Coordinator). Stored as a JSON object in configuration.
+        #   2. staff_email_domains — role-neutral academic domain list.
+        #   3. email_domains — legacy flat list (backward compatibility).
+        #   4. No domains → fail-closed (registration unavailable).
         email_domain = str(payload.email).strip().lower().rsplit("@", 1)[-1]
         config = institution.configuration or {}
-        allowed_domains: list[str] = config.get("staff_email_domains") or config.get("email_domains", [])
+        role_domain_map: dict = config.get("registration_role_domains") or {}
+        if role_domain_map and payload.role_code in role_domain_map:
+            allowed_domains: list[str] = role_domain_map[payload.role_code] or []
+        else:
+            allowed_domains = config.get("staff_email_domains") or config.get("email_domains", [])
         if not allowed_domains:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
