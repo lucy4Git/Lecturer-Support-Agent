@@ -223,9 +223,14 @@ class Settings(BaseSettings):
     # Comma-separated role codes that may be self-assigned via direct registration.
     # institution_administrator and head_of_department are excluded by default
     # because self-selection would allow privilege escalation.
+    # Only roles approved for ordinary public self-registration by default.
+    # internal_moderator, external_moderator and external_reviewer are excluded:
+    # external roles must enter through the controlled grant/invitation architecture;
+    # internal_moderator must be assigned by an authorised institution administrator.
+    # institution_administrator and head_of_department are excluded to prevent
+    # privilege escalation through self-service signup.
     direct_registration_allowed_roles: str = (
-        "lecturer,module_coordinator,programme_coordinator,"
-        "internal_moderator,external_moderator,external_reviewer"
+        "lecturer,module_coordinator,programme_coordinator"
     )
 
     maximum_upload_bytes: int = Field(default=1_073_741_824, ge=1)

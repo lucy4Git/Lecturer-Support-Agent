@@ -482,6 +482,34 @@ def test_allowed_roles_excludes_head_of_department_by_default() -> None:
     assert "head_of_department" not in codes
 
 
+def test_allowed_roles_excludes_internal_moderator_by_default() -> None:
+    """internal_moderator must be assigned by an admin, not self-registered."""
+    s = Settings()
+    codes = {r.strip() for r in s.direct_registration_allowed_roles.split(",") if r.strip()}
+    assert "internal_moderator" not in codes
+
+
+def test_allowed_roles_excludes_external_moderator_by_default() -> None:
+    """external_moderator must enter via the controlled grant architecture."""
+    s = Settings()
+    codes = {r.strip() for r in s.direct_registration_allowed_roles.split(",") if r.strip()}
+    assert "external_moderator" not in codes
+
+
+def test_allowed_roles_excludes_external_reviewer_by_default() -> None:
+    """external_reviewer must enter via the controlled grant architecture."""
+    s = Settings()
+    codes = {r.strip() for r in s.direct_registration_allowed_roles.split(",") if r.strip()}
+    assert "external_reviewer" not in codes
+
+
+def test_allowed_roles_default_set_is_exactly_three_academic_roles() -> None:
+    """Default allow-list must be exactly the three approved academic self-reg roles."""
+    s = Settings()
+    codes = {r.strip() for r in s.direct_registration_allowed_roles.split(",") if r.strip()}
+    assert codes == {"lecturer", "module_coordinator", "programme_coordinator"}
+
+
 @pytest.mark.asyncio
 async def test_registration_blocked_for_role_not_in_allow_list() -> None:
     """Any role absent from DIRECT_REGISTRATION_ALLOWED_ROLES must be blocked at 400."""
