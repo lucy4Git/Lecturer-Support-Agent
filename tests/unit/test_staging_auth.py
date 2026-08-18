@@ -202,6 +202,7 @@ async def test_registration_blocked_for_privileged_role() -> None:
     mock_session = AsyncMock()
     mock_institution = MagicMock()
     mock_institution.id = "12345678-1234-5678-1234-567812345678"
+    mock_institution.configuration = {"email_domains": ["example.ac.za"]}
     mock_session.scalar = AsyncMock(return_value=mock_institution)
 
     svc = RegistrationService(session=mock_session, settings=settings)
@@ -233,6 +234,7 @@ async def test_registration_blocked_for_head_of_department() -> None:
 
     mock_session = AsyncMock()
     mock_institution = MagicMock()
+    mock_institution.configuration = {"email_domains": ["example.ac.za"]}
     mock_session.scalar = AsyncMock(return_value=mock_institution)
 
     svc = RegistrationService(session=mock_session, settings=settings)
@@ -263,6 +265,7 @@ async def test_registration_display_name_uses_email_local_part() -> None:
 
     mock_institution = MagicMock()
     mock_institution.id = "12345678-1234-5678-1234-567812345678"
+    mock_institution.configuration = {"email_domains": ["university.ac.za"]}
 
     mock_role = MagicMock()
     mock_role.id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
@@ -306,6 +309,210 @@ async def test_registration_display_name_uses_email_local_part() -> None:
     assert user_obj.display_name == "john.smith"
     assert user_obj.given_name is None
     assert user_obj.family_name is None
+
+
+# ---------------------------------------------------------------------------
+# 5b. RegistrationService: institutional email-domain validation
+# ---------------------------------------------------------------------------
+
+def _make_institution_mock(domains: list[str], inst_id: str = "12345678-1234-5678-1234-567812345678") -> MagicMock:
+    m = MagicMock()
+    m.id = inst_id
+    m.configuration = {"email_domains": domains}
+    return m
+
+
+def _domain_settings() -> Settings:
+    return Settings(
+        environment="staging",
+        staging_simple_auth_enabled=True,
+        direct_registration_allowed_roles="lecturer",
+    )
+
+
+@pytest.mark.asyncio
+async def test_registration_blocked_gmail_when_domains_configured() -> None:
+    """Gmail must be rejected when the institution has institutional domains."""
+    from fastapi import HTTPException
+    from services.api.app.services.registration import RegistrationService
+
+    mock_session = AsyncMock()
+    mock_session.scalar = AsyncMock(return_value=_make_institution_mock(["tut.ac.za"]))
+
+    svc = RegistrationService(session=mock_session, settings=_domain_settings())
+    payload = DirectRegistrationRequest(
+        institution_id="12345678-1234-5678-1234-567812345678",
+        email="person@gmail.com",
+        password="Pass123!",
+        role_code="lecturer",
+    )
+    with (
+        patch("services.api.app.services.registration.set_auth_tenant_context", new=AsyncMock()),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await svc.register(payload, user_agent_hash=None, source_ip_hash=None)
+    assert exc_info.value.status_code == 422
+    assert "institutional email" in exc_info.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_registration_blocked_no_domains_configured() -> None:
+    """Fail-closed: institution with no email_domains must block public self-registration."""
+    from fastapi import HTTPException
+    from services.api.app.services.registration import RegistrationService
+
+    mock_session = AsyncMock()
+    mock_session.scalar = AsyncMock(return_value=_make_institution_mock([]))
+
+    svc = RegistrationService(session=mock_session, settings=_domain_settings())
+    payload = DirectRegistrationRequest(
+        institution_id="12345678-1234-5678-1234-567812345678",
+        email="person@example.com",
+        password="Pass123!",
+        role_code="lecturer",
+    )
+    with (
+        patch("services.api.app.services.registration.set_auth_tenant_context", new=AsyncMock()),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await svc.register(payload, user_agent_hash=None, source_ip_hash=None)
+    assert exc_info.value.status_code == 422
+    assert "not currently available" in exc_info.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_registration_domain_check_case_insensitive() -> None:
+    """Domain match must be case-insensitive (TUT.AC.ZA == tut.ac.za)."""
+    from fastapi import HTTPException
+    from services.api.app.services.registration import RegistrationService
+
+    mock_institution = _make_institution_mock(["TUT.AC.ZA"])
+    mock_role = MagicMock()
+    mock_role.id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    mock_role.code = "lecturer"
+
+    mock_session = AsyncMock()
+    # institution → role → None (no duplicate)
+    mock_session.scalar = AsyncMock(side_effect=[mock_institution, mock_role, None])
+    mock_session.flush = AsyncMock()
+    mock_session.add = MagicMock()
+    mock_session.scalars = AsyncMock()
+
+    tokens = MagicMock()
+    tokens.build_refresh_token = MagicMock(return_value="rt")
+    tokens.hash_opaque_token = MagicMock(return_value="ht")
+    tokens.create_access_token = MagicMock(
+        return_value=("at", __import__("datetime").datetime.now(__import__("datetime").timezone.utc))
+    )
+    passwords = MagicMock()
+    passwords.hash = MagicMock(return_value="hashed")
+
+    svc = RegistrationService(session=mock_session, settings=_domain_settings())
+    svc.passwords = passwords
+    svc.tokens = tokens
+
+    payload = DirectRegistrationRequest(
+        institution_id="12345678-1234-5678-1234-567812345678",
+        email="lecturer@tut.ac.za",
+        password="Pass123!",
+        role_code="lecturer",
+    )
+    with patch("services.api.app.services.registration.set_auth_tenant_context", new=AsyncMock()):
+        result = await svc.register(payload, user_agent_hash=None, source_ip_hash=None)
+    assert result.role_code == "lecturer"
+
+
+@pytest.mark.asyncio
+async def test_registration_multi_domain_institution() -> None:
+    """Institution with multiple domains must accept any of them."""
+    from fastapi import HTTPException
+    from services.api.app.services.registration import RegistrationService
+
+    mock_institution = _make_institution_mock(["stellenbosch.ac.za", "sun.ac.za"])
+    mock_role = MagicMock()
+    mock_role.id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    mock_role.code = "lecturer"
+
+    mock_session = AsyncMock()
+    mock_session.scalar = AsyncMock(side_effect=[mock_institution, mock_role, None])
+    mock_session.flush = AsyncMock()
+    mock_session.add = MagicMock()
+    mock_session.scalars = AsyncMock()
+
+    tokens = MagicMock()
+    tokens.build_refresh_token = MagicMock(return_value="rt")
+    tokens.hash_opaque_token = MagicMock(return_value="ht")
+    tokens.create_access_token = MagicMock(
+        return_value=("at", __import__("datetime").datetime.now(__import__("datetime").timezone.utc))
+    )
+    passwords = MagicMock()
+    passwords.hash = MagicMock(return_value="hashed")
+
+    svc = RegistrationService(session=mock_session, settings=_domain_settings())
+    svc.passwords = passwords
+    svc.tokens = tokens
+
+    # Secondary domain must be accepted
+    payload = DirectRegistrationRequest(
+        institution_id="12345678-1234-5678-1234-567812345678",
+        email="researcher@stellenbosch.ac.za",
+        password="Pass123!",
+        role_code="lecturer",
+    )
+    with patch("services.api.app.services.registration.set_auth_tenant_context", new=AsyncMock()):
+        result = await svc.register(payload, user_agent_hash=None, source_ip_hash=None)
+    assert result.role_code == "lecturer"
+
+
+# ---------------------------------------------------------------------------
+# 5c. Role allow-list gate: external/privileged roles require explicit permit
+# ---------------------------------------------------------------------------
+
+def test_allowed_roles_excludes_institution_administrator_by_default() -> None:
+    """institution_administrator must never appear in the default allow-list."""
+    s = Settings()
+    codes = {r.strip() for r in s.direct_registration_allowed_roles.split(",") if r.strip()}
+    assert "institution_administrator" not in codes
+
+
+def test_allowed_roles_excludes_head_of_department_by_default() -> None:
+    """head_of_department must never appear in the default allow-list."""
+    s = Settings()
+    codes = {r.strip() for r in s.direct_registration_allowed_roles.split(",") if r.strip()}
+    assert "head_of_department" not in codes
+
+
+@pytest.mark.asyncio
+async def test_registration_blocked_for_role_not_in_allow_list() -> None:
+    """Any role absent from DIRECT_REGISTRATION_ALLOWED_ROLES must be blocked at 400."""
+    from fastapi import HTTPException
+    from services.api.app.services.registration import RegistrationService
+
+    settings = Settings(
+        environment="staging",
+        staging_simple_auth_enabled=True,
+        direct_registration_allowed_roles="lecturer",  # only lecturer permitted
+    )
+
+    mock_session = AsyncMock()
+    mock_session.scalar = AsyncMock(
+        return_value=_make_institution_mock(["example.ac.za"])
+    )
+
+    svc = RegistrationService(session=mock_session, settings=settings)
+    payload = DirectRegistrationRequest(
+        institution_id="12345678-1234-5678-1234-567812345678",
+        email="ext@example.ac.za",
+        password="Pass123!",
+        role_code="external_moderator",
+    )
+    with (
+        patch("services.api.app.services.registration.set_auth_tenant_context", new=AsyncMock()),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await svc.register(payload, user_agent_hash=None, source_ip_hash=None)
+    assert exc_info.value.status_code == 400
+    assert "self-assigned" in str(exc_info.value.detail)
 
 
 # ---------------------------------------------------------------------------

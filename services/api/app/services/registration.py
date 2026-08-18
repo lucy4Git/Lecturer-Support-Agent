@@ -90,6 +90,25 @@ class RegistrationService:
 
         await set_auth_tenant_context(self.session, str(institution.id))
 
+        # Validate the submitted email domain against the institution's configured
+        # allowed domains (fail-closed: no domains configured → registration unavailable).
+        email_domain = str(payload.email).strip().lower().rsplit("@", 1)[-1]
+        allowed_domains: list[str] = (institution.configuration or {}).get("email_domains", [])
+        if not allowed_domains:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "Public self-registration is not currently available for the selected "
+                    "institution. Please contact your institution administrator."
+                ),
+            )
+        normalised_domains = {d.strip().lower() for d in allowed_domains if d.strip()}
+        if email_domain not in normalised_domains:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Please use an approved institutional email address for the selected institution.",
+            )
+
         # Validate role against the authoritative catalogue and the allow-list.
         allowed_codes = self._allowed_role_codes()
         if payload.role_code not in allowed_codes:
