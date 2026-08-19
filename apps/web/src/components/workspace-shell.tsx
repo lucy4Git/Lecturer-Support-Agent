@@ -5,6 +5,34 @@ import { useRouter } from "next/navigation";
 import { apiFetch, responseMessage } from "@/lib/api-client";
 import { WorkspaceResourcePanel, type WorkspaceView } from "@/components/workspace-resource-panels";
 
+// ── SVG icon micro-library ──────────────────────────────────────────────
+const IPlus = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+const IChevronLeft = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>;
+const IChevronRight = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>;
+const ISearch = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+const ILibrary = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>;
+const IFiles = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>;
+const ISaved = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>;
+const IBell = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
+const ISources = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>;
+const IChart = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
+const IReport = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
+const IAudit = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+const ISettings = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+const IOps = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>;
+const ISend = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
+const IAttach = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>;
+const IStop = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>;
+const IMoon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
+const ISun = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
+const ICopy = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
+const IRetry = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.36"/></svg>;
+const IEdit = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+const IArchive = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>;
+const IMenu = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
+const ICheck = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>;
+
+// ── Types ───────────────────────────────────────────────────────────────
 type ConversationSummary = {
   id: string;
   title: string;
@@ -72,6 +100,7 @@ type ConversationDetail = {
   }>;
 };
 
+// ── Constants ───────────────────────────────────────────────────────────
 const roleLabels: Record<string, string> = {
   institution_administrator: "Institution Administrator",
   head_of_department: "Head of Department",
@@ -81,6 +110,17 @@ const roleLabels: Record<string, string> = {
   internal_moderator: "Internal Moderator",
   external_moderator: "External Moderator",
   external_reviewer: "External Reviewer",
+};
+
+const roleInitials: Record<string, string> = {
+  institution_administrator: "IA",
+  head_of_department: "HD",
+  lecturer: "LC",
+  module_coordinator: "MC",
+  programme_coordinator: "PC",
+  internal_moderator: "IM",
+  external_moderator: "EM",
+  external_reviewer: "ER",
 };
 
 const PROMPT_SUGGESTIONS: Record<string, string[]> = {
@@ -134,7 +174,7 @@ const PROMPT_SUGGESTIONS: Record<string, string[]> = {
   ],
 };
 
-// AI-generated content is rendered as inline output within the unified conversation stream.
+// ── WorkspaceShell ──────────────────────────────────────────────────────
 export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -153,6 +193,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const abortRef = useRef<AbortController | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("conversation");
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -168,6 +209,8 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     const storedTheme = window.localStorage.getItem("lsa-theme") === "dark" ? "dark" : "light";
     setTheme(storedTheme);
     document.documentElement.dataset.theme = storedTheme;
+    const storedCollapsed = window.localStorage.getItem("lsa-sidebar-collapsed") === "true";
+    setSidebarCollapsed(storedCollapsed);
   }, []);
 
   useEffect(() => {
@@ -205,6 +248,12 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     setTheme(next);
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem("lsa-theme", next);
+  }
+
+  function toggleSidebarCollapse() {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    window.localStorage.setItem("lsa-sidebar-collapsed", String(next));
   }
 
   async function loadConversations() {
@@ -347,7 +396,6 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
 
       if (doneData) {
         const d = doneData;
-        // Build pendingConfirmation from server-side pending_action_token
         let pendingConf: ChatItem["pendingConfirmation"] = null;
         if (d.pending_action_token) {
           const details: Record<string, string> = {};
@@ -464,7 +512,6 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     setNotice(null);
     const optimisticId = `local-confirm-${Date.now()}`;
     setMessages((current) => [...current, { id: optimisticId, role: "user", content: `Confirm: ${label}` }]);
-    // Clear the confirmation card from the preceding message
     setMessages((current) => current.map((m) => m.pendingConfirmation?.confirmToken === confirmToken ? { ...m, pendingConfirmation: null } : m));
     await streamRequest(activeConversationId, `__confirm__${confirmToken}`, [], optimisticId, `Confirm: ${label}`);
   }
@@ -524,7 +571,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
       for (const a of attached) if (!merged.some((e) => e.versionId === a.versionId)) merged.push(a);
       return merged;
     });
-    setNotice(attached.length ? `${attached.length} file(s) attached. ${data.batch?.failed_item_count > 0 ? `${data.batch.failed_item_count} failed.` : ""}` : "Upload failed or files were not processed.");
+    setNotice(attached.length ? `${attached.length} file(s) attached.${data.batch?.failed_item_count > 0 ? ` ${data.batch.failed_item_count} failed.` : ""}` : "Upload failed or files were not processed.");
     setUploadingFiles(false);
   }
 
@@ -577,106 +624,178 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   };
 
   const suggestions = PROMPT_SUGGESTIONS[activeRole] ?? PROMPT_SUGGESTIONS["lecturer"];
+  const roleInitial = roleInitials[activeRole] ?? activeRole.slice(0, 2).toUpperCase();
+
+  const navItems = [
+    { key: "search" as const, Icon: ISearch, label: "Search", shortcut: "Ctrl K" },
+    { key: "library" as const, Icon: ILibrary, label: "Library" },
+    { key: "files" as const, Icon: IFiles, label: "Files" },
+    { key: "saved" as const, Icon: ISaved, label: "Saved outputs" },
+    { key: "notifications" as const, Icon: IBell, label: "Notifications", badge: unreadNotifications },
+    { key: "insights" as const, Icon: IChart, label: "Insights" },
+    ...(["institution_administrator","head_of_department","module_coordinator","programme_coordinator","lecturer","internal_moderator"].includes(activeRole) ? [{ key: "reports" as const, Icon: IReport, label: "Reports" }] : []),
+    ...(activeRole === "institution_administrator" ? [
+      { key: "audit" as const, Icon: IAudit, label: "Audit centre" },
+      { key: "settings" as const, Icon: ISettings, label: "Platform settings" },
+      { key: "operations" as const, Icon: IOps, label: "Platform operations" },
+    ] : []),
+  ];
 
   return (
-    <main id="main-content" className="workspace-grid">
+    <main
+      id="main-content"
+      className={`workspace-grid${sidebarCollapsed ? " sidebar-collapsed" : ""}`}
+    >
+      {/* Mobile sidebar overlay */}
+      <div
+        className={`sidebar-overlay${sidebarOpen ? " visible" : ""}`}
+        aria-hidden="true"
+        onClick={() => setSidebarOpen(false)}
+      />
+
+      {/* Mobile hamburger */}
       <button
         className="mobile-sidebar-toggle"
         type="button"
         aria-label="Open navigation"
         onClick={() => setSidebarOpen((v) => !v)}
       >
-        ☰
+        <IMenu />
       </button>
-      <aside className={`sidebar ${sidebarOpen ? "mobile-open" : ""}`}>
-        <div className="brand-row">
+
+      {/* ── Sidebar ──────────────────────────────────────────────────── */}
+      <aside className={`sidebar${sidebarOpen ? " mobile-open" : ""}`}>
+        {/* Brand + collapse toggle */}
+        <div className="sidebar-head">
           <div className="brand-mark" aria-label="Lecturer Support Agent">LS</div>
-          <div><strong>Lecturer Support</strong><span>AI assistant</span></div>
-        </div>
-        <button className="primary-nav-button" type="button" onClick={startNewConversation}>＋ New conversation</button>
-        <div className="sidebar-section-label">Recent conversations</div>
-        <nav aria-label="Recent conversations" className="conversation-nav">
-          {conversations.length === 0 && <span className="sidebar-empty">No conversations yet.</span>}
-          {conversations.map((conv) => (
-            <div key={conv.id} className="conv-nav-row">
-              {renamingConvId === conv.id ? (
-                <form
-                  className="conv-rename-form"
-                  onSubmit={(e) => { e.preventDefault(); void renameConversation(conv.id, renameText); }}
-                >
-                  <input
-                    autoFocus
-                    value={renameText}
-                    onChange={(e) => setRenameText(e.target.value)}
-                    onBlur={() => void renameConversation(conv.id, renameText)}
-                    onKeyDown={(e) => { if (e.key === "Escape") setRenamingConvId(null); }}
-                    aria-label="Rename conversation"
-                  />
-                </form>
-              ) : (
-                <button
-                  type="button"
-                  className={conv.id === activeConversationId ? "conversation-nav-item active" : "conversation-nav-item"}
-                  onClick={() => void openConversation(conv.id)}
-                  title={conv.title}
-                >
-                  <span>{conv.title}</span>
-                </button>
-              )}
-              {renamingConvId !== conv.id && (
-                <div className="conv-actions">
-                  <button
-                    type="button"
-                    aria-label="Rename"
-                    title="Rename"
-                    onClick={() => { setRenamingConvId(conv.id); setRenameText(conv.title); }}
-                  >✎</button>
-                  <button
-                    type="button"
-                    aria-label="Archive"
-                    title="Archive"
-                    onClick={() => void archiveConversation(conv.id)}
-                  >⊗</button>
-                </div>
-              )}
+          {!sidebarCollapsed && (
+            <div className="brand-text">
+              <strong>Lecturer Support</strong>
+              <span>AI assistant</span>
             </div>
-          ))}
-        </nav>
+          )}
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={toggleSidebarCollapse}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? <IChevronRight /> : <IChevronLeft />}
+          </button>
+        </div>
+
+        {/* New conversation */}
+        <button type="button" className="sidebar-new-btn" onClick={startNewConversation}>
+          <IPlus />
+          <span>New conversation</span>
+        </button>
+
+        <div className="sidebar-sep" />
+
+        {/* Recent conversations (hidden when collapsed) */}
+        {!sidebarCollapsed && (
+          <>
+            <div className="sidebar-section-label">Recent conversations</div>
+            <nav aria-label="Recent conversations" className="conversation-nav">
+              {conversations.length === 0 && <span className="sidebar-empty">No conversations yet.</span>}
+              {conversations.map((conv) => (
+                <div key={conv.id} className="conv-nav-row">
+                  {renamingConvId === conv.id ? (
+                    <form
+                      className="conv-rename-form"
+                      onSubmit={(e) => { e.preventDefault(); void renameConversation(conv.id, renameText); }}
+                    >
+                      <input
+                        autoFocus
+                        value={renameText}
+                        onChange={(e) => setRenameText(e.target.value)}
+                        onBlur={() => void renameConversation(conv.id, renameText)}
+                        onKeyDown={(e) => { if (e.key === "Escape") setRenamingConvId(null); }}
+                        aria-label="Rename conversation"
+                      />
+                    </form>
+                  ) : (
+                    <button
+                      type="button"
+                      className={conv.id === activeConversationId ? "conversation-nav-item active" : "conversation-nav-item"}
+                      onClick={() => void openConversation(conv.id)}
+                      title={conv.title}
+                    >
+                      <span>{conv.title}</span>
+                    </button>
+                  )}
+                  {renamingConvId !== conv.id && (
+                    <div className="conv-actions">
+                      <button
+                        type="button"
+                        aria-label="Rename"
+                        title="Rename"
+                        onClick={() => { setRenamingConvId(conv.id); setRenameText(conv.title); }}
+                      ><IEdit /></button>
+                      <button
+                        type="button"
+                        aria-label="Archive"
+                        title="Archive"
+                        onClick={() => void archiveConversation(conv.id)}
+                      ><IArchive /></button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </nav>
+            <div className="sidebar-sep" />
+          </>
+        )}
+
+        {/* Workspace navigation */}
         <nav aria-label="Workspace" className="nav-stack compact-nav">
-          {[
-            { key: "search" as const, icon: "⌕", label: "Search", shortcut: "Ctrl K" },
-            { key: "library" as const, icon: "▣", label: "Library" },
-            { key: "files" as const, icon: "↥", label: "Files" },
-            { key: "saved" as const, icon: "☆", label: "Saved outputs" },
-            { key: "notifications" as const, icon: "◉", label: "Notifications", badge: unreadNotifications },
-            { key: "insights" as const, icon: "◒", label: "Insights" },
-            ...( ["institution_administrator", "head_of_department", "module_coordinator", "programme_coordinator", "lecturer", "internal_moderator"].includes(activeRole) ? [{ key: "reports" as const, icon: "▤", label: "Reports" }] : []),
-            ...(activeRole === "institution_administrator" ? [{ key: "audit" as const, icon: "◇", label: "Audit centre" }, { key: "settings" as const, icon: "⚙", label: "Platform settings" }, { key: "operations" as const, icon: "◈", label: "Platform operations" }] : []),
-          ].map((item) => (
-            <button key={item.key} type="button" aria-label={item.label} title={item.label} className={activeView === item.key ? "nav-item active" : "nav-item"} onClick={() => changeView(item.key)}>
-              <span aria-hidden="true">{item.icon}</span>
-              <span aria-hidden="true">{item.label}</span>
-              {item.shortcut && <kbd>{item.shortcut}</kbd>}
-              {"badge" in item && !!item.badge && <b className="nav-badge">{(item.badge as number) > 99 ? "99+" : item.badge}</b>}
+          {navItems.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              aria-label={item.label}
+              title={item.label}
+              className={activeView === item.key ? "nav-item active" : "nav-item"}
+              onClick={() => changeView(item.key)}
+            >
+              <item.Icon />
+              <span>{item.label}</span>
+              {"shortcut" in item && item.shortcut && <kbd>{item.shortcut}</kbd>}
+              {"badge" in item && !!item.badge && (
+                <b className="nav-badge">{(item.badge as number) > 99 ? "99+" : item.badge}</b>
+              )}
             </button>
           ))}
         </nav>
+
+        {/* Role card */}
         <div className="role-card">
-          <span className="eyebrow">Active role</span>
-          <strong>{roleLabels[activeRole] ?? activeRole.replaceAll("_", " ")}</strong>
-          <button type="button" className="link-button" onClick={signOut}>Sign out</button>
+          <div className="role-avatar" aria-hidden="true">{roleInitial}</div>
+          <div className="role-card-text">
+            <strong>{roleLabels[activeRole] ?? activeRole.replaceAll("_", " ")}</strong>
+            <button type="button" className="link-button" onClick={signOut}>Sign out</button>
+          </div>
         </div>
       </aside>
 
+      {/* ── Content area ─────────────────────────────────────────────── */}
       <section className="conversation-area">
         <header className="topbar">
           <div>
             <span className="eyebrow">Lecturer Support Agent</span>
-            <h1>{viewTitles[activeView]}</h1>
+            <h1 style={{ margin: "3px 0 0", fontSize: "20px", letterSpacing: "-.02em" }}>
+              {viewTitles[activeView]}
+            </h1>
           </div>
           <div className="topbar-actions">
-            <button className="theme-button" type="button" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
-              {theme === "light" ? "◐" : "☀"}
+            <button
+              className="theme-button"
+              type="button"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+            >
+              {theme === "light" ? <IMoon /> : <ISun />}
             </button>
           </div>
         </header>
@@ -685,7 +804,9 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
           <>
             <div className="message-scroll" ref={scrollRef} aria-live="polite">
               {loadingConversation ? (
-                <div className="conversation-loading"><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></div>
+                <div className="conversation-loading">
+                  <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                </div>
               ) : messages.length === 0 && !sending ? (
                 <div className="conversation-empty">
                   <div className="orb" aria-hidden="true">✦</div>
@@ -735,6 +856,20 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
 
             <div className="composer-wrap">
               <div className="composer" aria-label="Message composer">
+                {!!pendingAttachments.length && (
+                  <div className="attachment-chip-row">
+                    {pendingAttachments.map((item) => (
+                      <button
+                        key={item.versionId}
+                        type="button"
+                        className="attachment-chip"
+                        onClick={() => setPendingAttachments((c) => c.filter((e) => e.versionId !== item.versionId))}
+                      >
+                        <IFiles />{item.filename}<b aria-label="Remove">×</b>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <textarea
                   ref={composerRef}
                   aria-label="Message"
@@ -745,29 +880,16 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
                   onKeyDown={handleComposerKeyDown}
                   disabled={sending}
                 />
-                {!!pendingAttachments.length && (
-                  <div className="attachment-chip-row">
-                    {pendingAttachments.map((item) => (
-                      <button
-                        key={item.versionId}
-                        type="button"
-                        className="attachment-chip"
-                        onClick={() => setPendingAttachments((c) => c.filter((e) => e.versionId !== item.versionId))}
-                      >
-                        <span>▣</span>{item.filename}<b aria-label="Remove">×</b>
-                      </button>
-                    ))}
-                  </div>
-                )}
                 <div className="composer-row">
                   <button
                     type="button"
                     className="icon-button"
                     title={uploadingFiles ? "Uploading…" : "Attach file"}
+                    aria-label={uploadingFiles ? "Uploading…" : "Attach file"}
                     disabled={sending || uploadingFiles}
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    {uploadingFiles ? "…" : "＋"}
+                    <IAttach />
                   </button>
                   <input
                     ref={fileInputRef}
@@ -779,14 +901,19 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
                   />
                   <span className="composer-hint">Enter to send · Shift+Enter for new line</span>
                   {sending ? (
-                    <button type="button" className="stop-button" onClick={stopGeneration} aria-label="Stop">◼ Stop</button>
+                    <button type="button" className="stop-button" onClick={stopGeneration} aria-label="Stop generation">
+                      <IStop /> Stop
+                    </button>
                   ) : (
                     <button
                       type="button"
                       className="send-button"
                       disabled={!composerText.trim()}
                       onClick={() => void sendMessage()}
-                    >Send</button>
+                      aria-label="Send message"
+                    >
+                      <ISend />
+                    </button>
                   )}
                 </div>
               </div>
@@ -813,6 +940,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   );
 }
 
+// ── MessageCard ─────────────────────────────────────────────────────────
 function MessageCard({
   message, activeRole, isLastAssistant, isEditing, editText,
   onEditStart, onEditChange, onEditSend, onEditCancel, onRetry, onConfirm, onCancel,
@@ -868,7 +996,9 @@ function MessageCard({
       <article className="message-row user-message">
         <div className="user-message-wrap">
           <div className="message-bubble">{message.content}</div>
-          <button type="button" className="msg-action-btn" title="Edit and resend" onClick={onEditStart} aria-label="Edit message">✎</button>
+          <button type="button" className="msg-action-btn" title="Edit and resend" onClick={onEditStart} aria-label="Edit message">
+            <IEdit />
+          </button>
         </div>
       </article>
     );
@@ -1011,10 +1141,12 @@ function MessageCard({
 
         <div className="msg-action-bar">
           <button type="button" onClick={copyContent} className="msg-action-btn" title={copied ? "Copied!" : "Copy"} aria-label="Copy response">
-            {copied ? "✓" : "⎘"}
+            {copied ? <ICheck /> : <ICopy />}
           </button>
           {isLastAssistant && (
-            <button type="button" onClick={onRetry} className="msg-action-btn" title="Regenerate response" aria-label="Regenerate">↻</button>
+            <button type="button" onClick={onRetry} className="msg-action-btn" title="Regenerate response" aria-label="Regenerate">
+              <IRetry />
+            </button>
           )}
         </div>
 
@@ -1081,6 +1213,7 @@ function MessageCard({
   );
 }
 
+// ── SourceItem ──────────────────────────────────────────────────────────
 function SourceItem({ source }: { source: SourceCard }) {
   const authors = source.authors.length ? source.authors.slice(0, 3).join(", ") : "Author not listed";
   const card = (
@@ -1101,37 +1234,197 @@ function SourceItem({ source }: { source: SourceCard }) {
     : <div className="source-item">{card}</div>;
 }
 
+// ── Markdown rendering ──────────────────────────────────────────────────
+type MdBlock =
+  | { type: "h1" | "h2" | "h3"; text: string }
+  | { type: "table"; headers: string[]; rows: string[][] }
+  | { type: "code"; lang: string; text: string }
+  | { type: "blockquote"; text: string }
+  | { type: "ul"; items: string[] }
+  | { type: "ol"; items: string[] }
+  | { type: "hr" }
+  | { type: "p"; text: string };
+
+function parseMd(raw: string): MdBlock[] {
+  const lines = raw.split("\n");
+  const blocks: MdBlock[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) { i++; continue; }
+
+    // Fenced code block
+    if (trimmed.startsWith("```")) {
+      const lang = trimmed.slice(3).trim();
+      const code: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith("```")) {
+        code.push(lines[i]);
+        i++;
+      }
+      i++;
+      blocks.push({ type: "code", lang, text: code.join("\n") });
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^[-*_]{3,}$/.test(trimmed)) { blocks.push({ type: "hr" }); i++; continue; }
+
+    // Headings
+    if (trimmed.startsWith("### ")) { blocks.push({ type: "h3", text: trimmed.slice(4) }); i++; continue; }
+    if (trimmed.startsWith("## ")) { blocks.push({ type: "h2", text: trimmed.slice(3) }); i++; continue; }
+    if (trimmed.startsWith("# ")) { blocks.push({ type: "h1", text: trimmed.slice(2) }); i++; continue; }
+
+    // Table: consecutive lines starting with |
+    if (trimmed.startsWith("|")) {
+      const tlines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        tlines.push(lines[i]);
+        i++;
+      }
+      const parseCells = (l: string): string[] => {
+        const t = l.trim();
+        const inner = t.endsWith("|") ? t.slice(1, -1) : t.slice(1);
+        return inner.split("|").map((c) => c.trim());
+      };
+      const isSep = (l: string) => /^[\s|:\-]+$/.test(l);
+      const rows = tlines.filter((l) => !isSep(l));
+      if (rows.length >= 1) {
+        blocks.push({ type: "table", headers: parseCells(rows[0]), rows: rows.slice(1).map(parseCells) });
+      }
+      continue;
+    }
+
+    // Blockquote
+    if (trimmed.startsWith("> ")) {
+      const bq: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("> ")) {
+        bq.push(lines[i].trim().slice(2));
+        i++;
+      }
+      blocks.push({ type: "blockquote", text: bq.join(" ") });
+      continue;
+    }
+
+    // Unordered list
+    if (/^[-*+] /.test(trimmed)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*+] /.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^[-*+] /, ""));
+        i++;
+      }
+      blocks.push({ type: "ul", items });
+      continue;
+    }
+
+    // Ordered list
+    if (/^\d+\. /.test(trimmed)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\. /.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^\d+\.\s+/, ""));
+        i++;
+      }
+      blocks.push({ type: "ol", items });
+      continue;
+    }
+
+    // Paragraph: accumulate until blank or block-level marker
+    const pLines: string[] = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() &&
+      !lines[i].trim().startsWith("#") &&
+      !lines[i].trim().startsWith("```") &&
+      !lines[i].trim().startsWith("> ") &&
+      !lines[i].trim().startsWith("|") &&
+      !/^[-*+] /.test(lines[i].trim()) &&
+      !/^\d+\. /.test(lines[i].trim()) &&
+      !/^[-*_]{3,}$/.test(lines[i].trim())
+    ) {
+      pLines.push(lines[i]);
+      i++;
+    }
+    if (pLines.length) blocks.push({ type: "p", text: pLines.join(" ") });
+  }
+
+  return blocks;
+}
+
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[S\d+\])/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) return <strong key={i}>{part.slice(2, -2)}</strong>;
+        if (part.startsWith("*") && part.endsWith("*")) return <em key={i}>{part.slice(1, -1)}</em>;
+        if (part.startsWith("`") && part.endsWith("`")) return <code key={i} className="inline-code">{part.slice(1, -1)}</code>;
+        if (/^\[S\d+\]$/.test(part)) return <sup key={i} className="citation-marker">{part}</sup>;
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 function MarkdownView({ content }: { content: string }) {
-  const lines = content.split("\n");
+  const blocks = parseMd(content);
   return (
     <div className="markdown-view">
-      {lines.map((line, index) => {
-        const key = `${index}-${line.slice(0, 20)}`;
-        if (line.startsWith("### ")) return <h4 key={key}>{line.slice(4)}</h4>;
-        if (line.startsWith("## ")) return <h3 key={key}>{line.slice(3)}</h3>;
-        if (line.startsWith("# ")) return <h2 key={key}>{line.slice(2)}</h2>;
-        if (line.startsWith("> ")) return <blockquote key={key}>{renderInline(line.slice(2))}</blockquote>;
-        if (/^[-*] /.test(line)) return <div className="markdown-list-item" key={key}><span>•</span><p>{renderInline(line.slice(2))}</p></div>;
-        if (/^\d+\. /.test(line)) {
-          const match = line.match(/^(\d+)\. (.*)$/);
-          return <div className="markdown-list-item" key={key}><span>{match?.[1]}.</span><p>{renderInline(match?.[2] || "")}</p></div>;
+      {blocks.map((block, idx) => {
+        switch (block.type) {
+          case "h1": return <h2 key={idx}>{renderInline(block.text)}</h2>;
+          case "h2": return <h3 key={idx}>{renderInline(block.text)}</h3>;
+          case "h3": return <h4 key={idx}>{renderInline(block.text)}</h4>;
+          case "hr": return <hr key={idx} className="md-hr" />;
+          case "code":
+            return (
+              <div key={idx} className="md-code-block">
+                {block.lang && <div className="md-code-lang">{block.lang}</div>}
+                <pre><code>{block.text}</code></pre>
+              </div>
+            );
+          case "blockquote":
+            return <blockquote key={idx}>{renderInline(block.text)}</blockquote>;
+          case "ul":
+            return (
+              <ul key={idx} className="md-ul">
+                {block.items.map((item, ii) => <li key={ii}>{renderInline(item)}</li>)}
+              </ul>
+            );
+          case "ol":
+            return (
+              <ol key={idx} className="md-ol">
+                {block.items.map((item, ii) => <li key={ii}>{renderInline(item)}</li>)}
+              </ol>
+            );
+          case "table":
+            return (
+              <div key={idx} className="md-table-wrap">
+                <table className="md-table">
+                  <thead>
+                    <tr>{block.headers.map((h, hi) => <th key={hi}>{renderInline(h)}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {block.rows.map((row, ri) => (
+                      <tr key={ri}>{row.map((cell, ci) => <td key={ci}>{renderInline(cell)}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          case "p":
+            return <p key={idx}>{renderInline(block.text)}</p>;
+          default:
+            return null;
         }
-        if (!line.trim()) return <div className="markdown-spacer" key={key} />;
-        return <p key={key}>{renderInline(line)}</p>;
       })}
     </div>
   );
 }
 
-function renderInline(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*|\[S\d+\])/g);
-  return parts.map((part, index) => {
-    if (part.startsWith("**") && part.endsWith("**")) return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
-    if (/^\[S\d+\]$/.test(part)) return <sup className="citation-marker" key={`${part}-${index}`}>{part}</sup>;
-    return part;
-  });
-}
-
+// ── AssistantStreaming ──────────────────────────────────────────────────
 function AssistantStreaming({ text, status }: { text: string; status: string }) {
   return (
     <article className="message-row assistant-message" aria-live="polite">
