@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PasswordInput from "@/components/PasswordInput";
 
 type AvailableRole = {
   role_code: string;
@@ -94,7 +95,7 @@ export default function SignInPage() {
           </label>
           <label>
             <span>Password</span>
-            <input name="password" type="password" autoComplete="current-password" required />
+            <PasswordInput name="password" autoComplete="current-password" required />
           </label>
 
           {availableContexts.length > 0 && (

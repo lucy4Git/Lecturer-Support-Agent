@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PasswordInput from "@/components/PasswordInput";
 
 type Institution = {
   id: string;
@@ -155,8 +156,11 @@ export default function SignUpPage() {
 
           <label>
             <span>Password</span>
-            <input name="password" type="password" autoComplete="new-password" required />
+            <PasswordInput name="password" autoComplete="new-password" required />
           </label>
+          <p className="password-hint">
+            At least 12 characters including uppercase, lowercase, number and symbol.
+          </p>
 
           <label>
             <span>Role</span>

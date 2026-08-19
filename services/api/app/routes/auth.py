@@ -249,7 +249,14 @@ async def direct_password_reset(
     if credential is None:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    credential.password_hash = passwords.hash(payload.new_password.get_secret_value())
+    try:
+        credential.password_hash = passwords.hash(payload.new_password.get_secret_value())
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
     credential.password_version += 1
     credential.password_changed_at = now
     credential.must_change_password = False

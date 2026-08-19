@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { backendUrl, parseBackendResponse } from "@/lib/server-api";
+import { backendUrl } from "@/lib/server-api";
 
 // 60 s on Pro; Hobby caps at 10 s.  Railway + Neon should already be warm
 // because the client calls /api/session/ping first — so this is fast.
@@ -30,6 +30,18 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   if (response.status === 204) return new NextResponse(null, { status: 204 });
-  const data = await parseBackendResponse(response);
-  return NextResponse.json(data, { status: response.status });
+
+  // Normalise: if the backend returned text/plain (e.g. Starlette 500 error
+  // handler), wrap it so the browser always receives { detail: string }.
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    const data = await response.json().catch(() => ({}));
+    return NextResponse.json(data, { status: response.status });
+  }
+
+  const text = await response.text().catch(() => "Unexpected server error.");
+  return NextResponse.json(
+    { detail: text || "Unexpected server error. Please try again." },
+    { status: response.status },
+  );
 }

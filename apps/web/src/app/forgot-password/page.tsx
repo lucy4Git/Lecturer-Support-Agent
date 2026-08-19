@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import PasswordInput from "@/components/PasswordInput";
 
 // Warm-up timeout: stop blocking the form after this many ms even if the
 // ping is still running.  15 s is enough for Neon to wake from cold.
@@ -76,11 +77,26 @@ export default function ForgotPasswordPage() {
     if (response.ok || response.status === 204) {
       setDone(true);
       setMessage("Password changed. You can now sign in with your new password.");
+      return;
+    }
+
+    let detail: unknown;
+    try {
+      const data = await response.json();
+      detail = data?.detail;
+    } catch {
+      detail = undefined;
+    }
+
+    setIsError(true);
+    if (typeof detail === "string" && detail.length > 0) {
+      setMessage(detail);
+    } else if (response.status === 503 || response.status === 504) {
+      setMessage("Account service is temporarily unavailable. Please try again.");
+    } else if (response.status >= 500) {
+      setMessage("Password could not be changed. Please try again.");
     } else {
-      const data = await response.json().catch(() => ({}));
-      setIsError(true);
-      const detail = data?.detail;
-      setMessage(typeof detail === "string" ? detail : "The password could not be changed.");
+      setMessage("Password could not be changed. Please try again.");
     }
     setBusy(false);
   }
@@ -107,16 +123,14 @@ export default function ForgotPasswordPage() {
             </label>
             <label>
               <span>New password</span>
-              <input type="password" name="new_password" autoComplete="new-password" required />
+              <PasswordInput name="new_password" autoComplete="new-password" required />
             </label>
+            <p className="password-hint">
+              At least 12 characters including uppercase, lowercase, number and symbol.
+            </p>
             <label>
               <span>Confirm new password</span>
-              <input
-                type="password"
-                name="confirm_password"
-                autoComplete="new-password"
-                required
-              />
+              <PasswordInput name="confirm_password" autoComplete="new-password" required />
             </label>
             {message && (
               <div className={isError ? "error-notice" : "notice"}>{message}</div>

@@ -501,6 +501,14 @@ input:focus, select:focus { border-color: #84a1ff; box-shadow: 0 0 0 3px rgba(49
 .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: rgba(17,24,39,.12); }
 .secondary-button { width: 100%; border: 1px solid rgba(17,24,39,.18); background: transparent; border-radius: .75rem; padding: .75rem 1rem; font-weight: 650; cursor: pointer; }
 
+/* Show/hide password field */
+.password-field-wrap { position: relative; display: grid; }
+.password-field-wrap input { padding-right: 44px; }
+.pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; border-radius: 6px; padding: 0; }
+.pw-toggle:hover { color: var(--ink); background: var(--soft-accent); }
+.pw-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.password-hint { font-size: 11px; color: var(--muted); margin-top: -6px; line-height: 1.45; }
+
 /* Streaming and stop-generation controls */
 .streaming-cursor { display: inline-block; width: 2px; height: 1em; background: var(--accent); border-radius: 1px; margin-left: 2px; vertical-align: text-bottom; animation: cursorBlink 0.8s ease-in-out infinite; }
 @keyframes cursorBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
