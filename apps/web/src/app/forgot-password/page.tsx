@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 export default function ForgotPasswordPage() {
   const [message, setMessage] = useState<string | null>(null);
@@ -9,6 +9,12 @@ export default function ForgotPasswordPage() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Pre-warm Railway + Neon as soon as the page loads so the reset POST is
+  // fast even when the database has scaled to zero.
+  useEffect(() => {
+    fetch("/api/session/ping").catch(() => undefined);
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,15 +30,25 @@ export default function ForgotPasswordPage() {
       setBusy(false);
       return;
     }
-    const response = await fetch("/api/session/direct-reset", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: values.get("email"),
-        new_password: newPassword,
-        confirm_password: confirmPassword,
-      }),
-    });
+
+    let response: Response;
+    try {
+      response = await fetch("/api/session/direct-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: values.get("email"),
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        }),
+      });
+    } catch {
+      setIsError(true);
+      setMessage("Could not reach the server. Check your connection and try again.");
+      setBusy(false);
+      return;
+    }
+
     if (response.ok || response.status === 204) {
       setDone(true);
       setMessage("Password changed. You can now sign in with your new password.");
@@ -40,8 +56,6 @@ export default function ForgotPasswordPage() {
       const data = await response.json().catch(() => ({}));
       setIsError(true);
       const detail = data?.detail;
-      // 503 = Vercel proxy waiting for Railway cold-start; surface the server's
-      // specific message so the user knows to retry rather than re-enter data.
       setMessage(typeof detail === "string" ? detail : "The password could not be changed.");
     }
     setBusy(false);

@@ -1,25 +1,12 @@
 import { NextResponse } from "next/server";
 import { backendUrl, parseBackendResponse } from "@/lib/server-api";
 
-// Allow up to 60 s so Railway's cold-start (typically 15-25 s) is absorbed.
-// Vercel Hobby caps this at 10 s; Vercel Pro honours it up to 300 s.
+// 60 s on Pro; Hobby caps at 10 s.  Railway + Neon should already be warm
+// because the client calls /api/session/ping first — so this is fast.
 export const maxDuration = 60;
 
 export async function POST(request: Request): Promise<NextResponse> {
   const body = await request.text();
-
-  // Pre-warm Railway before the state-changing POST.
-  // If the API process is sleeping, this GET absorbs the cold-start delay so
-  // the subsequent reset POST completes quickly. The warm-up uses a read-only
-  // endpoint; failure is silently ignored — we still attempt the reset.
-  try {
-    await fetch(backendUrl("/api/v1/auth/institutions?q=ping"), {
-      cache: "no-store",
-      signal: AbortSignal.timeout(50_000),
-    });
-  } catch {
-    // Warm-up timed out or failed — proceed anyway.
-  }
 
   let response: Response;
   try {
@@ -28,14 +15,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       headers: { "Content-Type": "application/json" },
       body,
       cache: "no-store",
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(55_000),
     });
   } catch (err) {
     const isTimeout = err instanceof Error && err.name === "TimeoutError";
     return NextResponse.json(
       {
         detail: isTimeout
-          ? "The service is taking longer than expected. Please wait a moment and try again."
+          ? "The service is warming up. Please wait a moment and try again."
           : "The request could not be completed. Please try again.",
       },
       { status: 503 },
