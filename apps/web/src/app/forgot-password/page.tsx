@@ -3,17 +3,39 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
+// Warm-up timeout: stop blocking the form after this many ms even if the
+// ping is still running.  15 s is enough for Neon to wake from cold.
+const WARM_UP_TIMEOUT_MS = 15_000;
+
 export default function ForgotPasswordPage() {
-  const [message, setMessage] = useState<string | null>(null);
-  const [isError, setIsError] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const [message, setMessage]   = useState<string | null>(null);
+  const [isError, setIsError]   = useState(false);
+  const [busy, setBusy]         = useState(false);
+  const [done, setDone]         = useState(false);
+  // True while the warm-up ping is in flight; form is disabled until resolved.
+  const [warming, setWarming]   = useState(true);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Pre-warm Railway + Neon as soon as the page loads so the reset POST is
-  // fast even when the database has scaled to zero.
+  // Warm Railway + Neon before the user can submit.  The form stays disabled
+  // until the ping resolves or WARM_UP_TIMEOUT_MS elapses — whichever comes
+  // first.  This prevents the reset POST from racing a cold Neon startup.
   useEffect(() => {
-    fetch("/api/session/ping").catch(() => undefined);
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      if (!cancelled) setWarming(false);
+    }, WARM_UP_TIMEOUT_MS);
+
+    fetch("/api/session/ping")
+      .catch(() => undefined)
+      .finally(() => {
+        clearTimeout(timeout);
+        if (!cancelled) setWarming(false);
+      });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -21,9 +43,11 @@ export default function ForgotPasswordPage() {
     setBusy(true);
     setMessage(null);
     setIsError(false);
+
     const values = new FormData(event.currentTarget);
-    const newPassword = values.get("new_password") as string;
+    const newPassword     = values.get("new_password") as string;
     const confirmPassword = values.get("confirm_password") as string;
+
     if (newPassword !== confirmPassword) {
       setIsError(true);
       setMessage("Passwords do not match.");
@@ -61,6 +85,13 @@ export default function ForgotPasswordPage() {
     setBusy(false);
   }
 
+  const buttonDisabled = busy || warming;
+  const buttonLabel = warming
+    ? "Preparing…"
+    : busy
+    ? "Changing password…"
+    : "Change password";
+
   return (
     <main id="main-content" className="auth-page">
       <section className="auth-card">
@@ -80,11 +111,18 @@ export default function ForgotPasswordPage() {
             </label>
             <label>
               <span>Confirm new password</span>
-              <input type="password" name="confirm_password" autoComplete="new-password" required />
+              <input
+                type="password"
+                name="confirm_password"
+                autoComplete="new-password"
+                required
+              />
             </label>
-            {message && <div className={isError ? "error-notice" : "notice"}>{message}</div>}
-            <button className="submit-button" disabled={busy}>
-              {busy ? "Changing password…" : "Change password"}
+            {message && (
+              <div className={isError ? "error-notice" : "notice"}>{message}</div>
+            )}
+            <button className="submit-button" disabled={buttonDisabled}>
+              {buttonLabel}
             </button>
           </form>
         ) : (
