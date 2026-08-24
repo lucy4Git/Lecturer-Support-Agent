@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { apiFetch, responseMessage } from "@/lib/api-client";
 import { CommercialGovernancePanel } from "@/components/commercial-governance-panels";
 
-export type WorkspaceView = "conversation" | "search" | "library" | "files" | "saved" | "notifications" | "insights" | "reports" | "audit" | "settings" | "operations";
+export type WorkspaceView = "conversation" | "search" | "library" | "sources" | "files" | "saved" | "notifications" | "insights" | "reports" | "audit" | "settings" | "operations";
 
 type SearchResult = {
   kind: string;
@@ -74,6 +74,7 @@ export function WorkspaceResourcePanel(props: Props) {
   }
   if (props.activeView === "search") return <SearchPanel {...props} />;
   if (props.activeView === "library") return <LibraryPanel mode="library" {...props} />;
+  if (props.activeView === "sources") return <SourcesPanel {...props} />;
   if (props.activeView === "files") return <LibraryPanel mode="files" {...props} />;
   if (props.activeView === "saved") return <SavedOutputsPanel {...props} />;
   return <NotificationsPanel {...props} />;
@@ -217,6 +218,53 @@ function SavedOutputsPanel({ onReturnToConversation }: Props) {
           <div className="resource-actions"><button type="button" onClick={onReturnToConversation}>Open conversations</button><button type="button" className="danger-text" onClick={() => void remove(item.id)}>Remove</button></div>
         </article>)}
       </div>
+    </section>
+  );
+}
+
+function SourcesPanel({ onReturnToConversation }: Props) {
+  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch("/api/v1/library/documents?limit=40")
+      .then(async (r) => {
+        const d = await r.json();
+        setItems(Array.isArray(d.items) ? d.items : []);
+      })
+      .catch(() => setError("Could not load sources."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <section className="resource-panel">
+      <div className="resource-panel-header">
+        <div>
+          <h2>Sources</h2>
+          <p>Authorised knowledge retrieved and cited during your AI conversations. Sources are drawn from institutional documents and verified academic literature.</p>
+        </div>
+        <div className="resource-header-actions">
+          <button type="button" className="secondary-compact-button" onClick={onReturnToConversation}>← Back to conversation</button>
+        </div>
+      </div>
+      {error && <p className="resource-error">{error}</p>}
+      {loading ? (
+        <div className="resource-card-grid">{[...Array(4)].map((_, i) => <div key={i} className="resource-card skeleton-card"><i /><i /><i /></div>)}</div>
+      ) : items.length === 0 ? (
+        <div className="resource-empty"><div>⬡</div><strong>No sources yet</strong><p>Sources appear here after the AI retrieves and cites documents during a conversation.</p></div>
+      ) : (
+        <div className="resource-card-grid">
+          {items.map((it) => (
+            <article key={it.document_id} className="resource-card">
+              <span className="resource-kicker">{it.document_type || "document"}</span>
+              <strong>{it.title || it.original_filename}</strong>
+              <p>{it.original_filename}</p>
+              <small>{it.updated_at ? new Date(it.updated_at).toLocaleDateString() : ""}</small>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

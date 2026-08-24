@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, responseMessage } from "@/lib/api-client";
 import { WorkspaceResourcePanel, type WorkspaceView } from "@/components/workspace-resource-panels";
@@ -31,6 +31,10 @@ const IEdit = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" 
 const IArchive = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>;
 const IMenu = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
 const ICheck = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>;
+const IChevronDown = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>;
+const ISave = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
+const IHistory = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.36"/><polyline points="12 7 12 12 15 14"/></svg>;
+const IMoreDots = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>;
 
 // ── Types ───────────────────────────────────────────────────────────────
 type ConversationSummary = {
@@ -194,6 +198,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("conversation");
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -253,6 +258,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   function toggleSidebarCollapse() {
     const next = !sidebarCollapsed;
     setSidebarCollapsed(next);
+    setAccountMenuOpen(false);
     window.localStorage.setItem("lsa-sidebar-collapsed", String(next));
   }
 
@@ -613,6 +619,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     conversation: activeTitle || "Lecturer Support Agent",
     search: "Search",
     library: "Library",
+    sources: "Sources",
     files: "Files",
     saved: "Saved outputs",
     notifications: "Notifications",
@@ -629,6 +636,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const navItems = [
     { key: "search" as const, Icon: ISearch, label: "Search", shortcut: "Ctrl K" },
     { key: "library" as const, Icon: ILibrary, label: "Library" },
+    { key: "sources" as const, Icon: ISources, label: "Sources" },
     { key: "files" as const, Icon: IFiles, label: "Files" },
     { key: "saved" as const, Icon: ISaved, label: "Saved outputs" },
     { key: "notifications" as const, Icon: IBell, label: "Notifications", badge: unreadNotifications },
@@ -769,25 +777,53 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
           ))}
         </nav>
 
-        {/* Role card */}
+        {/* Account control */}
         <div className="role-card">
-          <div className="role-avatar" aria-hidden="true">{roleInitial}</div>
-          <div className="role-card-text">
-            <strong>{roleLabels[activeRole] ?? activeRole.replaceAll("_", " ")}</strong>
-            <button type="button" className="link-button" onClick={signOut}>Sign out</button>
-          </div>
+          {accountMenuOpen && (
+            <div className="account-menu" role="menu">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { setAccountMenuOpen(false); changeView("settings"); }}
+              >
+                Settings
+              </button>
+              <div className="account-menu-sep" />
+              <button
+                type="button"
+                role="menuitem"
+                className="danger"
+                onClick={signOut}
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            className="account-btn"
+            aria-haspopup="true"
+            aria-expanded={accountMenuOpen}
+            onClick={() => setAccountMenuOpen((v) => !v)}
+          >
+            <div className="role-avatar" aria-hidden="true">{roleInitial}</div>
+            <div className="role-card-text">
+              <strong>{roleLabels[activeRole] ?? activeRole.replaceAll("_", " ")}</strong>
+              <span>My account</span>
+            </div>
+            <span className="account-chevron"><IChevronDown /></span>
+          </button>
         </div>
       </aside>
 
       {/* ── Content area ─────────────────────────────────────────────── */}
       <section className="conversation-area">
         <header className="topbar">
-          <div>
-            <span className="eyebrow">Lecturer Support Agent</span>
-            <h1 style={{ margin: "3px 0 0", fontSize: "20px", letterSpacing: "-.02em" }}>
-              {viewTitles[activeView]}
-            </h1>
-          </div>
+          <h1>
+            {activeView === "conversation"
+              ? (activeTitle || "New conversation")
+              : viewTitles[activeView]}
+          </h1>
           <div className="topbar-actions">
             <button
               className="theme-button"
@@ -874,7 +910,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
                   ref={composerRef}
                   aria-label="Message"
                   placeholder="Message Lecturer Support Agent…"
-                  rows={2}
+                  rows={1}
                   value={composerText}
                   onChange={(e) => setComposerText(e.target.value)}
                   onKeyDown={handleComposerKeyDown}
@@ -970,6 +1006,21 @@ function MessageCard({
   const [busy, setBusy] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    function handleClick(e: globalThis.MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    }
+    function handleKey(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape") setMoreOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => { document.removeEventListener("mousedown", handleClick); document.removeEventListener("keydown", handleKey); };
+  }, [moreOpen]);
 
   if (message.role === "user") {
     if (isEditing) {
@@ -997,7 +1048,7 @@ function MessageCard({
         <div className="user-message-wrap">
           <div className="message-bubble">{message.content}</div>
           <button type="button" className="msg-action-btn" title="Edit and resend" onClick={onEditStart} aria-label="Edit message">
-            <IEdit />
+            <IEdit /><span>Edit</span>
           </button>
         </div>
       </article>
@@ -1139,36 +1190,72 @@ function MessageCard({
           </div>
         )}
 
-        <div className="msg-action-bar">
-          <button type="button" onClick={copyContent} className="msg-action-btn" title={copied ? "Copied!" : "Copy"} aria-label="Copy response">
-            {copied ? <ICheck /> : <ICopy />}
+        {/* ── Unified response-action-bar ── */}
+        <div className="response-action-bar">
+          <button type="button" onClick={copyContent} className="rab-btn" title={copied ? "Copied!" : "Copy response"} aria-label="Copy response">
+            {copied ? <ICheck /> : <ICopy />}<span>{copied ? "Copied" : "Copy"}</span>
           </button>
           {isLastAssistant && (
-            <button type="button" onClick={onRetry} className="msg-action-btn" title="Regenerate response" aria-label="Regenerate">
-              <IRetry />
+            <button type="button" onClick={onRetry} className="rab-btn" title="Regenerate" aria-label="Regenerate response">
+              <IRetry /><span>Retry</span>
             </button>
           )}
+          {message.generatedOutputId && !editingOutput && (
+            <button type="button" disabled={busy} onClick={() => void saveToWorkspace()} className="rab-btn" title="Save to workspace">
+              <ISave /><span>Save</span>
+            </button>
+          )}
+          {!!message.sources?.length && (
+            <button type="button" className="rab-btn rab-sources" onClick={() => setSourcesOpen((v) => !v)} aria-expanded={sourcesOpen}>
+              <span className="source-stack" aria-hidden="true"><i /><i /><i /></span>
+              <span>Sources · {message.sources.length}</span>
+            </button>
+          )}
+          {message.generatedOutputId && !editingOutput && (
+            <div className="rab-more-wrap" ref={moreRef}>
+              <button
+                type="button"
+                className={`rab-btn rab-more-btn${moreOpen ? " rab-more-btn--open" : ""}`}
+                aria-label="More actions"
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+                onClick={() => setMoreOpen((v) => !v)}
+              >
+                <IMoreDots />
+              </button>
+              {moreOpen && (
+                <div className="more-menu" role="menu">
+                  <button type="button" role="menuitem" className="more-menu-item" onClick={() => { setEditingOutput(true); setMoreOpen(false); }}>
+                    <IEdit /> Edit
+                  </button>
+                  <button type="button" role="menuitem" className="more-menu-item" onClick={() => { void loadVersionHistory(); setMoreOpen(false); }}>
+                    <IHistory /> Version history
+                  </button>
+                  {workflowStatus === "draft" && (
+                    <button type="button" role="menuitem" className="more-menu-item" onClick={() => { void transition("submit_for_review"); setMoreOpen(false); }}>
+                      Submit for review
+                    </button>
+                  )}
+                  {mayApprove && workflowStatus === "under_review" && (
+                    <button type="button" role="menuitem" className="more-menu-item" onClick={() => { void transition("approve"); setMoreOpen(false); }}>
+                      Approve
+                    </button>
+                  )}
+                  {mayApprove && workflowStatus === "approved" && (
+                    <button type="button" role="menuitem" className="more-menu-item" onClick={() => { void transition("release"); setMoreOpen(false); }}>
+                      Release
+                    </button>
+                  )}
+                  <div className="more-menu-divider" role="separator" />
+                  <button type="button" role="menuitem" className="more-menu-item" onClick={() => { void exportOutput("docx", "lecturer_pack"); setMoreOpen(false); }}>Export DOCX</button>
+                  <button type="button" role="menuitem" className="more-menu-item" onClick={() => { void exportOutput("pdf", "lecturer_pack"); setMoreOpen(false); }}>Export PDF</button>
+                  <button type="button" role="menuitem" className="more-menu-item" onClick={() => { void exportOutput("pptx", "generic"); setMoreOpen(false); }}>Export PowerPoint</button>
+                  <button type="button" role="menuitem" className="more-menu-item" onClick={() => { void exportOutput("docx", "student_copy"); setMoreOpen(false); }}>Student copy</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
-        {message.generatedOutputId && !editingOutput && (
-          <div className="output-action-bar">
-            <button type="button" onClick={() => setEditingOutput(true)}>Edit</button>
-            <button type="button" onClick={() => void loadVersionHistory()}>History</button>
-            <button type="button" disabled={busy} onClick={() => void saveToWorkspace()}>Save</button>
-            {workflowStatus === "draft" && <button type="button" onClick={() => void transition("submit_for_review")}>Submit for review</button>}
-            {mayApprove && workflowStatus === "under_review" && <button type="button" onClick={() => void transition("approve")}>Approve</button>}
-            {mayApprove && workflowStatus === "approved" && <button type="button" onClick={() => void transition("release")}>Release</button>}
-            <details className="export-menu">
-              <summary>Export</summary>
-              <div>
-                <button onClick={() => void exportOutput("docx", "lecturer_pack")} type="button">DOCX</button>
-                <button onClick={() => void exportOutput("pdf", "lecturer_pack")} type="button">PDF</button>
-                <button onClick={() => void exportOutput("pptx", "generic")} type="button">PowerPoint</button>
-                <button onClick={() => void exportOutput("docx", "student_copy")} type="button">Student copy</button>
-              </div>
-            </details>
-          </div>
-        )}
 
         {historyOpen && (
           <div className="version-history">
@@ -1194,18 +1281,9 @@ function MessageCard({
         {actionNotice && <div className="output-action-notice">{actionNotice}</div>}
         {message.warnings?.map((w) => <div className="integrity-warning" key={w}>{w}</div>)}
 
-        {!!message.sources?.length && (
-          <div className="source-section">
-            <button className="source-toggle" type="button" onClick={() => setSourcesOpen((v) => !v)}>
-              <span className="source-stack" aria-hidden="true"><i /><i /><i /></span>
-              Sources · {message.sources.length}
-              <span>{sourcesOpen ? "Hide" : "View"}</span>
-            </button>
-            {sourcesOpen && (
-              <div className="source-grid">
-                {message.sources.map((source) => <SourceItem key={source.source_key} source={source} />)}
-              </div>
-            )}
+        {!!message.sources?.length && sourcesOpen && (
+          <div className="source-grid">
+            {message.sources.map((source) => <SourceItem key={source.source_key} source={source} />)}
           </div>
         )}
       </div>
