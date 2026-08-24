@@ -121,8 +121,14 @@ class ModelRouter:
         privacy: PrivacyClass,
         allowed_providers: set[str] | None = None,
         denied_providers: set[str] | None = None,
+        result_holder: dict[str, str] | None = None,
     ) -> AsyncIterator[str]:
-        """Yield text tokens from the first available provider, falling back if needed."""
+        """Yield text tokens from the first available provider, falling back if needed.
+
+        If `result_holder` is passed, it is populated with the {"provider", "model"}
+        that actually served the request once a provider starts streaming, so callers
+        can record/display the real model used instead of the requested one.
+        """
         candidates = self.candidate_names(
             privacy,
             allowed_providers=allowed_providers,
@@ -133,7 +139,11 @@ class ModelRouter:
             if provider is None or not provider.configured:
                 continue
             try:
-                req = request.model_copy(update={"model": request.model or provider.default_model})
+                model_used = request.model or provider.default_model
+                req = request.model_copy(update={"model": model_used})
+                if result_holder is not None:
+                    result_holder["provider"] = provider.name
+                    result_holder["model"] = model_used
                 async for token in provider.generate_stream(req):
                     yield token
                 return

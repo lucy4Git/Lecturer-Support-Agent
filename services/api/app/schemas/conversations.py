@@ -36,6 +36,8 @@ class MessageCreate(BaseModel):
     attachment_version_ids: list[UUID] = Field(default_factory=list, max_length=20)
     institutional_context: str | None = Field(default=None, max_length=100_000)
     module_offering_id: UUID | None = None
+    preferred_provider: str | None = Field(default=None, max_length=64)
+    preferred_model: str | None = Field(default=None, max_length=128)
 
 
 class MessageRead(AuditFields):
@@ -83,3 +85,14 @@ class ProviderStatusRead(BaseModel):
     provider: str
     configured: bool
     default_model: str
+    allowed_by_policy: bool = True
+
+
+class ModelCatalogEntry(BaseModel):
+    provider: str
+    provider_display_name: str
+    model_id: str
+    model_display_name: str
+    configured: bool
+    allowed_by_policy: bool
+    availability: str = Field(description="'available', 'unavailable', or 'unknown' — 'unknown' means configured but not cheaply verifiable without a billed call.")

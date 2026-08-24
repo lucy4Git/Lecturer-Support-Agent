@@ -27,6 +27,28 @@ class OllamaProvider(AIProvider):
     def default_model(self) -> str:
         return self.settings.ollama_default_model.strip()
 
+    async def list_models(self) -> list[tuple[str, str]]:
+        """Query the local Ollama server's /api/tags — a free, local, no-billing
+        call — for the models actually pulled and runnable. Falls back to just the
+        configured default model if the server is unreachable."""
+        if not self.configured:
+            return []
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                response = await client.get(f"{self.settings.ollama_base_url.rstrip('/')}/api/tags")
+                response.raise_for_status()
+                payload = response.json()
+        except (httpx.HTTPError, ValueError):
+            return [(self.default_model, self.default_model)]
+        models: list[tuple[str, str]] = []
+        for entry in payload.get("models", []):
+            name = str(entry.get("name") or "")
+            capabilities = entry.get("capabilities") or []
+            if not name or "completion" not in capabilities:
+                continue
+            models.append((name, name))
+        return models or [(self.default_model, self.default_model)]
+
     def _body(self, request: ProviderRequest, *, stream: bool) -> dict:
         body: dict = {
             "model": request.model or self.default_model,

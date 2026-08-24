@@ -42,7 +42,20 @@ type ConversationSummary = {
   title: string;
   updated_at: string;
   is_archived: boolean;
+  context?: Record<string, unknown>;
 };
+
+type ModelCatalogEntry = {
+  provider: string;
+  provider_display_name: string;
+  model_id: string;
+  model_display_name: string;
+  configured: boolean;
+  allowed_by_policy: boolean;
+  availability: "available" | "unavailable" | "unknown";
+};
+
+type AISelection = { mode: "auto" } | { mode: "explicit"; provider: string; model: string };
 
 type SourceCard = {
   number: number;
@@ -207,10 +220,15 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const [renameText, setRenameText] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageText, setEditMessageText] = useState("");
+  const [availableModels, setAvailableModels] = useState<ModelCatalogEntry[]>([]);
+  const [modelsStatus, setModelsStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [selectedModel, setSelectedModel] = useState<AISelection>({ mode: "auto" });
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
 
   useEffect(() => {
     void loadConversations();
     void loadWorkspaceNavigation();
+    void loadAvailableModels();
     const storedTheme = window.localStorage.getItem("lsa-theme") === "dark" ? "dark" : "light";
     setTheme(storedTheme);
     document.documentElement.dataset.theme = storedTheme;
@@ -240,6 +258,19 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     const data = await response.json();
     const notifications = (data.items || []).find((item: { key: string }) => item.key === "notifications");
     setUnreadNotifications(Number(notifications?.badge_count || 0));
+  }
+
+  async function loadAvailableModels() {
+    setModelsStatus((current) => (current === "ready" ? current : "loading"));
+    try {
+      const response = await apiFetch("conversations/providers");
+      if (!response.ok) throw new Error("request_failed");
+      const data = (await response.json()) as ModelCatalogEntry[];
+      setAvailableModels(data.filter((item) => item.configured && item.allowed_by_policy && item.availability !== "unavailable"));
+      setModelsStatus("ready");
+    } catch {
+      setModelsStatus("error");
+    }
   }
 
   function changeView(view: WorkspaceView) {
@@ -282,6 +313,8 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
       return;
     }
     const data = (await response.json()) as ConversationDetail;
+    const storedSelection = data.conversation.context?.ai_selection as AISelection | undefined;
+    setSelectedModel(storedSelection && storedSelection.mode === "explicit" ? storedSelection : { mode: "auto" });
     setMessages(
       data.messages.map((message) => {
         const block = message.content_blocks?.[0] ?? {};
@@ -314,6 +347,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     setPendingAttachments([]);
     setSidebarOpen(false);
     setEditingMessageId(null);
+    setSelectedModel({ mode: "auto" });
     setTimeout(() => composerRef.current?.focus(), 50);
   }
 
@@ -348,7 +382,12 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
       const response = await fetch(`/api/backend/conversations/${conversationId}/messages/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, attachment_version_ids: attachmentVersionIds }),
+        body: JSON.stringify({
+          content,
+          attachment_version_ids: attachmentVersionIds,
+          preferred_provider: selectedModel.mode === "auto" ? "auto" : selectedModel.provider,
+          preferred_model: selectedModel.mode === "auto" ? null : selectedModel.model,
+        }),
         signal: ctrl.signal,
       });
 
@@ -701,9 +740,32 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
 
         <div className="sidebar-sep" />
 
-        {/* Recent conversations (hidden when collapsed) */}
+        {/* Workspace navigation — permanent product capabilities, above conversation history */}
+        <nav aria-label="Workspace" className="nav-stack compact-nav">
+          {navItems.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              aria-label={item.label}
+              title={item.label}
+              className={activeView === item.key ? "nav-item active" : "nav-item"}
+              onClick={() => changeView(item.key)}
+            >
+              <item.Icon />
+              <span>{item.label}</span>
+              {"shortcut" in item && item.shortcut && <kbd>{item.shortcut}</kbd>}
+              {"badge" in item && !!item.badge && (
+                <b className="nav-badge">{(item.badge as number) > 99 ? "99+" : item.badge}</b>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-sep" />
+
+        {/* Recent conversations — independently scrollable, hidden entirely when collapsed */}
         {!sidebarCollapsed && (
-          <>
+          <div className="sidebar-history">
             <div className="sidebar-section-label">Recent conversations</div>
             <nav aria-label="Recent conversations" className="conversation-nav">
               {conversations.length === 0 && <span className="sidebar-empty">No conversations yet.</span>}
@@ -752,30 +814,8 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
                 </div>
               ))}
             </nav>
-            <div className="sidebar-sep" />
-          </>
+          </div>
         )}
-
-        {/* Workspace navigation */}
-        <nav aria-label="Workspace" className="nav-stack compact-nav">
-          {navItems.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              aria-label={item.label}
-              title={item.label}
-              className={activeView === item.key ? "nav-item active" : "nav-item"}
-              onClick={() => changeView(item.key)}
-            >
-              <item.Icon />
-              <span>{item.label}</span>
-              {"shortcut" in item && item.shortcut && <kbd>{item.shortcut}</kbd>}
-              {"badge" in item && !!item.badge && (
-                <b className="nav-badge">{(item.badge as number) > 99 ? "99+" : item.badge}</b>
-              )}
-            </button>
-          ))}
-        </nav>
 
         {/* Account control */}
         <div className="role-card">
@@ -935,6 +975,18 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
                     style={{ display: "none" }}
                     onChange={(e) => { if (e.target.files) void handleFileAttach(e.target.files); e.target.value = ""; }}
                   />
+                  <ModelSelector
+                    models={availableModels}
+                    status={modelsStatus}
+                    selected={selectedModel}
+                    open={modelMenuOpen}
+                    onToggle={() => {
+                      setModelMenuOpen((v) => !v);
+                      if (modelsStatus === "error") void loadAvailableModels();
+                    }}
+                    onClose={() => setModelMenuOpen(false)}
+                    onSelect={(value) => { setSelectedModel(value); setModelMenuOpen(false); }}
+                  />
                   <span className="composer-hint">Enter to send · Shift+Enter for new line</span>
                   {sending ? (
                     <button type="button" className="stop-button" onClick={stopGeneration} aria-label="Stop generation">
@@ -973,6 +1025,132 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
         )}
       </section>
     </main>
+  );
+}
+
+// ── ModelSelector ────────────────────────────────────────────────────────
+function ModelSelector({
+  models,
+  status,
+  selected,
+  open,
+  onToggle,
+  onClose,
+  onSelect,
+}: {
+  models: ModelCatalogEntry[];
+  status: "loading" | "ready" | "error";
+  selected: AISelection;
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onSelect: (value: AISelection) => void;
+}) {
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+    }
+    function handleKey(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open, onClose]);
+
+  const selectedEntry = selected.mode === "explicit"
+    ? models.find((m) => m.provider === selected.provider && m.model_id === selected.model)
+    : undefined;
+  const currentLabel = selected.mode === "auto" ? "Auto" : (selectedEntry?.model_display_name ?? (selected.mode === "explicit" ? selected.model : "Auto"));
+
+  const groups = new Map<string, { display: string; items: ModelCatalogEntry[] }>();
+  for (const m of models) {
+    if (!groups.has(m.provider)) groups.set(m.provider, { display: m.provider_display_name, items: [] });
+    groups.get(m.provider)!.items.push(m);
+  }
+
+  return (
+    <div className="model-selector" ref={menuRef}>
+      <button
+        type="button"
+        className="model-selector-btn"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={onToggle}
+        title={currentLabel}
+      >
+        <span className="model-selector-label">{currentLabel}</span>
+        <IChevronDown />
+      </button>
+      {open && (
+        <div className="model-menu" role="listbox" aria-label="AI model">
+          <div className="model-menu-label">AI model</div>
+          <div className="model-menu-scroll">
+            <button
+              type="button"
+              role="option"
+              aria-selected={selected.mode === "auto"}
+              className={selected.mode === "auto" ? "model-option active" : "model-option"}
+              onClick={() => onSelect({ mode: "auto" })}
+              onFocus={(e) => e.currentTarget.scrollIntoView({ block: "nearest" })}
+            >
+              <span className="model-option-check">{selected.mode === "auto" ? "✓" : ""}</span>
+              <span className="model-option-text">
+                <strong>Auto</strong>
+                <small>Best available model for the request</small>
+              </span>
+            </button>
+
+            {status === "loading" && (
+              <div className="model-menu-status" role="status" aria-live="polite">
+                <span className="model-menu-status-dot" aria-hidden="true" />
+                Loading available models…
+              </div>
+            )}
+
+            {status === "error" && (
+              <div className="model-menu-status" role="status" aria-live="polite">
+                Models temporarily unavailable
+                <small>Auto will continue to work</small>
+              </div>
+            )}
+
+            {status === "ready" && [...groups.entries()].map(([providerKey, group]) => (
+              <div key={providerKey}>
+                <div className="model-menu-sep" />
+                <div className="model-menu-group-label">{group.display}</div>
+                {group.items.map((m) => {
+                  const isSelected = selected.mode === "explicit" && selected.provider === m.provider && selected.model === m.model_id;
+                  return (
+                    <button
+                      key={m.model_id}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      className={isSelected ? "model-option active" : "model-option"}
+                      title={m.model_display_name}
+                      onClick={() => onSelect({ mode: "explicit", provider: m.provider, model: m.model_id })}
+                      onFocus={(e) => e.currentTarget.scrollIntoView({ block: "nearest" })}
+                    >
+                      <span className="model-option-check">{isSelected ? "✓" : ""}</span>
+                      <span className="model-option-text">
+                        <strong>{m.model_display_name}</strong>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

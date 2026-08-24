@@ -40,7 +40,10 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   }
 
   const data = await parseBackendResponse(response);
-  return NextResponse.json(data, { status: response.status });
+  return NextResponse.json(data, {
+    status: response.status,
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
 export const GET = proxy;

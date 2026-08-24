@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -180,6 +181,9 @@ class ConversationEngine:
         if usage_decision.source_required and not classification.source_verification_required:
             classification = classification.model_copy(update={"source_verification_required": True})
         self.safety.enforce_generation_role(classification.task_type, self.context.role_code)
+        ai_selection = self._resolve_ai_selection(conversation, payload, usage_decision)
+        if ai_selection.persist is not None:
+            conversation.context = {**conversation.context, "ai_selection": ai_selection.persist}
         module_bundle: ModuleContextBundle | None = None
         selected_offering_id = payload.module_offering_id
         if selected_offering_id is None and conversation.context.get("module_offering_id"):
@@ -292,7 +296,7 @@ class ConversationEngine:
             ProviderRequest(
                 messages=history,
                 system_prompt=system_prompt,
-                model="",
+                model=ai_selection.model_override or "",
                 max_output_tokens=self.settings.ai_max_output_tokens,
                 temperature=self.settings.ai_temperature,
                 metadata={
@@ -304,8 +308,8 @@ class ConversationEngine:
                 },
             ),
             privacy=classification.privacy_classification,
-            allowed_providers=(set(usage_decision.allowed_providers) if usage_decision.allowed_providers else None),
-            denied_providers=(set(usage_decision.denied_providers) if usage_decision.denied_providers else None),
+            allowed_providers=ai_selection.allowed_providers,
+            denied_providers=ai_selection.denied_providers,
         )
         combined_sources = self._merge_sources(sources, routed.response.provider_sources)
         integrity = self.integrity_guard.validate(routed.response.text, combined_sources)
@@ -579,6 +583,9 @@ class ConversationEngine:
             if usage_decision.source_required and not classification.source_verification_required:
                 classification = classification.model_copy(update={"source_verification_required": True})
             self.safety.enforce_generation_role(classification.task_type, self.context.role_code)
+            ai_selection = self._resolve_ai_selection(conversation, payload, usage_decision)
+            if ai_selection.persist is not None:
+                conversation.context = {**conversation.context, "ai_selection": ai_selection.persist}
 
             module_bundle: ModuleContextBundle | None = None
             selected_offering_id = payload.module_offering_id
@@ -729,6 +736,7 @@ class ConversationEngine:
 
             # Deterministic direct output from capability (bypasses AI)
             # Used for assessment generation and review lifecycle operations.
+            stream_result: dict[str, str] = {}
             if capability_result.direct_output:
                 full_text = capability_result.direct_output
                 chunk_size = 120
@@ -742,7 +750,7 @@ class ConversationEngine:
                         ProviderRequest(
                             messages=history,
                             system_prompt=system_prompt,
-                            model="",
+                            model=ai_selection.model_override or "",
                             max_output_tokens=self.settings.ai_max_output_tokens,
                             temperature=self.settings.ai_temperature,
                             metadata={
@@ -753,8 +761,9 @@ class ConversationEngine:
                             },
                         ),
                         privacy=classification.privacy_classification,
-                        allowed_providers=(set(usage_decision.allowed_providers) if usage_decision.allowed_providers else None),
-                        denied_providers=(set(usage_decision.denied_providers) if usage_decision.denied_providers else None),
+                        allowed_providers=ai_selection.allowed_providers,
+                        denied_providers=ai_selection.denied_providers,
+                        result_holder=stream_result,
                     ):
                         full_text += token
                         yield _sse({"type": "token", "text": token})
@@ -766,15 +775,17 @@ class ConversationEngine:
             # Wrap in a routed response equivalent for reuse of existing persistence logic
             from ..ai.router import RoutedResponse
             from ..ai.contracts import ProviderResponse, ProviderAttempt
+            actual_provider = stream_result.get("provider") or "streamed"
+            actual_model = stream_result.get("model") or "streamed"
             fake_routed = RoutedResponse(
                 response=ProviderResponse(
-                    provider="streamed",
-                    model="streamed",
+                    provider=actual_provider,
+                    model=actual_model,
                     text=full_text,
                     finish_reason="stop",
                     latency_ms=0,
                 ),
-                attempts=[ProviderAttempt(provider="streamed", model="streamed", status="completed", reason="stream_mode")],
+                attempts=[ProviderAttempt(provider=actual_provider, model=actual_model, status="completed", reason="stream_mode")],
                 routing_reason="stream_mode",
             )
 
@@ -784,8 +795,8 @@ class ConversationEngine:
 
             model_execution_id = await self._record_model_attempts(ai_request.id, fake_routed)
             await usage_governance.record_usage(
-                provider="streamed",
-                model_id="streamed",
+                provider=actual_provider,
+                model_id=actual_model,
                 task_type=classification.task_type.value,
                 status_code="completed",
                 input_tokens=None,
@@ -1005,6 +1016,10 @@ class ConversationEngine:
                 "safety_status": safety_review.status,
                 "requires_human_review": lifecycle.review_required,
                 "approval_disclaimer": generated_output.approval_disclaimer,
+                "provider": actual_provider,
+                "model": actual_model,
+                "requested_provider": ai_selection.requested_provider,
+                "requested_model": ai_selection.requested_model,
                 "integrity_warnings": integrity_warnings,
                 "pending_action_token": pending_action_token,
                 "pending_action_label": pending_action_label,
@@ -1130,6 +1145,68 @@ class ConversationEngine:
             }
 
         return None
+
+    _KNOWN_PROVIDERS = {"openai", "anthropic", "google_gemini", "deepseek", "ollama"}
+    _UNAVAILABLE_MODEL_DETAIL = "The selected model is currently unavailable. Choose another model or switch to Auto."
+
+    @dataclass(slots=True)
+    class AISelection:
+        allowed_providers: set[str] | None
+        denied_providers: set[str] | None
+        model_override: str | None
+        requested_provider: str
+        requested_model: str
+        persist: dict | None
+
+    def _resolve_ai_selection(
+        self,
+        conversation: Conversation,
+        payload: MessageCreate,
+        usage_decision: object,
+    ) -> "ConversationEngine.AISelection":
+        """Intersect the user's explicit provider+model choice with governance policy.
+
+        Distinguishes PROVIDER from MODEL: an explicit choice pins the request to
+        exactly one provider and (if given) one model id on that provider — never
+        a silent substitute. Raises HTTPException(409) if governance/config makes
+        the explicit choice unavailable, and HTTPException(400) for an unknown
+        provider name, so the caller never silently falls back.
+        """
+        governance_allowed = set(usage_decision.allowed_providers) if usage_decision.allowed_providers else None
+        governance_denied = set(usage_decision.denied_providers) if usage_decision.denied_providers else None
+
+        requested_provider = payload.preferred_provider
+        requested_model = payload.preferred_model
+        explicit_request = requested_provider is not None
+
+        if not explicit_request:
+            stored = conversation.context.get("ai_selection") or {}
+            if stored.get("mode") == "explicit":
+                requested_provider = stored.get("provider")
+                requested_model = stored.get("model")
+
+        if requested_provider in (None, "auto", ""):
+            persist = {"mode": "auto"} if explicit_request else None
+            return self.AISelection(governance_allowed, governance_denied, None, "auto", "auto", persist)
+
+        if requested_provider not in self._KNOWN_PROVIDERS:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Unknown model '{requested_provider}'.")
+        provider_instance = self.router.providers.get(requested_provider)
+        if provider_instance is None or not provider_instance.configured:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=self._UNAVAILABLE_MODEL_DETAIL)
+        if governance_allowed is not None and requested_provider not in governance_allowed:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=self._UNAVAILABLE_MODEL_DETAIL)
+        if governance_denied is not None and requested_provider in governance_denied:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=self._UNAVAILABLE_MODEL_DETAIL)
+
+        model_to_use = requested_model or provider_instance.default_model
+        persist = (
+            {"mode": "explicit", "provider": requested_provider, "model": model_to_use}
+            if explicit_request else None
+        )
+        return self.AISelection(
+            {requested_provider}, None, model_to_use, requested_provider, model_to_use, persist,
+        )
 
     async def _require_ai_permission(self) -> None:
         await AuthorizationService(self.session, self.context).require_permission(

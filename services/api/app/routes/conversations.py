@@ -20,9 +20,11 @@ from ..schemas.conversations import (
     ConversationUpdate,
     MessageCreate,
     MessageRead,
+    ModelCatalogEntry,
     ProviderStatusRead,
     UnifiedAIResponse,
 )
+from ..services.commercial_analytics import AIUsageGovernanceService
 from ..services.conversation_engine import ConversationEngine
 from ..services.document_retrieval import DocumentRetrievalService
 
@@ -49,14 +51,57 @@ async def list_conversations(
     return [ConversationRead.model_validate(row) for row in rows]
 
 
-@router.get("/providers", response_model=list[ProviderStatusRead])
+PROVIDER_DISPLAY_NAMES = {
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "google_gemini": "Google",
+    "deepseek": "DeepSeek",
+    "ollama": "Local / private",
+}
+
+
+@router.get("/providers", response_model=list[ModelCatalogEntry])
 async def provider_status(
     session: DatabaseSession,
     context: CurrentContext,
-) -> list[ProviderStatusRead]:
+) -> list[ModelCatalogEntry]:
+    """Real, callable AI model catalog for the model selector.
+
+    Only providers that are actually configured for this environment AND
+    permitted by the tenant's AI usage policy are included. Each entry is one
+    real, individually-selectable model (not a fabricated one) — most providers
+    expose a single configured default model; a local Ollama server is queried
+    for the models it actually has pulled via its free /api/tags endpoint.
+    """
     engine = ConversationEngine(session, context, get_settings())
     await engine._require_ai_permission()
-    return [ProviderStatusRead.model_validate(item) for item in ModelRouter(get_settings()).status()]
+    governance = AIUsageGovernanceService(session, context)
+    policy = await governance.resolve_policy()
+    allowed = set(policy.allowed_providers) if policy and policy.allowed_providers else None
+    denied = set(policy.denied_providers) if policy and policy.denied_providers else set()
+
+    entries: list[ModelCatalogEntry] = []
+    for name, provider in ModelRouter(get_settings()).providers.items():
+        if name == "development_mock" or not provider.configured:
+            continue
+        permitted = (allowed is None or name in allowed) and name not in denied
+        if not permitted:
+            continue
+        models = await provider.list_models()
+        availability = "available" if name == "ollama" and models else ("unavailable" if name == "ollama" else "unknown")
+        for model_id, model_display_name in models:
+            entries.append(
+                ModelCatalogEntry(
+                    provider=name,
+                    provider_display_name=PROVIDER_DISPLAY_NAMES.get(name, name),
+                    model_id=model_id,
+                    model_display_name=model_display_name,
+                    configured=True,
+                    allowed_by_policy=permitted,
+                    availability=availability,
+                )
+            )
+    return entries
 
 
 @router.get("/{conversation_id}", response_model=ConversationDetail)

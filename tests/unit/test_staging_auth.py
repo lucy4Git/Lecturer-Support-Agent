@@ -838,12 +838,28 @@ def test_sign_in_page_has_no_institution_picker() -> None:
 
 
 def test_sign_in_page_has_email_and_password() -> None:
+    """The password field uses the shared PasswordInput component, which renders
+    type="password" by default and toggles to type="text" only via its own
+    accessible show/hide control — assert on that component contract, not on a
+    literal type="password" string that PasswordInput deliberately doesn't emit."""
     import pathlib
     src = pathlib.Path(
         "apps/web/src/app/sign-in/page.tsx"
     ).read_text(encoding="utf-8")
     assert 'type="email"' in src
-    assert 'type="password"' in src
+    assert "PasswordInput" in src
+
+    component_src = pathlib.Path(
+        "apps/web/src/components/PasswordInput.tsx"
+    ).read_text(encoding="utf-8")
+    # Masked by default: initial visibility state is false, and that state
+    # directly drives the input's type.
+    assert "useState(false)" in component_src
+    assert 'type={visible ? "text" : "password"}' in component_src
+    # Show/hide control exists with an accessible label.
+    assert "Show password" in component_src
+    assert "Hide password" in component_src
+    assert "aria-label={label}" in component_src
 
 
 def test_sign_in_page_has_role_picker_only_post_auth() -> None:
@@ -894,13 +910,16 @@ def test_sign_up_page_fetches_roles_from_api() -> None:
 
 
 def test_sign_up_page_has_required_fields() -> None:
+    """See test_sign_in_page_has_email_and_password: the password field is the
+    shared PasswordInput component, so assert on its usage rather than a literal
+    type="password" attribute the page itself never writes."""
     import pathlib
     src = pathlib.Path(
         "apps/web/src/app/sign-up/page.tsx"
     ).read_text(encoding="utf-8")
     assert "Institution / University" in src
     assert 'type="email"' in src
-    assert 'type="password"' in src
+    assert "PasswordInput" in src
     assert "role_code" in src
     assert "Create account" in src
 
