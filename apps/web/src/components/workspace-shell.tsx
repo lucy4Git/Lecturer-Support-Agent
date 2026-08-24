@@ -204,6 +204,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const [messages, setMessages] = useState<ChatItem[]>([]);
   const [composerText, setComposerText] = useState("");
   const [loadingConversation, setLoadingConversation] = useState(false);
+  const [conversationLoadError, setConversationLoadError] = useState(false);
   const [sending, setSending] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [streamingStatus, setStreamingStatus] = useState("");
@@ -303,39 +304,49 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   async function openConversation(id: string) {
     setActiveView("conversation");
     setLoadingConversation(true);
+    setConversationLoadError(false);
     setActiveConversationId(id);
     setSidebarOpen(false);
     setEditingMessageId(null);
-    const response = await apiFetch(`conversations/${id}`);
-    if (!response.ok) {
-      setNotice(await responseMessage(response));
+    try {
+      const response = await apiFetch(`conversations/${id}`);
+      if (!response.ok) {
+        setConversationLoadError(true);
+        return;
+      }
+      const data = (await response.json()) as ConversationDetail;
+      let storedSelection: AISelection | undefined;
+      try {
+        storedSelection = data.conversation.context?.ai_selection as AISelection | undefined;
+      } catch {
+        storedSelection = undefined;
+      }
+      setSelectedModel(storedSelection && storedSelection.mode === "explicit" ? storedSelection : { mode: "auto" });
+      setMessages(
+        (data.messages ?? []).map((message) => {
+          const block = message.content_blocks?.[0] ?? {};
+          return {
+            id: message.id,
+            role: message.role,
+            content: message.content_text,
+            outputType: message.role === "assistant" ? String(block.output_type ?? "generic_answer") : undefined,
+            outputTitle: message.role === "assistant" ? String(block.title ?? "") : undefined,
+            generatedOutputId: typeof block.generated_output_id === "string" ? block.generated_output_id : undefined,
+            outputVersionId: typeof block.output_version_id === "string" ? block.output_version_id : undefined,
+            versionNumber: typeof block.version_number === "number" ? block.version_number : undefined,
+            workflowStatus: typeof block.workflow_status === "string" ? block.workflow_status : undefined,
+            riskLevel: typeof block.risk_level === "string" ? block.risk_level : undefined,
+            safetyStatus: typeof block.safety_status === "string" ? block.safety_status : undefined,
+            requiresHumanReview: Boolean(block.requires_human_review),
+            approvalDisclaimer: typeof block.approval_disclaimer === "string" ? block.approval_disclaimer : undefined,
+          } as ChatItem;
+        }),
+      );
+    } catch {
+      setConversationLoadError(true);
+    } finally {
       setLoadingConversation(false);
-      return;
     }
-    const data = (await response.json()) as ConversationDetail;
-    const storedSelection = data.conversation.context?.ai_selection as AISelection | undefined;
-    setSelectedModel(storedSelection && storedSelection.mode === "explicit" ? storedSelection : { mode: "auto" });
-    setMessages(
-      data.messages.map((message) => {
-        const block = message.content_blocks?.[0] ?? {};
-        return {
-          id: message.id,
-          role: message.role,
-          content: message.content_text,
-          outputType: message.role === "assistant" ? String(block.output_type ?? "generic_answer") : undefined,
-          outputTitle: message.role === "assistant" ? String(block.title ?? "") : undefined,
-          generatedOutputId: typeof block.generated_output_id === "string" ? block.generated_output_id : undefined,
-          outputVersionId: typeof block.output_version_id === "string" ? block.output_version_id : undefined,
-          versionNumber: typeof block.version_number === "number" ? block.version_number : undefined,
-          workflowStatus: typeof block.workflow_status === "string" ? block.workflow_status : undefined,
-          riskLevel: typeof block.risk_level === "string" ? block.risk_level : undefined,
-          safetyStatus: typeof block.safety_status === "string" ? block.safety_status : undefined,
-          requiresHumanReview: Boolean(block.requires_human_review),
-          approvalDisclaimer: typeof block.approval_disclaimer === "string" ? block.approval_disclaimer : undefined,
-        } as ChatItem;
-      }),
-    );
-    setLoadingConversation(false);
   }
 
   function startNewConversation() {
@@ -344,6 +355,8 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     setMessages([]);
     setComposerText("");
     setNotice(null);
+    setConversationLoadError(false);
+    setLoadingConversation(false);
     setPendingAttachments([]);
     setSidebarOpen(false);
     setEditingMessageId(null);
@@ -882,6 +895,24 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
               {loadingConversation ? (
                 <div className="conversation-loading">
                   <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                </div>
+              ) : conversationLoadError ? (
+                <div className="conversation-load-error">
+                  <div className="orb" aria-hidden="true">!</div>
+                  <h2>This conversation couldn't be loaded.</h2>
+                  <p>Please try again, or start a new conversation.</p>
+                  <div className="conversation-load-error-actions">
+                    <button
+                      type="button"
+                      className="context-button"
+                      onClick={() => { if (activeConversationId) void openConversation(activeConversationId); }}
+                    >
+                      <IRetry /> Retry
+                    </button>
+                    <button type="button" className="context-button" onClick={startNewConversation}>
+                      <IPlus /> New conversation
+                    </button>
+                  </div>
                 </div>
               ) : messages.length === 0 && !sending ? (
                 <div className="conversation-empty">

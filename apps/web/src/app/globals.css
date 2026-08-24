@@ -309,6 +309,12 @@ input:focus, select:focus { border-color: #84a1ff; box-shadow: 0 0 0 3px rgba(49
 .assistant-thinking p { margin: 0 0 0 5px; }
 @keyframes thinkingPulse { 0%, 80%, 100% { opacity: .35; transform: scale(.8); } 40% { opacity: 1; transform: scale(1.1); } }
 .conversation-loading { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 45vh; }
+.conversation-load-error { align-self: center; justify-self: center; max-width: 460px; width: min(460px, 100%); padding: 50px 28px 34px; text-align: center; }
+.conversation-load-error .orb { background: linear-gradient(135deg, #d96b5f, #e8927f); box-shadow: 0 18px 45px rgba(217, 107, 95, .28); font-weight: 800; }
+.conversation-load-error h2 { font-size: 20px; margin-bottom: 8px; }
+.conversation-load-error p { color: var(--muted); line-height: 1.6; font-size: 14px; margin-bottom: 22px; }
+.conversation-load-error-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.conversation-load-error-actions button { display: inline-flex; align-items: center; gap: 7px; }
 .conversation-notice { width: min(860px, calc(100% - 40px)); margin: 10px auto 20px; }
 .composer-wrap { flex-shrink: 0; background: linear-gradient(to top, var(--bg) 62%, transparent); padding-top: 10px; }
 .composer { margin-bottom: 8px; }
