@@ -532,6 +532,10 @@ input:focus, select:focus { border-color: #84a1ff; box-shadow: 0 0 0 3px rgba(49
 .resource-card { min-width: 0; border: 1px solid var(--line); border-radius: 17px; background: var(--surface-strong); color: var(--ink); padding: 17px; box-shadow: 0 8px 24px rgba(24,35,66,.045); }
 .search-results { display: grid; grid-template-columns: 1fr; }
 .search-result-card { width: 100%; display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 14px; text-align: left; transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease; }
+.archived-result { display: flex; align-items: center; justify-content: space-between; grid-template-columns: none; gap: 10px; }
+.archived-result-open { display: grid; gap: 2px; min-width: 0; text-align: left; border: 0; background: transparent; flex: 1; }
+.archived-result-open strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.resource-panel-loading { color: var(--muted); font-size: 13px; padding: 16px 0; }
 .search-result-card:hover { border-color: color-mix(in srgb, var(--accent) 52%, var(--line)); transform: translateY(-1px); box-shadow: 0 13px 32px rgba(35,48,87,.09); }
 .resource-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--soft-accent); color: var(--accent-strong); font-weight: 850; }
 .kind-output { background: #f3edff; color: #6941c6; }
@@ -696,12 +700,25 @@ input:focus, select:focus { border-color: #84a1ff; box-shadow: 0 0 0 3px rgba(49
 .suggestion-chip:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: var(--surface-strong); box-shadow: 0 6px 18px rgba(49,94,251,.08); transform: translateY(-1px); }
 
 /* Conversation rename + per-conv actions */
-.conv-nav-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 2px; }
-.conv-nav-row:not(:hover) .conv-actions { display: none; }
-.conv-actions { display: flex; gap: 2px; }
-.conv-actions button { width: 26px; height: 26px; border: 0; border-radius: 7px; background: transparent; color: #7f8ca8; font-size: 13px; }
-.conv-actions button:hover { background: rgba(255,255,255,.1); color: white; }
+.conv-nav-row { position: relative; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 2px; }
+.conv-menu-trigger { width: 26px; height: 26px; border: 0; border-radius: 7px; background: transparent; color: #7f8ca8; display: grid; place-items: center; opacity: 0; transition: opacity .1s ease, background .1s ease, color .1s ease; }
+.conv-nav-row:hover .conv-menu-trigger,
+.conv-nav-row:focus-within .conv-menu-trigger,
+.conv-nav-row.menu-open .conv-menu-trigger { opacity: 1; }
+.conv-menu-trigger:hover, .conv-menu-trigger[aria-expanded="true"] { background: rgba(255,255,255,.1); color: white; }
 .conv-rename-form input { width: 100%; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; background: rgba(255,255,255,.08); color: white; padding: 6px 9px; font-size: 13px; }
+.conv-menu { position: absolute; right: 0; top: calc(100% + 2px); min-width: 150px; background: #1a2540; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 5px; display: grid; gap: 1px; box-shadow: 0 12px 32px rgba(0,0,0,.35); z-index: 45; }
+.conv-menu button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; background: transparent; color: var(--sb-text); padding: 8px 10px; border-radius: 7px; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+.conv-menu button:hover { background: var(--sb-hover); }
+.conv-menu button.danger:hover { background: rgba(239,68,68,.14); color: #fca5a5; }
+.conv-confirm { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 10px 11px; background: rgba(217,107,95,.1); border: 1px solid rgba(217,107,95,.28); border-radius: 9px; }
+.conv-confirm p { margin: 0; font-size: 12.5px; font-weight: 700; color: #fff; }
+.conv-confirm small { color: #9aa5bd; font-size: 11px; }
+.conv-confirm-actions { display: flex; gap: 6px; margin-top: 4px; }
+.conv-confirm-actions button { flex: 1; padding: 6px 8px; font-size: 12px; border-radius: 7px; background: rgba(255,255,255,.06); color: var(--sb-text); border: 1px solid rgba(255,255,255,.14); }
+.conv-confirm-actions button:hover { background: rgba(255,255,255,.12); }
+.conv-confirm-actions button.danger { background: #d9483f; color: white; border-color: transparent; }
+.conv-confirm-actions button.danger:hover { background: #c53e36; }
 
 /* Message action buttons (copy, edit, retry) — ChatGPT-style compact */
 .msg-action-btn {

@@ -95,6 +95,8 @@ function SearchPanel({ initialSearchQuery = "", onOpenConversation, onAttachVers
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
+  const [archived, setArchived] = useState<{ id: string; title: string; updated_at: string }[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
 
   async function search(event?: FormEvent) {
     event?.preventDefault();
@@ -106,6 +108,26 @@ function SearchPanel({ initialSearchQuery = "", onOpenConversation, onAttachVers
     if (!response.ok) { setError(await responseMessage(response)); setLoading(false); return; }
     const data = await response.json();
     setResults(data.results || []); setLoading(false);
+  }
+
+  async function loadArchived() {
+    setArchivedLoading(true);
+    const response = await apiFetch("conversations?archived=true&limit=100");
+    if (response.ok) setArchived(await response.json());
+    setArchivedLoading(false);
+  }
+
+  async function unarchive(id: string) {
+    const response = await apiFetch(`conversations/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_archived: false }),
+    });
+    if (response.ok) setArchived((current) => current.filter((c) => c.id !== id));
+  }
+
+  function selectFilter(key: string) {
+    setFilter(key);
+    if (key === "archived" && archived.length === 0 && !archivedLoading) void loadArchived();
   }
 
   function activate(result: SearchResult) {
@@ -124,22 +146,43 @@ function SearchPanel({ initialSearchQuery = "", onOpenConversation, onAttachVers
         <button type="submit" disabled={loading}>{loading ? "Searching…" : "Search"}</button>
       </form>
       <div className="filter-row" aria-label="Search categories">
-        {[['all','All'],['conversation','Conversations'],['output','Outputs'],['document','Files'],['review_task','Review tasks']].map(([key,label]) => (
-          <button type="button" key={key} className={filter === key ? "filter-chip active" : "filter-chip"} onClick={() => setFilter(key)}>{label}</button>
+        {[['all','All'],['conversation','Conversations'],['output','Outputs'],['document','Files'],['review_task','Review tasks'],['archived','Archived']].map(([key,label]) => (
+          <button type="button" key={key} className={filter === key ? "filter-chip active" : "filter-chip"} onClick={() => selectFilter(key)}>{label}</button>
         ))}
       </div>
-      {error && <div className="resource-error">{error}</div>}
-      {!loading && query.trim().length >= 2 && results.length === 0 && !error && <EmptyState title="No authorised results" body="Try a broader term or check another category." />}
-      <div className="resource-card-grid search-results">
-        {results.map((result) => (
-          <button type="button" className="resource-card search-result-card" key={`${result.kind}-${result.id}`} onClick={() => activate(result)}>
-            <div className={`resource-icon kind-${result.kind}`}>{iconForKind(result.kind)}</div>
-            <div><span className="resource-kicker">{humanise(result.kind)}</span><strong>{result.title}</strong>{result.snippet && <p>{result.snippet}</p>}<small>{formatDate(result.updated_at)}</small></div>
-            <span className="resource-arrow">→</span>
-          </button>
-        ))}
-      </div>
-      {!!results.length && <button type="button" className="text-action" onClick={onReturnToConversation}>Return to conversation</button>}
+      {filter === "archived" ? (
+        <>
+          {archivedLoading && <div className="resource-panel-loading">Loading archived conversations…</div>}
+          {!archivedLoading && archived.length === 0 && <EmptyState title="No archived conversations" body="Conversations you archive will appear here." />}
+          <div className="resource-card-grid search-results">
+            {archived.map((conv) => (
+              <div className="resource-card search-result-card archived-result" key={conv.id}>
+                <button type="button" className="archived-result-open" onClick={() => onOpenConversation(conv.id)}>
+                  <span className="resource-kicker">Archived conversation</span>
+                  <strong>{conv.title}</strong>
+                  <small>{formatDate(conv.updated_at)}</small>
+                </button>
+                <button type="button" className="text-action" onClick={() => void unarchive(conv.id)}>Unarchive</button>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          {error && <div className="resource-error">{error}</div>}
+          {!loading && query.trim().length >= 2 && results.length === 0 && !error && <EmptyState title="No authorised results" body="Try a broader term or check another category." />}
+          <div className="resource-card-grid search-results">
+            {results.map((result) => (
+              <button type="button" className="resource-card search-result-card" key={`${result.kind}-${result.id}`} onClick={() => activate(result)}>
+                <div className={`resource-icon kind-${result.kind}`}>{iconForKind(result.kind)}</div>
+                <div><span className="resource-kicker">{humanise(result.kind)}</span><strong>{result.title}</strong>{result.snippet && <p>{result.snippet}</p>}<small>{formatDate(result.updated_at)}</small></div>
+                <span className="resource-arrow">→</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {!!results.length && filter !== "archived" && <button type="button" className="text-action" onClick={onReturnToConversation}>Return to conversation</button>}
     </section>
   );
 }

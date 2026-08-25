@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, responseMessage } from "@/lib/api-client";
 import { WorkspaceResourcePanel, type WorkspaceView } from "@/components/workspace-resource-panels";
@@ -28,6 +28,8 @@ const ISun = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" s
 const ICopy = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
 const IRetry = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.36"/></svg>;
 const IEdit = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+const IMore = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>;
+const ITrash = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>;
 const IArchive = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>;
 const IMenu = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
 const ICheck = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -56,6 +58,52 @@ type ModelCatalogEntry = {
 };
 
 type AISelection = { mode: "auto" } | { mode: "explicit"; provider: string; model: string };
+
+// ── Generation lifecycle — the single authoritative source of truth for
+// whether a request is in flight, streaming, stopping, or has reached a
+// terminal state. Stop visibility, composer lock, and the streaming
+// indicator are all DERIVED from this rather than independent booleans, so
+// they cannot contradict each other. `requestId` is the request-ownership
+// token: a stream reader checks it against the currently-active id before
+// touching visible state, so late frames from an abandoned request (e.g.
+// after switching conversations) are ignored rather than leaking in.
+type GenerationStatus = "idle" | "sending" | "streaming" | "stopping" | "stopped" | "completed" | "error";
+type GenerationState = {
+  status: GenerationStatus;
+  requestId: string | null;
+  conversationId: string | null;
+};
+type GenerationAction =
+  | { type: "START"; requestId: string; conversationId: string }
+  | { type: "FIRST_TOKEN" }
+  | { type: "STOP_REQUESTED" }
+  | { type: "STOPPED" }
+  | { type: "COMPLETED" }
+  | { type: "ERROR" }
+  | { type: "RESET" };
+
+const INITIAL_GENERATION_STATE: GenerationState = { status: "idle", requestId: null, conversationId: null };
+
+function generationReducer(state: GenerationState, action: GenerationAction): GenerationState {
+  switch (action.type) {
+    case "START":
+      return { status: "sending", requestId: action.requestId, conversationId: action.conversationId };
+    case "FIRST_TOKEN":
+      return state.status === "sending" ? { ...state, status: "streaming" } : state;
+    case "STOP_REQUESTED":
+      return state.status === "sending" || state.status === "streaming" ? { ...state, status: "stopping" } : state;
+    case "STOPPED":
+      return state.status === "stopping" ? { ...state, status: "stopped" } : state;
+    case "COMPLETED":
+      return state.status === "sending" || state.status === "streaming" ? { ...state, status: "completed" } : state;
+    case "ERROR":
+      return { ...state, status: "error" };
+    case "RESET":
+      return INITIAL_GENERATION_STATE;
+    default:
+      return state;
+  }
+}
 
 type SourceCard = {
   number: number;
@@ -205,10 +253,19 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const [composerText, setComposerText] = useState("");
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [conversationLoadError, setConversationLoadError] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [genState, dispatchGen] = useReducer(generationReducer, INITIAL_GENERATION_STATE);
+  // Derived, not independent state: Stop visibility/composer lock/streaming
+  // indicator all read from `sending` below, which is a pure function of
+  // genState.status — they cannot diverge from the lifecycle by construction.
+  const sending = genState.status === "sending" || genState.status === "streaming" || genState.status === "stopping";
   const [streamingText, setStreamingText] = useState("");
   const [streamingStatus, setStreamingStatus] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+  // Request ownership: the reader loop checks this ref (not React state, to
+  // avoid stale-closure reads inside the async loop) before touching visible
+  // state, so frames from an abandoned request are ignored rather than
+  // leaking into whatever conversation is now open.
+  const activeRequestIdRef = useRef<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -219,6 +276,8 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [renamingConvId, setRenamingConvId] = useState<string | null>(null);
   const [renameText, setRenameText] = useState("");
+  const [openConvMenuId, setOpenConvMenuId] = useState<string | null>(null);
+  const [pendingDeleteConvId, setPendingDeleteConvId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageText, setEditMessageText] = useState("");
   const [availableModels, setAvailableModels] = useState<ModelCatalogEntry[]>([]);
@@ -302,6 +361,8 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   }
 
   async function openConversation(id: string) {
+    if (id === activeConversationId && !conversationLoadError) return;
+    if (sending) stopGeneration();
     setActiveView("conversation");
     setLoadingConversation(true);
     setConversationLoadError(false);
@@ -350,6 +411,7 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   }
 
   function startNewConversation() {
+    if (sending) stopGeneration();
     setActiveView("conversation");
     setActiveConversationId(null);
     setMessages([]);
@@ -380,15 +442,41 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     return conversation.id;
   }
 
-  function stopGeneration() {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setSending(false);
-    setStreamingText("");
-    setStreamingStatus("");
+  // Shared by Stop and unexpected-EOF handling: appends whatever partial text
+  // had streamed in as one interrupted assistant turn. Reads `text` from a
+  // parameter (render-time value at the call site), never from inside a
+  // setState updater — see the note on why that duplicates messages under
+  // React Strict Mode.
+  function pushInterruptedMessage(text: string, reason: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setMessages((current) => [
+      ...current,
+      {
+        id: `interrupted-${Date.now()}`,
+        role: "assistant",
+        content: trimmed,
+        outputType: "generic_answer",
+        requiresHumanReview: false,
+        warnings: [reason],
+      } as ChatItem,
+    ]);
   }
 
-  async function streamRequest(conversationId: string, content: string, attachmentVersionIds: string[], optimisticId: string, originalContent: string) {
+  function stopGeneration() {
+    if (genState.status !== "sending" && genState.status !== "streaming") return; // idempotent — no legal transition from here
+    dispatchGen({ type: "STOP_REQUESTED" });
+    activeRequestIdRef.current = null; // disown immediately: any in-flight frames are now "late"
+    abortRef.current?.abort();
+    abortRef.current = null;
+    pushInterruptedMessage(streamingText, "Generation was stopped before it finished.");
+    setStreamingText("");
+    setStreamingStatus("");
+    dispatchGen({ type: "STOPPED" });
+  }
+
+  async function streamRequest(conversationId: string, content: string, attachmentVersionIds: string[], optimisticId: string, originalContent: string, requestId: string) {
+    const owns = () => activeRequestIdRef.current === requestId;
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     try {
@@ -404,11 +492,13 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
         signal: ctrl.signal,
       });
 
+      if (!owns()) { await response.body?.cancel().catch(() => {}); return; }
+
       if (!response.ok || !response.body) {
         setMessages((current) => current.filter((item) => item.id !== optimisticId));
         setComposerText(originalContent);
         setNotice("The request could not be completed. Please try again.");
-        setSending(false);
+        dispatchGen({ type: "ERROR" });
         return;
       }
 
@@ -417,9 +507,12 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
       let buffer = "";
       let accText = "";
       let doneData: Record<string, unknown> | null = null;
+      let sawError = false;
+      let firstTokenSeen = false;
 
       while (true) {
         const { done, value } = await reader.read();
+        if (!owns()) { await reader.cancel().catch(() => {}); return; } // abandoned mid-read — ignore any further frames
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const parts = buffer.split("\n\n");
@@ -429,28 +522,51 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
           if (!line.startsWith("data: ")) continue;
           try {
             const event = JSON.parse(line.slice(6)) as Record<string, unknown>;
+            if (!owns()) continue; // parsed but request was abandoned mid-batch
             if (event.type === "thinking") {
               setStreamingStatus(String(event.status ?? "Working…"));
             } else if (event.type === "token") {
+              if (!firstTokenSeen) { firstTokenSeen = true; dispatchGen({ type: "FIRST_TOKEN" }); }
               accText += String(event.text ?? "");
               setStreamingText(accText);
             } else if (event.type === "done") {
               doneData = event;
             } else if (event.type === "error") {
+              sawError = true;
               setNotice(String(event.detail ?? "An error occurred."));
               setMessages((current) => current.filter((item) => item.id !== optimisticId));
               setComposerText(originalContent);
-              setSending(false);
               setStreamingText("");
               setStreamingStatus("");
+              dispatchGen({ type: "ERROR" });
               return;
             }
           } catch {}
         }
       }
 
+      if (!owns()) return;
+
       setStreamingText("");
       setStreamingStatus("");
+
+      if (!doneData && !sawError) {
+        // Unexpected EOF: the connection closed without a done or error
+        // frame — e.g. a dropped connection or a killed backend process.
+        // Silently discarding `accText` here (the previous behaviour) is
+        // exactly the "response remains incomplete, nothing visible happens"
+        // symptom reported in production. Treat it the same as a user Stop:
+        // preserve whatever text arrived, and surface it as interrupted
+        // rather than leaving no trace at all.
+        pushInterruptedMessage(accText, "The connection was interrupted before the response finished.");
+        if (!accText.trim()) {
+          setMessages((current) => current.filter((item) => item.id !== optimisticId));
+          setComposerText(originalContent);
+          setNotice("The connection was interrupted before a response arrived. Please try again.");
+        }
+        dispatchGen({ type: "ERROR" });
+        return;
+      }
 
       if (doneData) {
         const d = doneData;
@@ -501,36 +617,51 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
           }
           return [...updated].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
         });
+        if (owns()) dispatchGen({ type: "COMPLETED" });
       }
     } catch (err) {
-      if ((err as Error).name !== "AbortError") {
+      if ((err as Error).name !== "AbortError" && owns()) {
         setNotice("Connection interrupted. Please try again.");
         setMessages((current) => current.filter((item) => item.id !== optimisticId));
         setComposerText(originalContent);
+        dispatchGen({ type: "ERROR" });
       }
+      // AbortError means Stop already drove the state to "stopped" — nothing
+      // further to do here, and definitely no state write for an abandoned
+      // (non-owning) request.
     } finally {
-      abortRef.current = null;
-      setSending(false);
-      setStreamingText("");
-      setStreamingStatus("");
+      if (owns()) {
+        abortRef.current = null;
+        setStreamingText("");
+        setStreamingStatus("");
+      }
     }
+  }
+
+  // Common entry into the lifecycle: idle/stopped/completed/error → sending.
+  // Returns the fresh requestId that streamRequest must be called with.
+  function beginGeneration(conversationId: string): string {
+    const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    activeRequestIdRef.current = requestId;
+    dispatchGen({ type: "START", requestId, conversationId });
+    setStreamingText("");
+    setStreamingStatus("");
+    return requestId;
   }
 
   async function sendMessage() {
     const content = composerText.trim();
     if (!content || sending) return;
-    setSending(true);
-    setStreamingText("");
-    setStreamingStatus("");
+    const requestId = beginGeneration(activeConversationId ?? "pending");
     setNotice(null);
     const conversationId = await ensureConversation();
-    if (!conversationId) { setSending(false); return; }
+    if (!conversationId) { dispatchGen({ type: "ERROR" }); return; }
     const optimisticId = `local-${Date.now()}`;
     setMessages((current) => [...current, { id: optimisticId, role: "user", content }]);
     setComposerText("");
     const attachmentsForRequest = pendingAttachments;
     setPendingAttachments([]);
-    await streamRequest(conversationId, content, attachmentsForRequest.map((a) => a.versionId), optimisticId, content);
+    await streamRequest(conversationId, content, attachmentsForRequest.map((a) => a.versionId), optimisticId, content, requestId);
   }
 
   async function retryLastMessage() {
@@ -540,12 +671,10 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
       const idx = current.findLastIndex((m) => m.role === "assistant");
       return idx >= 0 ? current.slice(0, idx) : current;
     });
-    setSending(true);
-    setStreamingText("");
-    setStreamingStatus("");
+    const requestId = beginGeneration(activeConversationId);
     setNotice(null);
     const optimisticId = `local-retry-${Date.now()}`;
-    await streamRequest(activeConversationId, lastUser.content, [], optimisticId, lastUser.content);
+    await streamRequest(activeConversationId, lastUser.content, [], optimisticId, lastUser.content, requestId);
   }
 
   async function sendEditedMessage(messageId: string, newContent: string) {
@@ -554,38 +683,32 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
     if (idx < 0) return;
     setEditingMessageId(null);
     setMessages((current) => current.slice(0, idx));
-    setSending(true);
-    setStreamingText("");
-    setStreamingStatus("");
+    const requestId = beginGeneration(activeConversationId);
     const optimisticId = `local-edit-${Date.now()}`;
     setMessages((current) => [...current, { id: optimisticId, role: "user", content: newContent }]);
-    await streamRequest(activeConversationId, newContent, [], optimisticId, newContent);
+    await streamRequest(activeConversationId, newContent, [], optimisticId, newContent, requestId);
   }
 
   async function confirmAction(confirmToken: string, label: string) {
     if (!activeConversationId || sending) return;
-    setSending(true);
-    setStreamingText("");
-    setStreamingStatus("");
+    const requestId = beginGeneration(activeConversationId);
     setNotice(null);
     const optimisticId = `local-confirm-${Date.now()}`;
     setMessages((current) => [...current, { id: optimisticId, role: "user", content: `Confirm: ${label}` }]);
     setMessages((current) => current.map((m) => m.pendingConfirmation?.confirmToken === confirmToken ? { ...m, pendingConfirmation: null } : m));
-    await streamRequest(activeConversationId, `__confirm__${confirmToken}`, [], optimisticId, `Confirm: ${label}`);
+    await streamRequest(activeConversationId, `__confirm__${confirmToken}`, [], optimisticId, `Confirm: ${label}`, requestId);
   }
 
   async function cancelAction(confirmToken: string) {
     if (!activeConversationId || sending) return;
-    setSending(true);
-    setStreamingText("");
-    setStreamingStatus("");
+    const requestId = beginGeneration(activeConversationId);
     setNotice(null);
     const optimisticId = `local-cancel-${Date.now()}`;
     setMessages((current) => [
       ...current.map((m) => m.pendingConfirmation?.confirmToken === confirmToken ? { ...m, pendingConfirmation: null } : m),
       { id: optimisticId, role: "user", content: "Cancel" },
     ]);
-    await streamRequest(activeConversationId, `__cancel__${confirmToken}`, [], optimisticId, "Cancel");
+    await streamRequest(activeConversationId, `__cancel__${confirmToken}`, [], optimisticId, "Cancel", requestId);
   }
 
   async function handleFileAttach(files: FileList) {
@@ -634,22 +757,49 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
   }
 
   async function renameConversation(id: string, newTitle: string) {
-    if (!newTitle.trim()) return;
+    const trimmed = newTitle.trim().slice(0, 300);
+    setRenamingConvId(null);
+    if (!trimmed) return;
+    const previous = conversations.find((c) => c.id === id)?.title ?? "";
+    if (trimmed === previous) return;
+    setConversations((current) => current.map((c) => c.id === id ? { ...c, title: trimmed } : c));
     const response = await apiFetch(`conversations/${id}`, {
       method: "PATCH",
-      body: JSON.stringify({ title: newTitle.trim() }),
+      body: JSON.stringify({ title: trimmed }),
     });
-    if (response.ok) {
-      setConversations((current) => current.map((c) => c.id === id ? { ...c, title: newTitle.trim() } : c));
+    if (!response.ok) {
+      setConversations((current) => current.map((c) => c.id === id ? { ...c, title: previous } : c));
+      setNotice("The rename could not be saved. Please try again.");
     }
-    setRenamingConvId(null);
   }
 
   async function archiveConversation(id: string) {
+    setOpenConvMenuId(null);
+    const removed = conversations.find((c) => c.id === id);
+    setConversations((current) => current.filter((c) => c.id !== id));
+    const response = await apiFetch(`conversations/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_archived: true }),
+    });
+    if (response.ok) {
+      if (activeConversationId === id) startNewConversation();
+    } else if (removed) {
+      setConversations((current) => [removed, ...current]);
+      setNotice("The conversation could not be archived. Please try again.");
+    }
+  }
+
+  async function deleteConversation(id: string) {
+    setOpenConvMenuId(null);
+    setPendingDeleteConvId(null);
+    const removed = conversations.find((c) => c.id === id);
+    setConversations((current) => current.filter((c) => c.id !== id));
     const response = await apiFetch(`conversations/${id}`, { method: "DELETE" });
     if (response.ok) {
-      setConversations((current) => current.filter((c) => c.id !== id));
       if (activeConversationId === id) startNewConversation();
+    } else if (removed) {
+      setConversations((current) => [removed, ...current]);
+      setNotice("The conversation could not be deleted. Please try again.");
     }
   }
 
@@ -783,48 +933,26 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
             <nav aria-label="Recent conversations" className="conversation-nav">
               {conversations.length === 0 && <span className="sidebar-empty">No conversations yet.</span>}
               {conversations.map((conv) => (
-                <div key={conv.id} className="conv-nav-row">
-                  {renamingConvId === conv.id ? (
-                    <form
-                      className="conv-rename-form"
-                      onSubmit={(e) => { e.preventDefault(); void renameConversation(conv.id, renameText); }}
-                    >
-                      <input
-                        autoFocus
-                        value={renameText}
-                        onChange={(e) => setRenameText(e.target.value)}
-                        onBlur={() => void renameConversation(conv.id, renameText)}
-                        onKeyDown={(e) => { if (e.key === "Escape") setRenamingConvId(null); }}
-                        aria-label="Rename conversation"
-                      />
-                    </form>
-                  ) : (
-                    <button
-                      type="button"
-                      className={conv.id === activeConversationId ? "conversation-nav-item active" : "conversation-nav-item"}
-                      onClick={() => void openConversation(conv.id)}
-                      title={conv.title}
-                    >
-                      <span>{conv.title}</span>
-                    </button>
-                  )}
-                  {renamingConvId !== conv.id && (
-                    <div className="conv-actions">
-                      <button
-                        type="button"
-                        aria-label="Rename"
-                        title="Rename"
-                        onClick={() => { setRenamingConvId(conv.id); setRenameText(conv.title); }}
-                      ><IEdit /></button>
-                      <button
-                        type="button"
-                        aria-label="Archive"
-                        title="Archive"
-                        onClick={() => void archiveConversation(conv.id)}
-                      ><IArchive /></button>
-                    </div>
-                  )}
-                </div>
+                <ConversationRow
+                  key={conv.id}
+                  conv={conv}
+                  isActive={conv.id === activeConversationId}
+                  isRenaming={renamingConvId === conv.id}
+                  renameText={renameText}
+                  menuOpen={openConvMenuId === conv.id}
+                  confirmingDelete={pendingDeleteConvId === conv.id}
+                  onOpen={() => void openConversation(conv.id)}
+                  onRenameTextChange={setRenameText}
+                  onRenameStart={() => { setRenamingConvId(conv.id); setRenameText(conv.title); setOpenConvMenuId(null); }}
+                  onRenameSubmit={() => void renameConversation(conv.id, renameText)}
+                  onRenameCancel={() => setRenamingConvId(null)}
+                  onToggleMenu={() => setOpenConvMenuId((v) => (v === conv.id ? null : conv.id))}
+                  onCloseMenu={() => setOpenConvMenuId(null)}
+                  onArchive={() => void archiveConversation(conv.id)}
+                  onRequestDelete={() => { setPendingDeleteConvId(conv.id); setOpenConvMenuId(null); }}
+                  onCancelDelete={() => setPendingDeleteConvId(null)}
+                  onConfirmDelete={() => void deleteConversation(conv.id)}
+                />
               ))}
             </nav>
           </div>
@@ -1056,6 +1184,127 @@ export function WorkspaceShell({ activeRole }: { activeRole: string }) {
         )}
       </section>
     </main>
+  );
+}
+
+// ── ConversationRow ──────────────────────────────────────────────────────
+function ConversationRow({
+  conv,
+  isActive,
+  isRenaming,
+  renameText,
+  menuOpen,
+  confirmingDelete,
+  onOpen,
+  onRenameTextChange,
+  onRenameStart,
+  onRenameSubmit,
+  onRenameCancel,
+  onToggleMenu,
+  onCloseMenu,
+  onArchive,
+  onRequestDelete,
+  onCancelDelete,
+  onConfirmDelete,
+}: {
+  conv: ConversationSummary;
+  isActive: boolean;
+  isRenaming: boolean;
+  renameText: string;
+  menuOpen: boolean;
+  confirmingDelete: boolean;
+  onOpen: () => void;
+  onRenameTextChange: (v: string) => void;
+  onRenameStart: () => void;
+  onRenameSubmit: () => void;
+  onRenameCancel: () => void;
+  onToggleMenu: () => void;
+  onCloseMenu: () => void;
+  onArchive: () => void;
+  onRequestDelete: () => void;
+  onCancelDelete: () => void;
+  onConfirmDelete: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onCloseMenu();
+    }
+    function handleKey(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape") onCloseMenu();
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [menuOpen, onCloseMenu]);
+
+  if (confirmingDelete) {
+    return (
+      <div className="conv-nav-row conv-confirm">
+        <p>Delete conversation?</p>
+        <small>This removes it from your conversation list.</small>
+        <div className="conv-confirm-actions">
+          <button type="button" onClick={onCancelDelete}>Cancel</button>
+          <button type="button" className="danger" onClick={onConfirmDelete}>Delete</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isRenaming) {
+    return (
+      <div className="conv-nav-row">
+        <form
+          className="conv-rename-form"
+          onSubmit={(e) => { e.preventDefault(); onRenameSubmit(); }}
+        >
+          <input
+            autoFocus
+            maxLength={300}
+            value={renameText}
+            onChange={(e) => onRenameTextChange(e.target.value)}
+            onBlur={onRenameSubmit}
+            onKeyDown={(e) => { if (e.key === "Escape") onRenameCancel(); }}
+            aria-label="Rename conversation"
+          />
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className={menuOpen ? "conv-nav-row menu-open" : "conv-nav-row"} ref={menuRef}>
+      <button
+        type="button"
+        className={isActive ? "conversation-nav-item active" : "conversation-nav-item"}
+        onClick={onOpen}
+        title={conv.title}
+      >
+        <span>{conv.title}</span>
+      </button>
+      <button
+        type="button"
+        className="conv-menu-trigger"
+        aria-label="Conversation options"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={onToggleMenu}
+      >
+        <IMore />
+      </button>
+      {menuOpen && (
+        <div className="conv-menu" role="menu">
+          <button type="button" role="menuitem" onClick={onRenameStart}><IEdit /> Rename</button>
+          <button type="button" role="menuitem" onClick={onArchive}><IArchive /> Archive</button>
+          <button type="button" role="menuitem" className="danger" onClick={onRequestDelete}><ITrash /> Delete</button>
+        </div>
+      )}
+    </div>
   );
 }
 
