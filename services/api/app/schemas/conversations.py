@@ -19,6 +19,7 @@ class ConversationCreate(BaseModel):
 
 class ConversationUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=300)
+    is_archived: bool | None = None
 
 
 class ConversationRead(AuditFields):
