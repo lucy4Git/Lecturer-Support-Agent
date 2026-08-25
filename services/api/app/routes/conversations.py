@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import StreamingResponse
 from typing import Annotated
 
@@ -46,8 +46,9 @@ async def list_conversations(
     session: DatabaseSession,
     context: CurrentContext,
     limit: int = Query(default=50, ge=1, le=100),
+    archived: bool | None = Query(default=False, description="False=active only (default), True=archived only, omit for both."),
 ) -> list[ConversationRead]:
-    rows = await ConversationEngine(session, context, get_settings()).list_conversations(limit=limit)
+    rows = await ConversationEngine(session, context, get_settings()).list_conversations(limit=limit, archived=archived)
     return [ConversationRead.model_validate(row) for row in rows]
 
 
@@ -129,12 +130,12 @@ async def update_conversation(
 
 
 @router.delete("/{conversation_id}", response_model=ConversationRead)
-async def archive_conversation(
+async def delete_conversation(
     conversation_id: UUID,
     session: DatabaseSession,
     context: CurrentContext,
 ) -> ConversationRead:
-    row = await ConversationEngine(session, context, get_settings()).archive_conversation(conversation_id)
+    row = await ConversationEngine(session, context, get_settings()).soft_delete_conversation(conversation_id)
     return ConversationRead.model_validate(row)
 
 
@@ -144,6 +145,7 @@ async def stream_message(
     payload: MessageCreate,
     session: DatabaseSession,
     context: CurrentContext,
+    request: Request,
     embedding: Annotated[EmbeddingClient, Depends(get_embedding_client)],
     qdrant: Annotated[QdrantGateway, Depends(get_qdrant_gateway)],
 ) -> StreamingResponse:
@@ -156,7 +158,7 @@ async def stream_message(
         ),
     )
     return StreamingResponse(
-        engine.stream_message(conversation_id=conversation_id, payload=payload),
+        engine.stream_message(conversation_id=conversation_id, payload=payload, request=request),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
